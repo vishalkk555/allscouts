@@ -1,0 +1,153 @@
+<%- include("../partials/user/header") %>
+
+<style>
+  .error-message {
+    color: red;
+    font-size: 0.8rem;
+    margin-top: 4px;
+  }
+  .error-border {
+    border: 1px solid red;
+  }
+</style>
+
+<div class="signup-wrapper">
+  <div class="card">
+    <h2>Create Account</h2>
+
+    <% if (message) { %>
+      <p class="error"><%= message %></p>
+    <% } %>
+
+    <form id="signupForm" action="/signup" method="POST" novalidate>
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input type="text" name="name" id="name" value="<%= data?.name || '' %>" required />
+        <small class="error-message"></small>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" name="email" id="email" value="<%= data?.email || '' %>" required />
+        <small class="error-message"></small>
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Phone Number</label>
+        <input type="tel" name="phone" id="phone" pattern="[0-9]{10}" maxlength="10" value="<%= data?.phone || '' %>" required />
+        <small class="error-message"></small>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" name="password" id="password" required />
+        <small class="error-message"></small>
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <input type="password" name="confirmPassword" id="confirmPassword" required />
+        <small class="error-message"></small>
+      </div>
+ 
+              
+       <% if (locals.message && message.length > 0) { %>
+    <div class="alert alert-danger text-center"><%= message %></div>
+<% } %>
+
+
+      <button type="submit" class="btn">Sign Up</button>
+    </form>
+
+    <div class="signin-link">
+      Already have an account? <a href="/login">Sign In</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const name = document.getElementById('name');
+const email = document.getElementById('email');
+const phone = document.getElementById('phone');
+const password = document.getElementById('password');
+const confirmPassword = document.getElementById('confirmPassword');
+
+const form = document.getElementById('signupForm');
+
+const passwordPattern = /^(?=.*[A-Z])(?=.*\d).{8,}$/; // min 8 chars, 1 uppercase, 1 number
+
+name.addEventListener('blur', () => validateName(name));
+email.addEventListener('blur', () => validateEmailField(email));
+phone.addEventListener('blur', () => validatePhone(phone));
+password.addEventListener('blur', () => validatePassword(password));
+confirmPassword.addEventListener('blur', () => validateConfirmPassword(confirmPassword, password));
+
+form.addEventListener('submit', (e) => {
+    let valid = true;
+
+    if (!validateName(name)) valid = false;
+    if (!validateEmailField(email)) valid = false;
+    if (!validatePhone(phone)) valid = false;
+    if (!validatePassword(password)) valid = false;
+    if (!validateConfirmPassword(confirmPassword, password)) valid = false;
+
+    if (!valid) e.preventDefault();
+});
+
+function validateName(input) {
+    if (input.value.trim() === '') {
+        setError(input, 'Name is required');
+        return false;
+    }
+    clearError(input);
+    return true;
+}
+
+function validateEmailField(input) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value)) {
+        setError(input, 'Enter a valid email');
+        return false;
+    }
+    clearError(input);
+    return true;
+}
+
+function validatePhone(input) {
+    if (!/^\d{10}$/.test(input.value)) {
+        setError(input, 'Phone must be 10 digits');
+        return false;
+    }
+    clearError(input);
+    return true;
+}
+
+function validatePassword(input) {
+    if (!passwordPattern.test(input.value)) {
+        setError(input, 'Password: min 8 chars, 1 uppercase, 1 number');
+        return false;
+    }
+    clearError(input);
+    return true;
+}
+
+function validateConfirmPassword(input, passwordInput) {
+    if (input.value !== passwordInput.value) {
+        setError(input, 'Passwords do not match');
+        return false;
+    }
+    clearError(input);
+    return true;
+}
+
+function setError(input, message) {
+    input.classList.add('error-border');
+    input.nextElementSibling.textContent = message;
+}
+
+function clearError(input) {
+    input.classList.remove('error-border');
+    input.nextElementSibling.textContent = '';
+}
+</script>
+
+<%- include("../partials/user/footer") %>
