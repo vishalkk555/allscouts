@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/admin/assets/css/main.css"> <!-- Make sure this path is correct -->
+</head>
+<body class="login-page">
+  <div class="card">
+    <h2>Admin Sign In</h2>
+    <form id="adminLoginForm" action="/admin/login" method="post">
+      <div class="form-group">
+        <label for="email">Email*</label>
+        <input type="email" id="email" name="email" required />
+      </div>
+       
+      <div class="form-group">
+        <label for="password">Password*</label>
+        <input type="password" id="password" name="password" required />
+      </div>
+               
+      <% if (locals.message && message.length > 0) { %>
+        <div class="alert alert-danger text-center"><%= message %></div>
+      <% } %>
+       
+      <button type="submit" class="btn">Login</button>
+    </form>
+  </div>
+   
+  <!-- Optional: Custom JS validation -->
+  <script>
+    document.getElementById("adminLoginForm").addEventListener("submit", function (e) {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+       
+      if (!email) {
+        alert("Please enter your email.");
+        e.preventDefault();
+        return;
+      }
+       
+      if (!password) {
+        alert("Please enter your password.");
+        e.preventDefault();
+        return;
+      }
+    });
+  </script>
+</body>
+</html>

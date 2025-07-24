@@ -1,0 +1,234 @@
+
+<<body>
+    <%- include("../partials/admin/header") %>
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Categories</h1>
+            <p class="page-subtitle">Manage your product categories</p>
+        </div>
+
+        <!-- Search and Add Category Section -->
+        <div class="search-add-section">
+            <div class="search-add-container">
+                <!-- Search Form -->
+                <form class="search-form" method="GET" action="/admin/categories">
+                    <input type="text" name="search" class="search-input" placeholder="Search categories..." value="<%= search || '' %>">
+                    <button type="submit" class="btn btn-primary">Search</button>
+                   <button type="button" class="btn btn-secondary" id="clear-button">Clear</button>
+                </form>
+
+                <!-- Add Category Button (Changed from form to link) -->
+                <div class="add-category-section">
+                    <a href="/admin/addCategory" class="btn btn-success">Add Category</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Section -->
+        <div class="table-section">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Sl No.</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (categories && categories.length > 0) { %>
+                            <% categories.forEach((category, index) => { %>
+                                <tr>
+                                    <td><%= ((currentPage - 1) * 4) + index + 1 %></td>
+                                    <td><%= category.name %></td>
+                                    <td>
+                                        <% if (category.isActive) { %>
+                                            <span class="badge bg-success">Active</span>
+                                        <% } else { %>
+                                            <span class="badge bg-danger">Inactive</span>
+                                        <% } %>
+                                    </td>
+                                   <td>
+            <a href="/admin/editCategories/<%= category._id %>" class="btn btn-sm btn-warning">Edit</a>
+                <button class="btn btn-sm <%= category.isActive ? 'btn-danger' : 'btn-success' %> block-unblock-btn"
+                 data-id="<%= category._id %>" 
+                 data-action="<%= category.isActive ? 'block' : 'unblock' %>">
+             <%= category.isActive ? 'Block' : 'Unblock' %>
+              </button>
+            </td>
+
+                                </tr>
+                            <% }) %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="4" class="text-center">No categories found</td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination-section">
+                <div class="pagination-info">
+                    Showing <strong><%= ((currentPage - 1) * 4) + 1 %></strong> to <strong><%= Math.min(currentPage * 4, totalItems) %></strong> of <strong><%= totalItems %></strong> results
+                </div>
+                <nav>
+                    <ul class="pagination">
+                        <% if (currentPage > 1) { %>
+                            <li class="page-item">
+                                <a class="page-link" href="?page=<%= currentPage - 1 %><%= search ? '&search=' + search : '' %>">‹ Previous</a>
+                            </li>
+                        <% } %>
+                        
+                        <% for (let i = 1; i <= totalPages; i++) { %>
+                            <li class="page-item <%= i === currentPage ? 'active' : '' %>">
+                                <a class="page-link" href="?page=<%= i %><%= search ? '&search=' + search : '' %>"><%= i %></a>
+                            </li>
+                        <% } %>
+                        
+                        <% if (currentPage < totalPages) { %>
+                            <li class="page-item">
+                                <a class="page-link" href="?page=<%= currentPage + 1 %><%= search ? '&search=' + search : '' %>">Next ›</a>
+                            </li>
+                        <% } %>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <script>
+document.querySelector('.search-form').addEventListener('submit', function(e) {
+    e.preventDefault();  // prevent reload
+
+    const searchValue = document.querySelector('.search-input').value;
+
+    fetch(`/admin/api/categories?search=${searchValue}&page=1`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                updateCategoryTable(data.categories);
+                updatePagination(data.currentPage, data.totalPages);
+            }
+        })
+        .catch(err => console.error('Search error:', err));
+});
+
+
+document.getElementById('clear-button').addEventListener('click', () => {
+    document.querySelector('.search-input').value = '';
+
+    fetch(`/admin/api/categories?page=1`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                updateCategoryTable(data.categories);
+                updatePagination(data.currentPage, data.totalPages);
+            }
+        })
+        .catch(err => console.error('Clear error:', err));
+});
+
+
+
+
+function updateCategoryTable(categories) {
+    const tbody = document.querySelector("tbody");
+    tbody.innerHTML = '';
+
+    if (categories.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center">No categories found</td></tr>';
+        return;
+    }
+
+    categories.forEach((category, index) => {
+        const statusBadge = category.isActive
+            ? '<span class="badge bg-success">Active</span>'
+            : '<span class="badge bg-danger">Inactive</span>';
+
+        const blockUnblockButton = category.isActive
+    ? `<button class="btn btn-sm btn-danger block-unblock-btn" data-id="${category._id}" data-action="block">Block</button>`
+    : `<button class="btn btn-sm btn-success block-unblock-btn" data-id="${category._id}" data-action="unblock">Unblock</button>`;
+
+
+        tbody.innerHTML += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${category.name}</td>
+                <td>${statusBadge}</td>
+                <td>
+                    <a href="/admin/editCategories/${category._id}" class="btn btn-sm btn-warning">Edit</a>
+                    ${blockUnblockButton}
+                </td>
+            </tr>
+        `;
+    });
+}
+
+
+function updatePagination(currentPage, totalPages) {
+    const paginationContainer = document.querySelector('.pagination');
+    paginationContainer.innerHTML = '';
+
+    if (currentPage > 1) {
+        paginationContainer.innerHTML += `
+            <li class="page-item">
+                <a class="page-link" href="?page=${currentPage - 1}">‹ Previous</a>
+            </li>`;
+    }
+
+    for (let i = 1; i <= totalPages; i++) {
+        paginationContainer.innerHTML += `
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+                <a class="page-link" href="?page=${i}">${i}</a>
+            </li>`;
+    }
+
+    if (currentPage < totalPages) {
+        paginationContainer.innerHTML += `
+            <li class="page-item">
+                <a class="page-link" href="?page=${currentPage + 1}">Next ›</a>
+            </li>`;
+    }
+}
+
+document.addEventListener('click', async (e) => {
+    if (e.target.classList.contains('block-unblock-btn')) {
+        const categoryId = e.target.getAttribute('data-id');
+        const action = e.target.getAttribute('data-action');
+
+        try {
+            const response = await fetch(`/admin/categories/${action}/${categoryId}`, {
+                method: 'POST'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Refresh category list
+                const searchValue = document.querySelector('.search-input').value || '';
+                fetch(`/admin/api/categories?search=${searchValue}&page=1`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            updateCategoryTable(data.categories);
+                            updatePagination(data.currentPage, data.totalPages);
+                        }
+                    });
+            }
+        } catch (err) {
+            console.error('Failed to block/unblock:', err);
+        }
+    }
+});
+
+
+
+
+    </script>
+    
+</body>
+</html>

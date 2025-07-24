@@ -1,0 +1,146 @@
+<body>
+    <!-- Include your header partial here -->
+    <!-- <%- include("../partials/admin/header") %> -->
+
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Update Category</h1>
+        </div>
+
+        <!-- Form Container -->
+        <div class="form-container">
+            <div class="form-header">
+                <h2 class="form-title">Edit Category Details</h2>
+                <p class="form-subtitle">Update the category information below</p>
+            </div>
+
+            <form id="categoryForm">
+                <input type="hidden" id="categoryId" value="<%= category._id %>">
+
+                <div class="form-content">
+                    <div class="form-group">
+                        <label for="categoryName" class="form-label">Category Name *</label>
+                        <input 
+                            type="text" 
+                            id="categoryName" 
+                            name="categoryName" 
+                            class="form-input" 
+                            placeholder="Enter category name"
+                            value="<%= category.name %>"
+                            required
+                        >
+                        <div class="error-message" id="categoryNameError"></div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary" id="updateBtn">Update Category</button>
+                    <button type="button" class="btn-secondary" onclick="cancelForm()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        const categoryForm = document.getElementById('categoryForm');
+        const categoryNameInput = document.getElementById('categoryName');
+        const categoryNameError = document.getElementById('categoryNameError');
+        const updateBtn = document.getElementById('updateBtn');
+
+        categoryForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const categoryName = categoryNameInput.value.trim();
+            categoryNameInput.classList.remove('error');
+            categoryNameError.style.display = 'none';
+
+            let hasError = false;
+
+            if (!categoryName) {
+                categoryNameInput.classList.add('error');
+                categoryNameError.textContent = 'Category name is required';
+                categoryNameError.style.display = 'block';
+                hasError = true;
+            } else if (categoryName.length < 2) {
+                categoryNameInput.classList.add('error');
+                categoryNameError.textContent = 'Category name must be at least 2 characters long';
+                categoryNameError.style.display = 'block';
+                hasError = true;
+            } else if (categoryName.length > 50) {
+                categoryNameInput.classList.add('error');
+                categoryNameError.textContent = 'Category name must be less than 50 characters';
+                categoryNameError.style.display = 'block';
+                hasError = true;
+            } else if (!/^[a-zA-Z0-9\s&-]+$/.test(categoryName)) {
+                categoryNameInput.classList.add('error');
+                categoryNameError.textContent = 'Category name contains invalid characters';
+                categoryNameError.style.display = 'block';
+                hasError = true;
+            }
+
+            if (hasError) return;
+
+            updateBtn.textContent = 'Updating...';
+            updateBtn.disabled = true;
+
+            const categoryId = document.getElementById('categoryId').value;
+
+            try {
+                const response = await fetch(`/admin/updateCategories/${categoryId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name: categoryName })
+                });
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Category updated successfully',
+                        confirmButtonColor: '#3085d6'
+                    }).then(() => {
+                        window.location.href = "/admin/categories";
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Update failed!',
+                        text: 'Category could not be updated'
+                    });
+                    updateBtn.textContent = 'Update Category';
+                    updateBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error("Update error:", error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'An error occurred while updating'
+                });
+                updateBtn.textContent = 'Update Category';
+                updateBtn.disabled = false;
+            }
+        });
+
+        categoryNameInput.addEventListener('input', () => {
+            if (categoryNameInput.classList.contains('error')) {
+                categoryNameInput.classList.remove('error');
+                categoryNameError.style.display = 'none';
+            }
+        });
+
+        function cancelForm() {
+            categoryNameInput.value = '';
+            categoryNameInput.classList.remove('error');
+            categoryNameError.textContent = '';
+            categoryNameError.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

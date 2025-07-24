@@ -1,0 +1,104 @@
+<body>
+    <!-- <%- include("../partials/admin/header") %> -->
+
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Add Category</h1>
+        </div>
+
+        <!-- Form Container -->
+        <div class="form-container">
+            <div class="form-header">
+                <h2 class="form-title">Create New Category</h2>
+                <p class="form-subtitle">Fill in the category information below</p>
+            </div>
+
+            <form id="categoryForm">
+                <div class="form-content">
+                    <div class="form-group">
+                        <label for="categoryName" class="form-label">Category Name *</label>
+                        <input 
+                            type="text" 
+                            id="categoryName" 
+                            name="categoryName" 
+                            class="form-input" 
+                            placeholder="Enter category name"
+                            required
+                        >
+                        <div class="error-message" id="categoryNameError"></div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary" id="saveBtn">Add Category</button>
+                    <button type="button" class="btn-secondary" onclick="cancelForm()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById("categoryForm");
+        const categoryNameInput = document.getElementById("categoryName");
+        const categoryNameError = document.getElementById("categoryNameError");
+
+        form.addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const name = categoryNameInput.value.trim();
+            categoryNameError.style.display = "none";
+
+            if (!name) {
+                categoryNameError.textContent = "Category name is required.";
+                categoryNameError.style.display = "block";
+                return;
+            }
+
+            try {
+                const res = await fetch('/admin/addCategory', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: data.message || 'Category added successfully!',
+                        confirmButtonColor: '#3BB77E'
+                    });
+
+                    form.reset(); // Clear form
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'Something went wrong.',
+                        confirmButtonColor: '#d33'
+                    });
+                }
+
+            } catch (err) {
+                console.error(err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Something went wrong. Please try again later.',
+                    confirmButtonColor: '#d33'
+                });
+            }
+        });
+
+        function cancelForm() {
+            form.reset();
+            categoryNameError.style.display = "none";
+        }
+    </script>
+</body>
+</html>

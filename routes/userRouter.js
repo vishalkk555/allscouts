@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const passport =require('passport');
-const userController  = require("../controllers/user/userController")
+const userController  = require("../controllers/user/userController");
+const { redirectIfLoggedIn } = require("../middlewares/auth");
 
 
 router.get("/pageNotFound",userController.pageNotFound);
