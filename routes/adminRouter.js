@@ -1,8 +1,10 @@
 const express = require("express")
 const router = express.Router()
+const upload = require('../middlewares/upload');
 const adminController = require("../controllers/admin/adminController");
 const categoryController = require("../controllers/admin/categoryController")
 const productController = require("../controllers/admin/productController")
+const customerController = require("../controllers/admin/customerController")
 const {userAuth,adminAuth} = require("../middlewares/auth")
 
 
@@ -24,10 +26,24 @@ router.get("/categories", adminAuth, categoryController.categoryInfo);
 
 
 
-//Product Management
-router.get('/addProduct', adminAuth, productController.loadAddProduct)
-router.get('/api/categoreis/active',categoryController.getActiveCategories)
-router.get('/editProduct',productController.editProduct)
+// Product Management
+router.get('/addProduct', adminAuth, productController.loadAddProduct);
+router.post('/api/products', adminAuth, upload.array('images', 10), productController.addProducts);
+router.get('/api/categories/active', adminAuth, categoryController.getActiveCategories);
+router.get('/editProduct/:id', productController.editProduct);
+router.put('/api/products/:id', adminAuth, upload.array('images', 10), productController.updateProduct);
+router.get('/products',productController.listProducts)
+router.get('/api/products',productController.getProductsAPI)
+router.post('/products/block/:id',productController.blockProduct)
+router.post('/products/unblock/:id',productController.unblockProduct)
+
+
+//Customer Management
+router.get('/users',adminAuth , customerController.customerInfo)
+router.get('/api/customers', adminAuth, customerController.getCustomersAPI);
+router.patch('/api/customers/:id/block', adminAuth, customerController.blockCustomer);
+router.patch('/api/customers/:id/unblock', adminAuth, customerController.unblockCustomer);
+
 
 
 

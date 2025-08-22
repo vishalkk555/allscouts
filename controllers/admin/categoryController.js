@@ -22,8 +22,6 @@ const categoryInfo = async (req, res) => {
         const totalCategories = await Category.countDocuments(query);
         const totalPages = Math.ceil(totalCategories / limit);
 
-        
-
         res.render("category", {
             categories: categoryData,
             currentPage: page,
@@ -183,23 +181,19 @@ const updateCategory = async (req, res) => {
 
 
 const getActiveCategories = async (req,res) => {
-    try {
+  try {
+    const categories = await Category.find({ isActive: true }).sort({ name: 1 });
 
-         const categories =  await Category.find({isActive:true}).sort({name:1})
-         
-         const formatted = categories.map(cat => ({
-            value : cat._id,
-            name:cat.name
-         }))
+    const formatted = categories.map(cat => ({
+      value: cat._id,
+      label: cat.name  
+    }));
 
-         res.status(200).json({success:true,categories : formatted})
-
-    } catch (error) {
-        res.status(500).json({success:false, message : "failed to fetch categories"})
-    }
-
-
-}
+    res.status(200).json({ success: true, categories: formatted });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to fetch categories" });
+  }
+};
 
 
 

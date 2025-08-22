@@ -101,43 +101,14 @@
     </div>
 
     <script>
-document.querySelector('.search-form').addEventListener('submit', function(e) {
-    e.preventDefault();  // prevent reload
 
-    const searchValue = document.querySelector('.search-input').value;
-
-    fetch(`/admin/api/categories?search=${searchValue}&page=1`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                updateCategoryTable(data.categories);
-                updatePagination(data.currentPage, data.totalPages);
-            }
-        })
-        .catch(err => console.error('Search error:', err));
-});
-
-
-document.getElementById('clear-button').addEventListener('click', () => {
-    document.querySelector('.search-input').value = '';
-
-    fetch(`/admin/api/categories?page=1`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                updateCategoryTable(data.categories);
-                updatePagination(data.currentPage, data.totalPages);
-            }
-        })
-        .catch(err => console.error('Clear error:', err));
-});
-
-
-
-
-function updateCategoryTable(categories) {
+   
+// --- Common functions ---
+function updateCategoryTable(categories, currentPage) {
     const tbody = document.querySelector("tbody");
     tbody.innerHTML = '';
+
+    const limit = 4; // match backend pagination limit
 
     if (categories.length === 0) {
         tbody.innerHTML = '<tr><td colspan="4" class="text-center">No categories found</td></tr>';
@@ -150,13 +121,12 @@ function updateCategoryTable(categories) {
             : '<span class="badge bg-danger">Inactive</span>';
 
         const blockUnblockButton = category.isActive
-    ? `<button class="btn btn-sm btn-danger block-unblock-btn" data-id="${category._id}" data-action="block">Block</button>`
-    : `<button class="btn btn-sm btn-success block-unblock-btn" data-id="${category._id}" data-action="unblock">Unblock</button>`;
-
+            ? `<button class="btn btn-sm btn-danger block-unblock-btn" data-id="${category._id}" data-action="block">Block</button>`
+            : `<button class="btn btn-sm btn-success block-unblock-btn" data-id="${category._id}" data-action="unblock">Unblock</button>`;
 
         tbody.innerHTML += `
             <tr>
-                <td>${index + 1}</td>
+                <td>${((currentPage - 1) * limit) + index + 1}</td>
                 <td>${category.name}</td>
                 <td>${statusBadge}</td>
                 <td>
@@ -167,7 +137,6 @@ function updateCategoryTable(categories) {
         `;
     });
 }
-
 
 function updatePagination(currentPage, totalPages) {
     const paginationContainer = document.querySelector('.pagination');
@@ -195,37 +164,98 @@ function updatePagination(currentPage, totalPages) {
     }
 }
 
+// --- Fetch helper ---
+function fetchCategories(page = 1, search = '') {
+    fetch(`/admin/api/categories?search=${search}&page=${page}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                updateCategoryTable(data.categories, data.currentPage);
+                updatePagination(data.currentPage, data.totalPages);
+            }
+        })
+        .catch(err => console.error('Fetch categories error:', err));
+}
+
+// --- Search form ---
+document.querySelector('.search-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const searchValue = document.querySelector('.search-input').value;
+    fetchCategories(1, searchValue);
+});
+
+// --- Clear search ---
+document.getElementById('clear-button').addEventListener('click', () => {
+    document.querySelector('.search-input').value = '';
+    fetchCategories(1, '');
+});
+
+// --- AJAX pagination ---
+document.addEventListener('click', function (e) {
+    if (e.target.classList.contains('page-link')) {
+        e.preventDefault();
+        const href = e.target.getAttribute('href');
+        const urlParams = new URLSearchParams(href.split('?')[1]);
+        const page = parseInt(urlParams.get('page')) || 1;
+        const searchValue = document.querySelector('.search-input').value || '';
+        fetchCategories(page, searchValue);
+    }
+});
+
+// --- Block/Unblock ---
+// --- Block/Unblock with SweetAlert ---
 document.addEventListener('click', async (e) => {
     if (e.target.classList.contains('block-unblock-btn')) {
         const categoryId = e.target.getAttribute('data-id');
         const action = e.target.getAttribute('data-action');
 
+        // 1️⃣ Ask confirmation first
+        const confirmResult = await Swal.fire({
+            title: `Are you sure you want to ${action} this category?`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: action === "block" ? "#d33" : "#28a745",
+            cancelButtonColor: "#6c757d",
+            confirmButtonText: `Yes, ${action} it!`
+        });
+
+        if (!confirmResult.isConfirmed) return; // stop if cancelled
+
         try {
+            // 2️⃣ Call backend
             const response = await fetch(`/admin/categories/${action}/${categoryId}`, {
                 method: 'POST'
             });
-
             const data = await response.json();
 
+            // 3️⃣ Handle backend response
             if (data.success) {
-                // Refresh category list
-                const searchValue = document.querySelector('.search-input').value || '';
-                fetch(`/admin/api/categories?search=${searchValue}&page=1`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) {
-                            updateCategoryTable(data.categories);
-                            updatePagination(data.currentPage, data.totalPages);
-                        }
-                    });
+                Swal.fire("Success!", data.message, "success").then(() => {
+                    const activePageEl = document.querySelector('.pagination .active .page-link');
+                    const currentPage = activePageEl ? parseInt(activePageEl.textContent) : 1;
+                    const searchValue = document.querySelector('.search-input').value || '';
+                    fetchCategories(currentPage, searchValue);
+                });
+            } else {
+                Swal.fire("Error!", data.message, "error");
             }
         } catch (err) {
             console.error('Failed to block/unblock:', err);
+            Swal.fire("Error!", "Something went wrong. Try again later.", "error");
         }
     }
 });
 
 
+// --- Handle back/forward navigation ---
+window.addEventListener("pageshow", function (event) {
+    if (event.persisted) {
+        const activePageEl = document.querySelector('.pagination .active .page-link');
+        const currentPage = activePageEl ? parseInt(activePageEl.textContent) : 1;
+        const searchValue = document.querySelector('.search-input').value || '';
+        fetchCategories(currentPage, searchValue);
+    }
+});
 
 
     </script>

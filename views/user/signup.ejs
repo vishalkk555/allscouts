@@ -49,12 +49,10 @@
         <input type="password" name="confirmPassword" id="confirmPassword" required />
         <small class="error-message"></small>
       </div>
- 
-              
-       <% if (locals.message && message.length > 0) { %>
-    <div class="alert alert-danger text-center"><%= message %></div>
-<% } %>
 
+      <% if (locals.message && message.length > 0) { %>
+        <div class="alert alert-danger text-center"><%= message %></div>
+      <% } %>
 
       <button type="submit" class="btn">Sign Up</button>
     </form>
@@ -66,23 +64,24 @@
 </div>
 
 <script>
-const name = document.getElementById('name');
-const email = document.getElementById('email');
-const phone = document.getElementById('phone');
-const password = document.getElementById('password');
-const confirmPassword = document.getElementById('confirmPassword');
+  const name = document.getElementById('name');
+  const email = document.getElementById('email');
+  const phone = document.getElementById('phone');
+  const password = document.getElementById('password');
+  const confirmPassword = document.getElementById('confirmPassword');
+  const form = document.getElementById('signupForm');
 
-const form = document.getElementById('signupForm');
+  const passwordPattern = /^(?=.*[A-Z])(?=.*\d).{8,}$/; // min 8 chars, 1 uppercase, 1 number
+  const namePattern = /^[A-Za-z]+$/; // Only characters, no space or symbols
+  const phonePattern = /^[6-9]\d{9}$/; // 10 digits starting with 6-9
 
-const passwordPattern = /^(?=.*[A-Z])(?=.*\d).{8,}$/; // min 8 chars, 1 uppercase, 1 number
+  name.addEventListener('blur', () => validateName(name));
+  email.addEventListener('blur', () => validateEmailField(email));
+  phone.addEventListener('blur', () => validatePhone(phone));
+  password.addEventListener('blur', () => validatePassword(password));
+  confirmPassword.addEventListener('blur', () => validateConfirmPassword(confirmPassword, password));
 
-name.addEventListener('blur', () => validateName(name));
-email.addEventListener('blur', () => validateEmailField(email));
-phone.addEventListener('blur', () => validatePhone(phone));
-password.addEventListener('blur', () => validatePassword(password));
-confirmPassword.addEventListener('blur', () => validateConfirmPassword(confirmPassword, password));
-
-form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', (e) => {
     let valid = true;
 
     if (!validateName(name)) valid = false;
@@ -92,62 +91,70 @@ form.addEventListener('submit', (e) => {
     if (!validateConfirmPassword(confirmPassword, password)) valid = false;
 
     if (!valid) e.preventDefault();
-});
+  });
 
-function validateName(input) {
-    if (input.value.trim() === '') {
-        setError(input, 'Name is required');
-        return false;
+  function validateName(input) {
+    if (!namePattern.test(input.value.trim())) {
+      setError(input, 'Only alphabets allowed without spaces or symbols');
+      return false;
     }
     clearError(input);
     return true;
-}
+  }
 
-function validateEmailField(input) {
+  function validateEmailField(input) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value)) {
-        setError(input, 'Enter a valid email');
-        return false;
+      setError(input, 'Enter a valid email');
+      return false;
     }
     clearError(input);
     return true;
-}
+  }
 
-function validatePhone(input) {
-    if (!/^\d{10}$/.test(input.value)) {
-        setError(input, 'Phone must be 10 digits');
-        return false;
+  function validatePhone(input) {
+    const value = input.value.trim();
+
+    if (!phonePattern.test(value)) {
+      setError(input, 'Phone must start with 6-9 and be 10 digits');
+      return false;
     }
+
+    if (/^(\d)\1{9}$/.test(value)) {
+      setError(input, 'Phone number cannot be all same digits');
+      return false;
+    }
+
     clearError(input);
     return true;
-}
+  }
 
-function validatePassword(input) {
+  function validatePassword(input) {
     if (!passwordPattern.test(input.value)) {
-        setError(input, 'Password: min 8 chars, 1 uppercase, 1 number');
-        return false;
+      setError(input, 'Password: min 8 chars, 1 uppercase, 1 number');
+      return false;
     }
     clearError(input);
     return true;
-}
+  }
 
-function validateConfirmPassword(input, passwordInput) {
+  function validateConfirmPassword(input, passwordInput) {
     if (input.value !== passwordInput.value) {
-        setError(input, 'Passwords do not match');
-        return false;
+      setError(input, 'Passwords do not match');
+      return false;
     }
     clearError(input);
     return true;
-}
+  }
 
-function setError(input, message) {
+  function setError(input, message) {
     input.classList.add('error-border');
     input.nextElementSibling.textContent = message;
-}
+  }
 
-function clearError(input) {
+  function clearError(input) {
     input.classList.remove('error-border');
     input.nextElementSibling.textContent = '';
-}
+  }
 </script>
 
 <%- include("../partials/user/footer") %>

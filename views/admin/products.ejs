@@ -1,0 +1,379 @@
+<body>
+    <%- include("../partials/admin/header") %>
+    <div class="product-page">
+        <div class="product-container">
+            <!-- Page Header -->
+            <div class="product-page-header">
+                <h1 class="product-page-title">Products</h1>
+                <p class="product-page-subtitle">Manage your products</p>
+            </div>
+
+            <!-- Search and Add Product Section -->
+            <div class="product-search-add-section">
+                <div class="product-search-add-container">
+                    <!-- Search Form -->
+                    <form class="product-search-form" method="GET" action="/admin/products">
+                        <input type="text" name="search" class="product-search-input" placeholder="Search products..." value="<%= search || '' %>">
+                        <button type="submit" class="product-btn product-btn-primary">Search</button>
+                        <button type="button" class="product-btn product-btn-secondary" id="product-clear-button">Clear</button>
+                    </form>
+
+                    <!-- Add Product Button -->
+                    <div class="product-add-section">
+                        <a href="/admin/addProduct" class="product-btn product-btn-success">Add Product</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Section -->
+            <div class="product-table-section">
+                <div class="product-table-container">
+                    <table class="product-table">
+                        <thead>
+                            <tr>
+                                <th>Sl No.</th>
+                                <th>Product Name</th>
+                                <th>Image</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="product-tbody">
+                            <% if (products && products.length > 0) { %>
+                                <% products.forEach((product, index) => { %>
+                                    <tr>
+                                        <!-- Serial Number -->
+                                        <td><%= ((currentPage - 1) * limit) + index + 1 %></td>
+
+                                        <!-- Product Name -->
+                                        <td><%= product.productName %></td>
+
+                                        <!-- Product Image -->
+                                        <td>
+                                            <% if (product.productImage && product.productImage.length > 0) { %>
+                                                <img src="/uploads/products/<%= product.productImage[0] %>" 
+                                                     alt="<%= product.productName %>" 
+                                                     class="product-thumbnail" 
+                                                     onerror="this.src='/images/placeholder.jpg'">
+                                            <% } else { %>
+                                                <img src="/images/placeholder.jpg" 
+                                                     alt="<%= product.productName %>" 
+                                                     class="product-thumbnail">
+                                            <% } %>
+                                        </td>
+
+                                        <!-- Category Name - FIXED -->
+                                        <td>
+                                            <% if (product.category && product.category.name) { %>
+                                                <%= product.category.name %>
+                                            <% } else { %>
+                                                N/A
+                                            <% } %>
+                                        </td>
+
+                                        <!-- Price -->
+                                        <td class="product-price">₹<%= product.regularPrice %></td>
+
+                                        <!-- Total Stock -->
+                                        <td>
+                                            <span class="product-stock <%= product.totalStock <= 10 
+                                                ? 'low-stock' 
+                                                : product.totalStock <= 50 
+                                                ? 'medium-stock' 
+                                                : 'good-stock' %>">
+                                                <%= product.totalStock %>
+                                            </span>
+                                        </td>
+
+                                        <!-- Status -->
+                                        <td>
+                                            <% if (!product.isBlocked) { %>
+                                                <span class="product-status-text product-status-active">Active</span>
+                                            <% } else { %>
+                                                <span class="product-status-text product-status-inactive">Inactive</span>
+                                            <% } %>
+                                        </td>
+
+                                        <!-- Actions -->
+                                        <td>
+                                            <a href="/admin/editProduct/<%= product._id %>" 
+                                               class="product-btn product-btn-sm product-btn-warning">Edit</a>
+                                            <button class="product-btn product-btn-sm <%= !product.isBlocked 
+                                                ? 'product-btn-danger' 
+                                                : 'product-btn-success' %> product-block-unblock-btn"
+                                                data-id="<%= product._id %>" 
+                                                data-action="<%= !product.isBlocked ? 'block' : 'unblock' %>">
+                                                <%= !product.isBlocked ? 'Block' : 'Unblock' %>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="8" class="product-text-center">No products found</td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="product-pagination-section">
+                    <div class="product-pagination-info">
+                        Showing <strong><%= ((currentPage - 1) * limit) + 1 %></strong> to <strong><%= Math.min(currentPage * limit, totalItems) %></strong> of <strong><%= totalItems %></strong> results
+                    </div>
+                    <nav>
+                        <ul class="product-pagination" id="product-pagination">
+                            <% if (currentPage > 1) { %>
+                                <li class="product-page-item">
+                                    <a class="product-page-link" href="?page=<%= currentPage - 1 %><%= search ? '&search=' + search : '' %>">‹ Previous</a>
+                                </li>
+                            <% } %>
+                            
+                            <% for (let i = 1; i <= totalPages; i++) { %>
+                                <li class="product-page-item <%= i === currentPage ? 'active' : '' %>">
+                                    <a class="product-page-link" href="?page=<%= i %><%= search ? '&search=' + search : '' %>"><%= i %></a>
+                                </li>
+                            <% } %>
+                            
+                            <% if (currentPage < totalPages) { %>
+                                <li class="product-page-item">
+                                    <a class="product-page-link" href="?page=<%= currentPage + 1 %><%= search ? '&search=' + search : '' %>">Next ›</a>
+                                </li>
+                            <% } %>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Search functionality without page reload
+            document.querySelector('.product-search-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const searchValue = document.querySelector('.product-search-input').value.trim();
+                console.log('Searching for:', searchValue);
+                
+                fetchProducts(searchValue, 1);
+            });
+
+            // Clear button functionality
+            document.getElementById('product-clear-button').addEventListener('click', () => {
+                document.querySelector('.product-search-input').value = '';
+                console.log('Clearing search');
+                fetchProducts('', 1);
+            });
+
+            // Fetch products function
+            function fetchProducts(searchValue = '', page = 1) {
+                const url = `/admin/api/products?search=${encodeURIComponent(searchValue)}&page=${page}`;
+                console.log('Fetching from:', url);
+                
+                // Show loading state
+                const tbody = document.getElementById("product-tbody");
+                tbody.innerHTML = '<tr><td colspan="8" class="product-text-center">Loading...</td></tr>';
+                
+                fetch(url)
+                    .then(res => {
+                        if (!res.ok) {
+                            throw new Error(`HTTP error! status: ${res.status}`);
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        console.log('Received data:', data);
+                        if (data.success) {
+                            updateProductTable(data.products, data.currentPage, data.limit);
+                            updateProductPagination(data.currentPage, data.totalPages, data.totalItems, data.limit, searchValue);
+                            // Update URL without page refresh
+                            const newUrl = `/admin/products?page=${page}${searchValue ? '&search=' + encodeURIComponent(searchValue) : ''}`;
+                            window.history.pushState({}, '', newUrl);
+                        } else {
+                            console.error('API returned success: false', data);
+                            tbody.innerHTML = '<tr><td colspan="8" class="product-text-center">Error loading products</td></tr>';
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Fetch error:', err);
+                        tbody.innerHTML = '<tr><td colspan="8" class="product-text-center">Error loading products</td></tr>';
+                    });
+            }
+
+            // Update product table
+            function updateProductTable(products, currentPage = 1, limit = 4) {
+                const tbody = document.getElementById("product-tbody");
+                tbody.innerHTML = '';
+
+                if (products.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="product-text-center">No products found</td></tr>';
+                    return;
+                }
+
+                products.forEach((product, index) => {
+                    const statusText = !product.isBlocked
+                        ? '<span class="product-status-text product-status-active">Active</span>'
+                        : '<span class="product-status-text product-status-inactive">Inactive</span>';
+
+                    const stockClass = product.totalStock <= 10 ? 'low-stock' : product.totalStock <= 50 ? 'medium-stock' : 'good-stock';
+
+                    const blockUnblockButton = !product.isBlocked
+                        ? `<button class="product-btn product-btn-sm product-btn-danger product-block-unblock-btn" data-id="${product._id}" data-action="block">Block</button>`
+                        : `<button class="product-btn product-btn-sm product-btn-success product-block-unblock-btn" data-id="${product._id}" data-action="unblock">Unblock</button>`;
+
+                    // Handle image path
+                    let productImage = '/images/placeholder.jpg';
+                    if (product.productImage && product.productImage.length > 0) {
+                        productImage = `/uploads/products/${product.productImage[0]}`;
+                    }
+
+                    // Handle category name - FIXED
+                    let categoryName = 'N/A';
+                    if (product.category && product.category.name) {
+                        categoryName = product.category.name;
+                    }
+
+                    const serialNumber = ((currentPage - 1) * limit) + index + 1;
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${serialNumber}</td>
+                            <td>${product.productName || 'N/A'}</td>
+                            <td>
+                                <img src="${productImage}" 
+                                     alt="${product.productName || 'Product'}" 
+                                     class="product-thumbnail"
+                                     onerror="this.src='/images/placeholder.jpg'">
+                            </td>
+                            <td>${categoryName}</td>
+                            <td class="product-price">₹${product.regularPrice || 0}</td>
+                            <td>
+                                <span class="product-stock ${stockClass}">
+                                    ${product.totalStock || 0}
+                                </span>
+                            </td>
+                            <td>${statusText}</td>
+                            <td>
+                                <a href="/admin/editProduct/${product._id}" class="product-btn product-btn-sm product-btn-warning">Edit</a>
+                                ${blockUnblockButton}
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            // Update pagination - FIXED: Added searchValue parameter
+            function updateProductPagination(currentPage, totalPages, totalItems, limit = 4, searchValue = '') {
+                const paginationContainer = document.getElementById('product-pagination');
+                paginationContainer.innerHTML = '';
+
+                if (currentPage > 1) {
+                    paginationContainer.innerHTML += `
+                        <li class="product-page-item">
+                            <a class="product-page-link" href="#" data-page="${currentPage - 1}" data-search="${searchValue}">‹ Previous</a>
+                        </li>`;
+                }
+
+                for (let i = 1; i <= totalPages; i++) {
+                    paginationContainer.innerHTML += `
+                        <li class="product-page-item ${i === currentPage ? 'active' : ''}">
+                            <a class="product-page-link" href="#" data-page="${i}" data-search="${searchValue}">${i}</a>
+                        </li>`;
+                }
+
+                if (currentPage < totalPages) {
+                    paginationContainer.innerHTML += `
+                        <li class="product-page-item">
+                            <a class="product-page-link" href="#" data-page="${currentPage + 1}" data-search="${searchValue}">Next ›</a>
+                        </li>`;
+                }
+
+                // Update pagination info
+                const paginationInfo = document.querySelector('.product-pagination-info');
+                const startItem = ((currentPage - 1) * limit) + 1;
+                const endItem = Math.min(currentPage * limit, totalItems);
+                paginationInfo.innerHTML = `Showing <strong>${startItem}</strong> to <strong>${endItem}</strong> of <strong>${totalItems}</strong> results`;
+            }
+
+            // Handle pagination clicks - FIXED: Use data-search attribute
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('product-page-link') && e.target.getAttribute('data-page')) {
+                    e.preventDefault();
+                    const page = parseInt(e.target.getAttribute('data-page'));
+                    const searchValue = e.target.getAttribute('data-search') || '';
+                    
+                    console.log('Pagination clicked, page:', page, 'search:', searchValue);
+                    fetchProducts(searchValue, page);
+                }
+            });
+
+            // Block/Unblock functionality
+          document.addEventListener('click', async (e) => {
+    if (e.target.classList.contains('product-block-unblock-btn')) {
+        const productId = e.target.getAttribute('data-id');
+        const action = e.target.getAttribute('data-action');
+
+        const confirmResult = await Swal.fire({
+            title: `Are you sure you want to ${action} this product?`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: action === "block" ? "#d33" : "#28a745",
+            cancelButtonColor: "#6c757d",
+            confirmButtonText: `Yes, ${action} it!`
+        });
+
+        if (!confirmResult.isConfirmed) return; // stop if cancelled
+
+        try {
+            const response = await fetch(`/admin/products/${action}/${productId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                Swal.fire({
+                    icon: "success",
+                    title: data.message,
+                    showConfirmButton: false,
+                    timer: 1200
+                });
+
+                const row = e.target.closest("tr");
+                const statusCell = row.querySelector("td:nth-child(7)");
+
+                const isNowBlocked = action === 'block';
+
+                statusCell.innerHTML = isNowBlocked
+                    ? '<span class="product-status-text product-status-inactive">Inactive</span>'
+                    : '<span class="product-status-text product-status-active">Active</span>';
+
+                e.target.textContent = isNowBlocked ? 'Unblock' : 'Block';
+                e.target.classList.toggle('product-btn-danger', !isNowBlocked);
+                e.target.classList.toggle('product-btn-success', isNowBlocked);
+                e.target.setAttribute('data-action', isNowBlocked ? 'unblock' : 'block');
+
+            } else {
+                Swal.fire("Error!", data.message, "error");
+            }
+        } catch (err) {
+            console.error('Failed to block/unblock:', err);
+            Swal.fire("Error!", "Something went wrong. Try again later.", "error");
+        }
+    }
+});
+
+
+             window.addEventListener("pageshow", function (event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    });
+
+        </script>
+    </div>
+</body>
+</html>

@@ -1,0 +1,386 @@
+<body>
+    <!-- Include your admin header -->
+    <%- include("../partials/admin/header") %>
+
+    <div class="customer-page">
+        <div class="container">
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1 class="page-title">Customer Management</h1>
+                <p class="page-subtitle">Manage and monitor customer accounts</p>
+            </div>
+
+            <!-- Search Section -->
+            <div class="search-section">
+                <div class="search-container">
+                    <form id="search-form" class="search-form">
+                        <input type="text" id="search-input" class="search-input" placeholder="Search customers by name or email..." />
+                        <button type="submit" class="btn btn-primary">Search</button>
+                        <button type="button" id="clear-button" class="btn btn-secondary">Clear</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Table Section -->
+            <div class="table-section">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Sl No</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customer-table-body">
+                            <!-- Dynamic Content -->
+                            <tr>
+                                <td colspan="6" class="loading">Loading customers...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Section -->
+                <div class="pagination-section">
+                    <div class="pagination-info">
+                        <span id="pagination-info-text">Showing customers</span>
+                    </div>
+                    <div id="pagination-controls" class="pagination-controls">
+                        <!-- Pagination buttons go here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   <script>
+        let currentPage = 1;
+        let currentSearch = "";
+        let totalPages = 1;
+
+        // Fetch and render customers
+        async function fetchCustomers(page = 1, search = "") {
+            try {
+                // Show loading state
+                document.getElementById("customer-table-body").innerHTML = `
+                    <tr><td colspan="6" class="loading">Loading customers...</td></tr>
+                `;
+
+                console.log(`Fetching customers: page=${page}, search="${search}"`);
+                
+                const res = await fetch(`/admin/api/customers?page=${page}&search=${search}`);
+                const data = await res.json();
+
+                console.log('API Response:', data);
+
+                if (data.success) {
+                    currentPage = page;
+                    currentSearch = search;
+                    totalPages = data.totalPages;
+                    
+                    renderCustomers(data.users);
+                    renderPagination(data.totalPages, page);
+                    updatePaginationInfo(data.users.length, page, data.totalPages, data.totalCount);
+                } else {
+                    throw new Error(data.message || 'Failed to fetch customers');
+                }
+            } catch (error) {
+                console.error('Error fetching customers:', error);
+                document.getElementById("customer-table-body").innerHTML = `
+                    <tr><td colspan="6" class="no-data">Error loading customers. Please try again.</td></tr>
+                `;
+            }
+        }
+
+        // Render customers in table
+        function renderCustomers(customers) {
+            const tbody = document.getElementById("customer-table-body");
+            
+            if (!customers || customers.length === 0) {
+                tbody.innerHTML = `
+                    <tr><td colspan="6" class="no-data">No customers found</td></tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = "";
+
+            customers.forEach((customer, index) => {
+                const serialNumber = ((currentPage - 1) * 4) + index + 1;
+                const row = document.createElement("tr");
+
+                console.log(`Rendering customer ${customer.name}: isBlocked=${customer.isBlocked}`);
+
+                row.innerHTML = `
+                    <td>${serialNumber}</td>
+                    <td>${customer.name || 'N/A'}</td>
+                    <td>${customer.email || 'N/A'}</td>
+                    <td>${customer.phone || 'N/A'}</td>
+                    <td>
+                        <span class="status-text ${customer.isBlocked ? 'status-inactive' : 'status-active'}">
+                            ${customer.isBlocked ? 'Blocked' : 'Active'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm ${customer.isBlocked ? 'btn-success' : 'btn-danger'} block-unblock-btn"
+                            data-id="${customer._id}" 
+                            data-action="${customer.isBlocked ? 'unblock' : 'block'}"
+                            data-current-status="${customer.isBlocked}">
+                            ${customer.isBlocked ? 'Unblock' : 'Block'}
+                        </button>
+                    </td>
+                `;
+
+                tbody.appendChild(row);
+            });
+        }
+
+        // Enhanced pagination with Previous/Next buttons
+        function renderPagination(totalPages, currentPage) {
+            const paginationDiv = document.getElementById("pagination-controls");
+            paginationDiv.innerHTML = "";
+
+            if (totalPages <= 1) return;
+
+            // Previous button
+            const prevBtn = document.createElement("button");
+            prevBtn.textContent = "Previous";
+            prevBtn.classList.add("pagination-btn", "pagination-nav");
+            prevBtn.disabled = currentPage === 1;
+            
+            prevBtn.addEventListener("click", () => {
+                if (currentPage > 1) {
+                    fetchCustomers(currentPage - 1, currentSearch);
+                }
+            });
+            paginationDiv.appendChild(prevBtn);
+
+            // Page numbers with smart display
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+            // Adjust startPage if we're near the end
+            if (endPage - startPage < maxVisiblePages - 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            // First page and ellipsis
+            if (startPage > 1) {
+                const firstBtn = document.createElement("button");
+                firstBtn.textContent = "1";
+                firstBtn.classList.add("pagination-btn");
+                firstBtn.addEventListener("click", () => fetchCustomers(1, currentSearch));
+                paginationDiv.appendChild(firstBtn);
+
+                if (startPage > 2) {
+                    const ellipsis = document.createElement("span");
+                    ellipsis.textContent = "...";
+                    ellipsis.style.padding = "8px 4px";
+                    ellipsis.style.color = "#6c757d";
+                    paginationDiv.appendChild(ellipsis);
+                }
+            }
+
+            // Page numbers
+            for (let i = startPage; i <= endPage; i++) {
+                const btn = document.createElement("button");
+                btn.textContent = i;
+                btn.classList.add("pagination-btn");
+                if (i === currentPage) btn.disabled = true;
+
+                btn.addEventListener("click", () => {
+                    fetchCustomers(i, currentSearch);
+                });
+
+                paginationDiv.appendChild(btn);
+            }
+
+            // Last page and ellipsis
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const ellipsis = document.createElement("span");
+                    ellipsis.textContent = "...";
+                    ellipsis.style.padding = "8px 4px";
+                    ellipsis.style.color = "#6c757d";
+                    paginationDiv.appendChild(ellipsis);
+                }
+
+                const lastBtn = document.createElement("button");
+                lastBtn.textContent = totalPages;
+                lastBtn.classList.add("pagination-btn");
+                lastBtn.addEventListener("click", () => fetchCustomers(totalPages, currentSearch));
+                paginationDiv.appendChild(lastBtn);
+            }
+
+            // Next button
+            const nextBtn = document.createElement("button");
+            nextBtn.textContent = "Next";
+            nextBtn.classList.add("pagination-btn", "pagination-nav");
+            nextBtn.disabled = currentPage === totalPages;
+            
+            nextBtn.addEventListener("click", () => {
+                if (currentPage < totalPages) {
+                    fetchCustomers(currentPage + 1, currentSearch);
+                }
+            });
+            paginationDiv.appendChild(nextBtn);
+        }
+
+        // Update button and status instantly without page reload
+        function updateButtonAndStatus(button, action) {
+            const row = button.closest('tr');
+            const statusCell = row.querySelector('.status-text');
+            
+            if (action === 'block') {
+                // Update status to Blocked
+                statusCell.textContent = 'Blocked';
+                statusCell.className = 'status-text status-inactive';
+                
+                // Update button to Unblock
+                button.textContent = 'Unblock';
+                button.className = 'btn btn-sm btn-success block-unblock-btn';
+                button.setAttribute('data-action', 'unblock');
+                button.setAttribute('data-current-status', 'true');
+            } else {
+                // Update status to Active
+                statusCell.textContent = 'Active';
+                statusCell.className = 'status-text status-active';
+                
+                // Update button to Block
+                button.textContent = 'Block';
+                button.className = 'btn btn-sm btn-danger block-unblock-btn';
+                button.setAttribute('data-action', 'block');
+                button.setAttribute('data-current-status', 'false');
+            }
+            
+            // Re-enable button
+            button.disabled = false;
+        }
+
+        // Update pagination info
+        function updatePaginationInfo(customersCount, page, totalPages, totalCount) {
+            const infoText = document.getElementById("pagination-info-text");
+            if (totalPages === 0 || totalCount === 0) {
+                infoText.textContent = "No customers found";
+            } else {
+                const start = ((page - 1) * 4) + 1;
+                const end = start + customersCount - 1;
+                infoText.textContent = `Showing ${start}-${end} of ${totalCount} customers (Page ${page}/${totalPages})`;
+            }
+        }
+
+        // Search form submit
+        document.getElementById("search-form").addEventListener("submit", function (e) {
+            e.preventDefault();
+            currentSearch = document.getElementById("search-input").value.trim();
+            currentPage = 1;
+            fetchCustomers(currentPage, currentSearch);
+        });
+
+        // Clear button
+        document.getElementById("clear-button").addEventListener("click", () => {
+            document.getElementById("search-input").value = "";
+            currentSearch = "";
+            currentPage = 1;
+            fetchCustomers(currentPage, currentSearch);
+        });
+
+       // Block/unblock event delegation with SweetAlert confirmation
+document.addEventListener("click", async function (e) {
+    if (e.target.classList.contains("block-unblock-btn")) {
+        const id = e.target.getAttribute("data-id");
+        const action = e.target.getAttribute("data-action");
+        const currentStatus = e.target.getAttribute("data-current-status");
+
+        console.log(`Button clicked: ID=${id}, Action=${action}, Current Status=${currentStatus}`);
+
+        // ✅ Confirmation before proceeding
+        Swal.fire({
+            title: `Are you sure?`,
+            text: `Do you really want to ${action} this user?`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: `Yes, ${action} user`
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                // Disable button during request
+                e.target.disabled = true;
+                const originalText = e.target.textContent;
+                e.target.textContent = "Processing...";
+
+                try {
+                    const url = `/admin/api/customers/${id}/${action}`;
+                    console.log(`Making request to: ${url}`);
+
+                    const res = await fetch(url, {
+                        method: "PATCH",
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    const result = await res.json();
+                    console.log('Update response:', result);
+
+                    if (result.success) {
+                        // ✅ Success message (auto closes)
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: `User ${action === 'block' ? 'blocked' : 'unblocked'} successfully!`,
+                            timer: 1000,
+                            showConfirmButton: false
+                        });
+
+                        // Update UI instantly
+                        updateButtonAndStatus(e.target, action);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: result.message || "Failed to update status."
+                        });
+
+                        // Restore button
+                        e.target.disabled = false;
+                        e.target.textContent = originalText;
+                    }
+                } catch (error) {
+                    console.error('Error updating customer:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: "An error occurred. Please try again."
+                    });
+
+                    // Restore button
+                    e.target.disabled = false;
+                    e.target.textContent = originalText;
+                }
+            }
+        });
+    }
+});
+
+
+        // Initial load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, fetching initial customers...');
+            fetchCustomers();
+        });
+
+       window.addEventListener("pageshow", function (event) {
+    if (event.persisted) {
+        window.location.reload();
+    }
+});
+
+
+    </script>
+</body>
+</html>

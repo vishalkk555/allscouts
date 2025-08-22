@@ -1,440 +1,660 @@
 <%- include("../partials/user/header") %>
 
+<body>
+    <div class="single-product-container">
+        <!-- Breadcrumb -->
+        <nav class="product-breadcrumb">
+            <a href="/">Home</a> > 
+            <a href="/shop">Shop</a> > 
+            <a href="/shop?categories=<%= product.category.name %>"><%= product.category.name %></a> > 
+            <span class="active"><%= product.productName %></span>
+        </nav>
 
-  <!-- Start single product -->
-  <section>
-    <div class="cs_height_35 cs_height_lg_35"></div>
-    <div class="container">
-      <nav aria-label="breadcrumb">
-        <ol class="cs_single_product_breadcrumb breadcrumb">
-          <li class="breadcrumb-item"><a href="#">Home</a></li>
-          <li class="breadcrumb-item"><a href="#">Shop</a></li>
-          <li class="breadcrumb-item"><a href="#">Men</a></li>
-          <li class="breadcrumb-item active">T-Shirt</li>
-        </ol>
-      </nav>
-      <div class="row">
-        <div class="col-xl-7">
-          <div class="row">
-            <div class="col-3">
-              <div class="cs_single_product_nav slick-slider">
-                <div class="cs_single_product_thumb_mini">
-                  <img src="assets/img/thumb1.png" alt="Thumb">
+        <% if (product && !product.isBlocked && product.status === 'Available') { %>
+        <!-- Main Product Section -->
+        <div class="product-main">
+            <!-- Image Gallery -->
+            <div class="product-gallery">
+                <div class="main-image-container">
+                    <img src="/uploads/products/<%= product.productImage[0] %>" 
+                         alt="<%= product.productName %>" 
+                         class="main-image"
+                         id="mainImage"
+                         onerror="this.src='/assets/img/placeholder.jpg'">
+                    <div class="zoom-overlay" id="zoomOverlay"></div>
                 </div>
-                <div class="cs_single_product_thumb_mini">
-                  <img src="assets/img/thumb2.png" alt="Thumb">
+                <div class="thumbnail-gallery">
+                    <% product.productImage.forEach((image, index) => { %>
+                        <img src="/uploads/products/<%= image %>" 
+                             alt="<%= product.productName %>" 
+                             class="thumbnail <%= index === 0 ? 'active' : '' %>"
+                             onclick="changeMainImage('/uploads/products/<%= image %>', this)"
+                             onerror="this.src='/assets/img/placeholder.jpg'">
+                    <% }) %>
                 </div>
-                <div class="cs_single_product_thumb_mini">
-                  <img src="assets/img/thumb3.png" alt="Thumb">
-                </div>
-                <div class="cs_single_product_thumb_mini">
-                  <img src="assets/img/thumb4.png" alt="Thumb">
-                </div>
-                <div class="cs_single_product_thumb_mini">
-                  <img src="assets/img/thumb1.png" alt="Thumb">
-                </div>
-                <div class="cs_single_product_thumb_mini">
-                  <img src="assets/img/thumb2.png" alt="Thumb">
-                </div>
-                <div class="cs_single_product_thumb_mini">
-                  <img src="assets/img/thumb3.png" alt="Thumb">
-                </div>
-                <div class="cs_single_product_thumb_mini">
-                  <img src="assets/img/thumb4.png" alt="Thumb">
-                </div>
-              </div>
             </div>
-            <div class="col-9">
-              <div class="cs_single_product_thumb slick-slider">
-                <div class="cs_single_product_thumb_item">
-                  <img src="assets/img/thumb1_lg.png" alt="Thumb">
-                </div>
-                <div class="cs_single_product_thumb_item">
-                  <img src="assets/img/thumb2_lg.png" alt="Thumb">
-                </div>
-                <div class="cs_single_product_thumb_item">
-                  <img src="assets/img/thumb3_lg.png" alt="Thumb">
-                </div>
-                <div class="cs_single_product_thumb_item">
-                  <img src="assets/img/thumb4_lg.png" alt="Thumb">
-                </div>
-                <div class="cs_single_product_thumb_item">
-                  <img src="assets/img/thumb1_lg.png" alt="Thumb">
-                </div>
-                <div class="cs_single_product_thumb_item">
-                  <img src="assets/img/thumb2_lg.png" alt="Thumb">
-                </div>
-                <div class="cs_single_product_thumb_item">
-                  <img src="assets/img/thumb3_lg.png" alt="Thumb">
-                </div>
-                <div class="cs_single_product_thumb_item">
-                  <img src="assets/img/thumb4_lg.png" alt="Thumb">
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-xl-5">
-          <div class="cs_single_product_details">
-            <h2 class="cs_fs_37 cs_semibold">Black cotton men T-shirt</h2>
-            <div class="cs_single_product_review">
-              <div class="cs_rating_container">
-                <div class="cs_rating cs_size_sm" data-rating="5">
-                  <div class="cs_rating_percentage"></div>
-                </div>
-              </div>
-              <span>(5)</span>
-              <span>Stock: <span class="cs_accent_color">12 in stock</span></span>
-            </div>
-            <h4 class="cs_single_product_price cs_fs_21 cs_primary_color cs_semibold">Price: $20.00</h4>
-            <hr>
-            <div class="cs_single_product_details_text">
-              <p class="mb-0">Our men black t-shirt offers a classic fit and is made from high-quality pure cotton materials to keep you feeling and looking great.</p>
-            </div>
-            <div class="cs_single_product_size">
-              <h4 class="cs_fs_16 cs_medium">Size</h4>
-              <ul class="cs_size_filter_list cs_mp0">
-                <li>
-                  <input type="radio" name="size">
-                  <span>S</span>
-                </li>
-                <li>
-                  <input type="radio" name="size">
-                  <span>M</span>
-                </li>
-                <li>
-                  <input type="radio" name="size">
-                  <span>L</span>
-                </li>
-                <li>
-                  <input type="radio" name="size">
-                  <span>XL</span>
-                </li>
-              </ul>
-            </div>
-            <div class="cs_single_product_color ">
-              <h4 class="cs_fs_16 cs_medium">Color</h4>
-              <ul class="cs_color_filter_list cs_type_1 cs_mp0">
-                <li>
-                  <div class="cs_color_filter">
-                    <input type="radio" name="color">
-                    <span class="cs_color_filter_circle cs_accent_bg"></span>
-                    <span class="cs_color_text">Red</span>
-                  </div>
-                </li>
-                <li>
-                  <div class="cs_color_filter">
-                    <input type="radio" name="color">
-                    <span class="cs_color_filter_circle cs_secondary_bg"></span>
-                    <span class="cs_color_text">Gray</span>
-                  </div>
-                </li>
-                <li>
-                  <div class="cs_color_filter">
-                    <input type="radio" name="color">
-                    <span class="cs_color_filter_circle cs_primary_bg"></span>
-                    <span class="cs_color_text">Black</span>
-                  </div>
-                </li>
-                <li>
-                  <div class="cs_color_filter">
-                    <input type="radio" name="color">
-                    <span class="cs_color_filter_circle cs_white_bg"></span>
-                    <span class="cs_color_text">White</span>
-                  </div>
-                </li>
-              </ul>
-            </div>
-            <div class="cs_action_btns">
-              <div class="cs_quantity">
-                <button class="cs_quantity_btn cs_increment"><i class="fa-solid fa-angle-up"></i></button>
-                <span class="cs_quantity_input">1</span>
-                <button class="cs_quantity_btn cs_decrement"><i class="fa-solid fa-angle-down"></i></button>
-              </div>
-              <a href="#" class="cs_btn cs_style_1 cs_fs_16 cs_medium">Add to Cart</a>
-              <button class="cs_heart_btn"><i class="fa-regular fa-heart"></i></button>
-            </div>
-            <ul class="cs_single_product_info">
-              <li class="cs_fs_16 cs_normal">
-                <b class="cs_medium">SKU: </b>0215552
-              </li>
-              <li class="cs_fs_16 cs_normal">
-                <b class="cs_medium">Categories: </b>T-Shirt
-              </li>
-              <li class="cs_fs_16 cs_normal">
-                <b class="cs_medium">Tags: </b>Men, T-Shirt, Clothing
-              </li>
-              <li class="cs_fs_16 cs_normal">
-                <b class="cs_medium">Brand: </b>Levine
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-      <div class="cs_height_70 cs_height_lg_60"></div>
-      <hr>
-      <div class="cs_product_meta_info">
-        <ul class="cs_tab_links cs_style_2 cs_product_tab cs_fs_21 cs_primary_color cs_semibold cs_mp0">
-          <li><a href="#tab_1">Description</a></li>
-          <li><a href="#tab_2">Additional information</a></li>
-          <li><a href="#tab_3">Size Guide</a></li>
-          <li class="active"><a href="#tab_4">Review (1)</a></li>
-        </ul>
-        <div class="cs_tabs">
-          <div class="cs_tab" id="tab_1">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum sagittis orci ac odio dictum
-            tincidunt.
-            Donec ut metus leo. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos
-            himenaeos. Sed luctus, dui eu sagittis sodales, nulla nibh sagittis augue, vel porttitor diam enim non
-            metus.
-            Vestibulum aliquam augue neque. Phasellus tincidunt odio eget ullamcorper efficitur. Cras placerat ut
-            turpis
-            pellentesque vulputate. Nam sed consequat tortor. Curabitur finibus sapien dolor. Ut eleifend tellus nec
-            erat
-            pulvinar dignissim. Nam non arcu purus. Vivamus et massa massa.
-          </div>
-          <div class="cs_tab" id="tab_2">
-            <table class="m-0">
-              <tbody>
-                <tr>
-                  <td>Color</td>
-                  <td>Blue, Gray, Green, Red, Yellow</td>
-                </tr>
-                <tr>
-                  <td>Size</td>
-                  <td>Large, Medium, Small</td>
-                </tr>
-              </tbody>
-            </table>
-            <hr>
-          </div>
-          <div class="cs_tab" id="tab_3">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum sagittis orci ac odio dictum
-            tincidunt.
-            Donec ut metus leo. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos
-            himenaeos. Sed luctus, dui eu sagittis sodales, nulla nibh sagittis augue, vel porttitor diam enim non
-            metus.
-            Vestibulum aliquam augue neque. Phasellus tincidunt odio eget ullamcorper efficitur. Cras placerat ut
-            turpis
-            pellentesque vulputate. Nam sed consequat tortor. Curabitur finibus sapien dolor. Ut eleifend tellus nec
-            erat
-            pulvinar dignissim. Nam non arcu purus. Vivamus et massa massa.
-          </div>
-          <div class="cs_tab active" id="tab_4">
-            <ul class="cs_client_review_list cs_mp0">
-              <li>
-                <div class="cs_client_review">
-                  <div class="cs_review_media">
-                    <div class="cs_review_media_thumb"><img src="assets/img/avatar.png" alt="Avatar"></div>
-                    <div class="cs_review_media_right">
-                      <div class="cs_rating_container">
-                        <div class="cs_rating cs_size_sm" data-rating="5">
-                          <div class="cs_rating_percentage"></div>
-                        </div>
-                      </div>
-                      <p class="mb-0 cs_primary_color cs_semibold">Zhon Abony</p>
+
+            <!-- Product Details -->
+            <div class="product-details">
+                <h1><%= product.productName %></h1>
+                
+                <!-- Rating and Stock -->
+                <div class="product-rating">
+                    <div class="stars">
+                        <% 
+                        let averageRating = product.reviews.length > 0 
+                            ? Math.round(product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length) 
+                            : 0; 
+                        %>
+                        <% for (let i = 1; i <= 5; i++) { %>
+                            <i class="fas fa-star star <%= i <= averageRating ? 'filled' : '' %>"></i>
+                        <% } %>
                     </div>
-                    <p class="cs_review_posted_by">August 12, 2023</p>
-                  </div>
-                  <p class="cs_review_text">I recently purchased the Arino T-shirts and I'm thoroughly impressed. The
-                    sound quality is exceptional, the wireless connectivity is seamless, and the noise cancellation
-                    technology is a <br> standout feature. They're a bit pricey, but well worth the investment. Highly
-                    recommend.</p>
+                    <span class="rating-text">(<%= averageRating %>/5 - <%= product.reviews.length %> reviews)</span>
                 </div>
-              </li>
-            </ul>
-            <p class="m-0">Your email address will not be published. Required fields are marked *</p>
-            <div class="cs_height_20 cs_height_lg_20"></div>
-            <div class="cs_input_rating_wrap">
-              <p>Your rating  *</p>
-              <div class="cs_input_rating cs_accent_color" data-rating="0">
-                <i class="fa-regular fa-star"></i>
-                <i class="fa-regular fa-star"></i>
-                <i class="fa-regular fa-star"></i>
-                <i class="fa-regular fa-star"></i>
-                <i class="fa-regular fa-star"></i>
-              </div>
-            </div>
-            <div class="cs_height_20 cs_height_lg_22"></div>
-            <form class="row cs_review_form cs_gap_y_24">
-              <div class="col-lg-12">
-                <textarea rows="3" class="cs_form_field" placeholder="Write your review *"></textarea>
-              </div>
-              <div class="col-lg-6">
-                <input type="text" class="cs_form_field" placeholder="Your name *">
-              </div>
-              <div class="col-lg-6">
-                <input type="text" class="cs_form_field" placeholder="Your email *">
-              </div>
-              <div class="col-lg-12">
-                <div class="form_check">
-                  <input class="form-check-input" type="checkbox">
-                  <label class="form-check-label m-0">
-                    By using this form you agree with the storage and handling of your data by this website. *
-                  </label>
+                
+                <div class="stock-status">
+                    <span class="<%= product.totalStock > 0 ? 'in-stock' : 'out-of-stock' %>">
+                        <%= product.totalStock > 0 ? `${product.totalStock} in stock` : 'Out of stock' %>
+                    </span>
                 </div>
-              </div>
-              <div class="col-lg-12">
-                <button class="cs_btn cs_style_1 cs_fs_16 cs_medium" type="submit">Submit Now</button>
-              </div>
-            </form>
-          </div>
-        </div>
-        <!-- .cs_tabs -->
-      </div>
-    </div>
-  </section>
-  <!-- End single product -->
-  <!-- Start new item store -->
-  <section class="cs_slider container-fluid position-relative">
-    <div class="cs_height_120 cs_height_lg_70"></div>
-    <div class="container">
-      <div class="cs_section_heading cs_style_1">
-        <div class="cs_section_heading_in">
-          <h2 class="cs_section_title cs_fs_50 cs_bold cs_fs_48 cs_semibold mb-0">Related Products</h2>
-        </div>
-        <div class="cs_slider_arrows cs_style_2">
-          <div class="cs_left_arrow cs_slider_arrow cs_accent_color">
-            <i class="fa-solid fa-chevron-left"></i>
-          </div>
-          <div class="cs_right_arrow cs_slider_arrow cs_accent_color">
-            <i class="fa-solid fa-chevron-right"></i>
-          </div>
-        </div>
-      </div>
-      <div class="cs_height_63 cs_height_lg_35"></div>
-    </div>
-    <div class="cs_slider_container" data-autoplay="0" data-loop="1" data-speed="600" data-center="0"
-      data-slides-per-view="responsive" data-xs-slides="1" data-sm-slides="2" data-md-slides="2" data-lg-slides="3"
-      data-add-slides="4">
-      <div class="cs_slider_wrapper">
-        <div class="slick_slide_in">
-          <div class="cs_product cs_style_1">
-            <div class="cs_product_thumb position-relative">
-              <img src="assets/img/product1.png" alt="Product Image" class="w-100">
-              <div class="cs_discount_badge cs_white_bg cs_fs_14 cs_primary_color position-absolute">-25%</div>
-              <div class="cs_cart_badge position-absolute">
-                <a href="wishlist.html" class="cs_cart_icon cs_accent_bg cs_white_color">
-                  <i class="fa-regular fa-heart"></i>
-                </a>
-                <a href="product_details.html" class="cs_cart_icon cs_accent_bg cs_white_color">
-                  <i class="fa-regular fa-eye"></i>
-                </a>
-              </div>
-              <a href="cart.html" class="cs_cart_btn cs_accent_bg cs_fs_16 cs_white_color cs_medium position-absolute">
-                Add To Cart</a>
-            </div>
-            <div class="cs_product_info text-center">
-              <h3 class="cs_product_title cs_fs_21 cs_medium">
-                <a href="product_details.html">Pure black cotton men T-shirt</a>
-              </h3>
-              <p class="cs_product_price cs_fs_18 cs_accent_color mb-0 cs_medium">$250.00</p>
-            </div>
-          </div>
-        </div>
-        <div class="slick_slide_in">
-          <div class="cs_product cs_style_1">
-            <div class="cs_product_thumb position-relative">
-              <img src="assets/img/product2.png" alt="Product Image" class="w-100">
-              <div class="cs_discount_badge cs_white_bg cs_fs_14 cs_primary_color position-absolute">-8%</div>
-              <div class="cs_cart_badge position-absolute">
-                <a href="wishlist.html" class="cs_cart_icon cs_accent_bg cs_white_color">
-                  <i class="fa-regular fa-heart"></i>
-                </a>
-                <a href="product_details.html" class="cs_cart_icon cs_accent_bg cs_white_color">
-                  <i class="fa-regular fa-eye"></i>
-                </a>
-              </div>
-              <a href="cart.html" class="cs_cart_btn cs_accent_bg cs_fs_16 cs_white_color cs_medium position-absolute">
-                Add To Cart</a>
-            </div>
-            <div class="cs_product_info text-center">
-              <h3 class="cs_product_title cs_fs_21 cs_medium">
-                <a href="product_details.html">Gray color cotton men T-shirt</a>
-              </h3>
-              <p class="cs_product_price cs_fs_18 cs_accent_color mb-0 cs_medium">$220.00</p>
-            </div>
-          </div>
-        </div>
-        <div class="slick_slide_in">
-          <div class="cs_product cs_style_1">
-            <div class="cs_product_thumb position-relative">
-              <img src="assets/img/product9.png" alt="Product Image" class="w-100">
-              <div class="cs_discount_badge cs_white_bg cs_fs_14 cs_primary_color position-absolute">-8%</div>
-              <div class="cs_cart_badge position-absolute">
-                <a href="wishlist.html" class="cs_cart_icon cs_accent_bg cs_white_color">
-                  <i class="fa-regular fa-heart"></i>
-                </a>
-                <a href="product_details.html" class="cs_cart_icon cs_accent_bg cs_white_color">
-                  <i class="fa-regular fa-eye"></i>
-                </a>
-              </div>
-              <a href="cart.html" class="cs_cart_btn cs_accent_bg cs_fs_16 cs_white_color cs_medium position-absolute">
-                Add To Cart</a>
-            </div>
-            <div class="cs_product_info text-center">
-              <h3 class="cs_product_title cs_fs_21 cs_medium">
-                <a href="product_details.html">Awesome striped casual shirt</a>
-              </h3>
-              <p class="cs_product_price cs_fs_18 cs_accent_color mb-0 cs_medium">$220.00</p>
-            </div>
-          </div>
-        </div>
-        <div class="slick_slide_in">
-          <div class="cs_product cs_style_1">
-            <div class="cs_product_thumb position-relative">
-              <img src="assets/img/product26.png" alt="Product Image" class="w-100">
-              <div class="cs_discount_badge cs_white_bg cs_fs_14 cs_primary_color position-absolute">-12%</div>
-              <div class="cs_cart_badge position-absolute">
-                <a href="wishlist.html" class="cs_cart_icon cs_accent_bg cs_white_color">
-                  <i class="fa-regular fa-heart"></i>
-                </a>
-                <a href="product_details.html" class="cs_cart_icon cs_accent_bg cs_white_color">
-                  <i class="fa-regular fa-eye"></i>
-                </a>
-              </div>
-              <a href="cart.html" class="cs_cart_btn cs_accent_bg cs_fs_16 cs_white_color cs_medium position-absolute">
-                Add To Cart</a>
-            </div>
-            <div class="cs_product_info text-center">
-              <h3 class="cs_product_title cs_fs_21 cs_medium">
-                <a href="product_details.html">Men casual check shirt</a>
-              </h3>
-              <p class="cs_product_price cs_fs_18 cs_accent_color mb-0 cs_medium">$350.00</p>
-            </div>
-          </div>
-        </div>
-        <div class="slick_slide_in">
-          <div class="cs_product cs_style_1">
-            <div class="cs_product_thumb position-relative">
-              <img src="assets/img/product2.png" alt="Product Image" class="w-100">
-              <div class="cs_discount_badge cs_white_bg cs_fs_14 cs_primary_color position-absolute">-8%</div>
-              <div class="cs_cart_badge position-absolute">
-                <a href="wishlist.html" class="cs_cart_icon cs_accent_bg cs_white_color">
-                  <i class="fa-regular fa-heart"></i>
-                </a>
-                <a href="product_details.html" class="cs_cart_icon cs_accent_bg cs_white_color">
-                  <i class="fa-regular fa-eye"></i>
-                </a>
-              </div>
-              <a href="cart.html" class="cs_cart_btn cs_accent_bg cs_fs_16 cs_white_color cs_medium position-absolute">
-                Add To Cart</a>
-            </div>
-            <div class="cs_product_info text-center">
-              <h3 class="cs_product_title cs_fs_21 cs_medium">
-                <a href="product_details.html">Gray color cotton men T-shirt</a>
-              </h3>
-              <p class="cs_product_price cs_fs_18 cs_accent_color mb-0 cs_medium">$220.00</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="cs_height_134 cs_height_lg_80"></div>
-  </section>
-  <!-- End new item store -->
-  <hr>
-  
 
+                <!-- Price Section -->
+                <div class="price-section">
+                    <span class="current-price">₹<%= product.regularPrice.toFixed(2) %></span>
+                    <span class="original-price">₹<%= (product.regularPrice * 1.25).toFixed(2) %></span>
+                    <span class="discount-badge">-20%</span>
+                </div>
 
-  <%- include("../partials/user/footer") %>
+                <!-- Coupon Section -->
+                <div class="coupon-section">
+                    <div class="coupon-header">
+                        <i class="fas fa-tag"></i> Apply Coupon & Save More
+                    </div>
+                    <div class="coupon-code">
+                        <input type="text" class="coupon-input" placeholder="Enter coupon code" value="SUMMER20">
+                        <button class="apply-coupon-btn" onclick="applyCoupon()">Apply</button>
+                    </div>
+                    <div class="demo-note">
+                        <i class="fas fa-info-circle"></i> Demo coupons available: SUMMER20, WELCOME10 - Full functionality coming soon!
+                    </div>
+                </div>
+
+                <!-- Size Selection -->
+                <div class="size-section">
+                    <h3 class="section-title">Size</h3>
+                    <div class="size-options">
+                        <% if (product.totalStock === 0) { %>
+                            <span class="out-of-stock">Currently out of stock</span>
+                        <% } else { %>
+                            <% product.stock.forEach(s => { %>
+                                <div class="size-option <%= s.quantity === 0 ? 'disabled' : '' %>" 
+                                     data-size="<%= s.size %>" 
+                                     data-quantity="<%= s.quantity %>"
+                                     onclick="selectSize(this)">
+                                    <%= s.size %>
+                                </div>
+                            <% }) %>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- Quantity Selection -->
+                <div class="quantity-section">
+                    <h3 class="section-title">Quantity</h3>
+                    <div class="quantity-controls">
+                        <div class="quantity-input-group">
+                            <button class="quantity-btn" onclick="changeQuantity(-1)">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="number" class="quantity-input" value="1" min="1" max="<%= product.totalStock %>" id="quantityInput">
+                            <button class="quantity-btn" onclick="changeQuantity(1)">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button class="add-to-cart-btn" 
+                            id="addToCartBtn" 
+                            data-product-id="<%= product._id %>"
+                            <%= product.totalStock === 0 ? 'disabled' : '' %>
+                            onclick="addToCart()">
+                        <i class="fas fa-shopping-cart"></i> Add to Cart
+                    </button>
+                    <button class="wishlist-btn" onclick="addToWishlist('<%= product._id %>')">
+                        <i class="far fa-heart"></i>
+                    </button>
+                </div>
+
+                <!-- Product Meta -->
+                <div class="product-meta">
+                    <p><strong>SKU:</strong> <%= product._id %></p>
+                    <p><strong>Category:</strong> <%= product.category.name %></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs Section -->
+        <div class="product-tabs">
+            <div class="tab-navigation">
+                <button class="tab-btn active" onclick="showTab('description')">Description</button>
+                <button class="tab-btn" onclick="showTab('reviews')">Reviews (<%= product.reviews.length %>)</button>
+            </div>
+
+            <!-- Description Tab -->
+            <div class="tab-content active" id="description">
+                <p><%= product.description %></p>
+            </div>
+
+            <!-- Reviews Tab -->
+            <div class="tab-content" id="reviews">
+                <div class="reviews-section">
+                    <% if (product.reviews.length > 0) { %>
+                        <% product.reviews.forEach(review => { %>
+                            <div class="review-item">
+                                <div class="review-header">
+                                    <div class="reviewer-info">
+                                        <div class="reviewer-name"><%= review.userName %></div>
+                                        <div class="review-date"><%= new Date(review.createdAt).toLocaleDateString() %></div>
+                                    </div>
+                                    <div class="review-rating">
+                                        <% for (let i = 1; i <= 5; i++) { %>
+                                            <i class="fas fa-star star <%= i <= review.rating ? 'filled' : '' %>"></i>
+                                        <% } %>
+                                    </div>
+                                </div>
+                                <div class="review-text"><%= review.comment %></div>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <div class="no-reviews">
+                            <p>No reviews yet. Be the first to review this product!</p>
+                        </div>
+                    <% } %>
+
+                    <!-- Review Form -->
+                    <div class="review-form">
+                        <h3>Write a Review</h3>
+                        <form id="reviewForm" data-product-id="<%= product._id %>">
+                            <div class="rating-input">
+                                <label>Your rating *</label>
+                                <div class="rating-stars">
+                                    <i class="fas fa-star rating-star" data-rating="1" onclick="setRating(1)"></i>
+                                    <i class="fas fa-star rating-star" data-rating="2" onclick="setRating(2)"></i>
+                                    <i class="fas fa-star rating-star" data-rating="3" onclick="setRating(3)"></i>
+                                    <i class="fas fa-star rating-star" data-rating="4" onclick="setRating(4)"></i>
+                                    <i class="fas fa-star rating-star" data-rating="5" onclick="setRating(5)"></i>
+                                </div>
+                                <input type="hidden" name="rating" value="0" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="comment">Your review *</label>
+                                <textarea name="comment" id="comment" rows="4" class="form-control" placeholder="Write your review here..." required></textarea>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div class="form-group">
+                                    <label for="userName">Name *</label>
+                                    <input type="text" name="userName" id="userName" class="form-control" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="email">Email *</label>
+                                    <input type="email" name="email" id="email" class="form-control" required>
+                                </div>
+                            </div>
+
+                            <div class="checkbox-group">
+                                <input type="checkbox" name="agree" required>
+                                <label for="agree">By using this form you agree with the storage and handling of your data by this website. *</label>
+                            </div>
+
+                            <button type="submit" class="submit-btn">
+                                <i class="fas fa-paper-plane"></i> Submit Review
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Related Products -->
+        <div class="related-products">
+            <h2>Related Products</h2>
+            <div class="products-grid">
+                <% relatedProducts.forEach(related => { %>
+                    <div class="product-card">
+                        <img src="/uploads/products/<%= related.productImage[0] || 'placeholder.jpg' %>" 
+                             alt="<%= related.productName %>" 
+                             class="product-card-image"
+                             onerror="this.src='/assets/img/placeholder.jpg'">
+                        <div class="product-card-body">
+                            <a href="/product/<%= related._id %>" class="product-card-title">
+                                <%= related.productName %>
+                            </a>
+                            <div class="product-card-price">₹<%= related.regularPrice.toFixed(2) %></div>
+                            <div class="product-card-rating">
+                                <div class="stars">
+                                    <% 
+                                    let relatedAvgRating = related.reviews.length > 0 
+                                        ? Math.round(related.reviews.reduce((sum, r) => sum + r.rating, 0) / related.reviews.length) 
+                                        : 0; 
+                                    %>
+                                    <% for (let i = 1; i <= 5; i++) { %>
+                                        <i class="fas fa-star star <%= i <= relatedAvgRating ? 'filled' : '' %>"></i>
+                                    <% } %>
+                                </div>
+                                <span>(<%= relatedAvgRating %>/5)</span>
+                            </div>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
+
+        <% } else { %>
+        <div style="text-align: center; padding: 50px 0;">
+            <h2>Product Not Available</h2>
+            <p>This product is currently unavailable or out of stock.</p>
+            <a href="/shop" class="add-to-cart-btn" style="display: inline-block; text-decoration: none;">Back to Shop</a>
+        </div>
+        <% } %>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    
+    <script>
+        let selectedSize = null;
+        let selectedRating = 0;
+        let maxQuantity = <%= product.totalStock %>;
+
+        // Image gallery functions
+        function changeMainImage(src, thumbnail) {
+            document.getElementById('mainImage').src = src;
+            document.getElementById('zoomOverlay').style.backgroundImage = `url('${src}')`;
+            
+            // Update active thumbnail
+            document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
+            thumbnail.classList.add('active');
+        }
+
+        // Image zoom effect
+        document.addEventListener('DOMContentLoaded', function() {
+            const mainImage = document.getElementById('mainImage');
+            const zoomOverlay = document.getElementById('zoomOverlay');
+            const container = document.querySelector('.main-image-container');
+
+            // Set initial zoom background
+            zoomOverlay.style.backgroundImage = `url('${mainImage.src}')`;
+
+            container.addEventListener('mousemove', function(e) {
+                const rect = container.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                
+                zoomOverlay.style.backgroundPosition = `${x}% ${y}%`;
+            });
+        });
+
+        // Size selection
+        function selectSize(element) {
+            if (element.classList.contains('disabled')) return;
+            
+            // Remove active class from all sizes
+            document.querySelectorAll('.size-option').forEach(s => s.classList.remove('selected'));
+            
+            // Add active class to selected size
+            element.classList.add('selected');
+            
+            selectedSize = element.dataset.size;
+            maxQuantity = parseInt(element.dataset.quantity);
+            
+            // Update quantity input max value
+            const quantityInput = document.getElementById('quantityInput');
+            quantityInput.max = maxQuantity;
+            if (parseInt(quantityInput.value) > maxQuantity) {
+                quantityInput.value = maxQuantity;
+            }
+        }
+
+        // Quantity controls
+        function changeQuantity(change) {
+            const input = document.getElementById('quantityInput');
+            let value = parseInt(input.value) + change;
+            
+            if (value < 1) value = 1;
+            if (value > maxQuantity) value = maxQuantity;
+            
+            input.value = value;
+        }
+
+        // Quantity input validation
+        document.getElementById('quantityInput').addEventListener('change', function() {
+            let value = parseInt(this.value);
+            if (isNaN(value) || value < 1) value = 1;
+            if (value > maxQuantity) value = maxQuantity;
+            this.value = value;
+        });
+
+        // Tab navigation
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab button
+            event.target.classList.add('active');
+        }
+
+        // Rating system
+        function setRating(rating) {
+            selectedRating = rating;
+            document.querySelector('input[name="rating"]').value = rating;
+            
+            // Update star display
+            document.querySelectorAll('.rating-star').forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+
+        // Add hover effect for rating stars
+        document.querySelectorAll('.rating-star').forEach((star, index) => {
+            star.addEventListener('mouseenter', function() {
+                document.querySelectorAll('.rating-star').forEach((s, i) => {
+                    if (i <= index) {
+                        s.style.color = '#ffc107';
+                    } else {
+                        s.style.color = '#ddd';
+                    }
+                });
+            });
+        });
+
+        document.querySelector('.rating-stars').addEventListener('mouseleave', function() {
+            document.querySelectorAll('.rating-star').forEach((star, index) => {
+                if (index < selectedRating) {
+                    star.style.color = '#ffc107';
+                } else {
+                    star.style.color = '#ddd';
+                }
+            });
+        });
+
+        // Review form submission
+        document.getElementById('reviewForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (selectedRating === 0) {
+                alert('Please select a rating.');
+                return;
+            }
+            
+            const formData = new FormData(this);
+            const productId = this.dataset.productId;
+            
+            // Convert FormData to URLSearchParams for proper encoding
+            const params = new URLSearchParams();
+            for (let [key, value] of formData.entries()) {
+                params.append(key, value);
+            }
+            
+            fetch(`/product/${productId}/review`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: params
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert('Review submitted successfully!');
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to submit review. Please try again.');
+            });
+        });
+
+        // Add to cart functionality
+        function addToCart() {
+            if (!selectedSize) {
+                alert('Please select a size.');
+                return;
+            }
+            
+            const productId = document.getElementById('addToCartBtn').dataset.productId;
+            const quantity = parseInt(document.getElementById('quantityInput').value);
+            
+            fetch('/cart/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `productId=${productId}&size=${selectedSize}&quantity=${quantity}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert('Product added to cart!');
+                    // Optionally update cart count in header
+                    updateCartCount();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to add to cart. Please try again.');
+            });
+        }
+
+        // Add to wishlist functionality
+        function addToWishlist(productId) {
+            fetch('/wishlist/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `productId=${productId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert('Added to wishlist!');
+                    // Change heart icon to filled
+                    const heartBtn = document.querySelector('.wishlist-btn i');
+                    heartBtn.classList.remove('far');
+                    heartBtn.classList.add('fas');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to add to wishlist. Please try again.');
+            });
+        }
+
+        // Coupon functionality (demo)
+        function applyCoupon() {
+            const couponCode = document.querySelector('.coupon-input').value.trim();
+            
+            if (!couponCode) {
+                alert('Please enter a coupon code.');
+                return;
+            }
+            
+            // Demo functionality - you can implement actual coupon logic
+            const demoCoupons = {
+                'SUMMER20': 20,
+                'WELCOME10': 10,
+                'SAVE15': 15
+            };
+            
+            if (demoCoupons[couponCode]) {
+                alert(`Coupon applied! You saved ${demoCoupons[couponCode]}% (Demo functionality)`);
+            } else {
+                alert('Invalid coupon code. Try: SUMMER20, WELCOME10, or SAVE15 (Demo)');
+            }
+        }
+
+        // Update cart count (optional - if you have a cart counter in header)
+        function updateCartCount() {
+            fetch('/cart/count')
+                .then(response => response.json())
+                .then(data => {
+                    const cartCounter = document.querySelector('.cart-count');
+                    if (cartCounter) {
+                        cartCounter.textContent = data.count;
+                    }
+                })
+                .catch(error => console.error('Error updating cart count:', error));
+        }
+
+        // Related product quick actions
+        document.querySelectorAll('.product-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                // Add quick action buttons on hover (optional enhancement)
+                const quickActions = document.createElement('div');
+                quickActions.className = 'quick-actions';
+                quickActions.innerHTML = `
+                    <button onclick="quickAddToCart('${this.dataset.productId}')" class="quick-btn">
+                        <i class="fas fa-shopping-cart"></i>
+                    </button>
+                    <button onclick="addToWishlist('${this.dataset.productId}')" class="quick-btn">
+                        <i class="far fa-heart"></i>
+                    </button>
+                `;
+                this.appendChild(quickActions);
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                const quickActions = this.querySelector('.quick-actions');
+                if (quickActions) {
+                    quickActions.remove();
+                }
+            });
+        });
+
+        // Quick add to cart for related products
+        function quickAddToCart(productId) {
+            // For related products, we'll assume default size and quantity
+            fetch('/cart/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `productId=${productId}&size=M&quantity=1`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert('Product added to cart!');
+                    updateCartCount();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to add to cart. Please try again.');
+            });
+        }
+
+        // Auto-select first available size on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const firstAvailableSize = document.querySelector('.size-option:not(.disabled)');
+            if (firstAvailableSize) {
+                selectSize(firstAvailableSize);
+            }
+            
+            // Initialize zoom overlay with main image
+            const mainImage = document.getElementById('mainImage');
+            const zoomOverlay = document.getElementById('zoomOverlay');
+            if (mainImage && zoomOverlay) {
+                zoomOverlay.style.backgroundImage = `url('${mainImage.src}')`;
+            }
+        });
+
+        // Keyboard navigation for image gallery
+        document.addEventListener('keydown', function(e) {
+            const thumbnails = document.querySelectorAll('.thumbnail');
+            const activeThumbnail = document.querySelector('.thumbnail.active');
+            
+            if (!activeThumbnail) return;
+            
+            const currentIndex = Array.from(thumbnails).indexOf(activeThumbnail);
+            let nextIndex;
+            
+            switch(e.key) {
+                case 'ArrowLeft':
+                    nextIndex = currentIndex > 0 ? currentIndex - 1 : thumbnails.length - 1;
+                    break;
+                case 'ArrowRight':
+                    nextIndex = currentIndex < thumbnails.length - 1 ? currentIndex + 1 : 0;
+                    break;
+                default:
+                    return;
+            }
+            
+            e.preventDefault();
+            thumbnails[nextIndex].click();
+        });
+
+        // Smooth scroll to reviews when clicking review count
+        document.querySelector('.rating-text').addEventListener('click', function() {
+            document.querySelector('#reviews').scrollIntoView({ behavior: 'smooth' });
+            showTab('reviews');
+        });
+
+        // Enhanced error handling for images
+        document.querySelectorAll('img').forEach(img => {
+            img.addEventListener('error', function() {
+                this.src = '/assets/img/placeholder.jpg';
+                this.alt = 'Product image not available';
+            });
+        });
+
+        // Add loading states for buttons
+        function setButtonLoading(button, loading) {
+            if (loading) {
+                button.disabled = true;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            } else {
+                button.disabled = false;
+                button.innerHTML = button.dataset.originalText || button.innerHTML;
+            }
+        }
+
+        // Store original button text
+        document.querySelectorAll('button').forEach(btn => {
+            btn.dataset.originalText = btn.innerHTML;
+        });
+    </script>
+</body>
+</html>
+  <!-- Footer -->
+  <%- include('../partials/user/footer') %>

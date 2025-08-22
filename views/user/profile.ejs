@@ -1,0 +1,181 @@
+
+    <%- include("../partials/user/header") %>
+
+
+
+<body>
+
+     
+
+    <div class="profile-page">
+        <!-- Main Container -->
+        <div class="profile-container">
+            <!-- Sidebar -->
+            <aside class="profile-sidebar">
+                <ul class="profile-sidebar-menu">
+                    <li><a href="#" class="active">Profile</a></li>
+                    <li><a href="#">Orders</a></li>
+                    <li><a href="#">Addresses</a></li>
+                    <li><a href="#">Wallet</a></li>
+                    <li><a href="#">Change Password</a></li>
+                </ul>
+               <div class="profile-logout-btn">
+    <button id="logoutBtn">Logout</button>
+</div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="profile-main-content">
+                <h1 class="profile-page-title">Profile</h1>
+                <p class="profile-page-subtitle">Manage your account information and preferences</p>
+
+                <div class="profile-section">
+                    <h2 class="profile-section-title">Personal Information</h2>
+                    <div class="profile-form-group">
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" name="firstName" value="John" />
+                    </div>
+                    <div class="profile-form-group">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" name="lastName" value="Doe" />
+                    </div>
+                    <div class="profile-form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" value="john.doe@example.com" />
+                    </div>
+                    <div class="profile-form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" value="+1 234 567 8900" />
+                    </div>
+                    <button class="profile-btn-primary" onclick="saveProfile()">Save Changes</button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Handle sidebar navigation
+        document.querySelectorAll('.profile-sidebar-menu a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Remove active class from all links
+                document.querySelectorAll('.profile-sidebar-menu a').forEach(l => l.classList.remove('active'));
+                
+                // Add active class to clicked link
+                this.classList.add('active');
+                
+                // Update main content based on selection
+                updateMainContent(this.textContent);
+            });
+        });
+
+        function updateMainContent(section) {
+            const mainContent = document.querySelector('.profile-main-content');
+            
+            switch(section) {
+                case 'Profile':
+                    mainContent.innerHTML = `
+                        <h1 class="profile-page-title">Profile</h1>
+                        <p class="profile-page-subtitle">Manage your account information and preferences</p>
+                        <div class="profile-section">
+                            <h2 class="profile-section-title">Personal Information</h2>
+                            <div class="profile-form-group">
+                                <label for="firstName">First Name</label>
+                                <input type="text" id="firstName" name="firstName" value="John" />
+                            </div>
+                            <div class="profile-form-group">
+                                <label for="lastName">Last Name</label>
+                                <input type="text" id="lastName" name="lastName" value="Doe" />
+                            </div>
+                            <div class="profile-form-group">
+                                <label for="email">Email Address</label>
+                                <input type="email" id="email" name="email" value="john.doe@example.com" />
+                            </div>
+                            <div class="profile-form-group">
+                                <label for="phone">Phone Number</label>
+                                <input type="tel" id="phone" name="phone" value="+1 234 567 8900" />
+                            </div>
+                            <button class="profile-btn-primary" onclick="saveProfile()">Save Changes</button>
+                        </div>
+                    `;
+                    break;
+                case 'Orders':
+                    mainContent.innerHTML = `
+                        <h1 class="profile-page-title">Orders</h1>
+                        <p class="profile-page-subtitle">View and manage your order history</p>
+                        <div class="profile-section">
+                            <p style="color: #666; font-size: 16px;">You have no orders yet. Start shopping to see your orders here!</p>
+                        </div>
+                    `;
+                    break;
+                case 'Addresses':
+                    mainContent.innerHTML = `
+                        <h1 class="profile-page-title">Addresses</h1>
+                        <p class="profile-page-subtitle">Manage your shipping and billing addresses</p>
+                        <div class="profile-section">
+                            <button class="profile-btn-primary">Add New Address</button>
+                        </div>
+                    `;
+                    break;
+                case 'Wallet':
+                    mainContent.innerHTML = `
+                        <h1 class="profile-page-title">Wallet</h1>
+                        <p class="profile-page-subtitle">Manage your payment methods and wallet balance</p>
+                        <div class="profile-section">
+                            <p style="color: #666; font-size: 16px;">Wallet balance: $0.00</p>
+                            <button class="profile-btn-primary" style="margin-top: 20px;">Add Money</button>
+                        </div>
+                    `;
+                    break;
+                case 'Change Password':
+                    mainContent.innerHTML = `
+                        <h1 class="profile-page-title">Change Password</h1>
+                        <p class="profile-page-subtitle">Update your account password</p>
+                        <div class="profile-section">
+                            <div class="profile-form-group">
+                                <label for="currentPassword">Current Password</label>
+                                <input type="password" id="currentPassword" name="currentPassword" />
+                            </div>
+                            <div class="profile-form-group">
+                                <label for="newPassword">New Password</label>
+                                <input type="password" id="newPassword" name="newPassword" />
+                            </div>
+                            <div class="profile-form-group">
+                                <label for="confirmPassword">Confirm New Password</label>
+                                <input type="password" id="confirmPassword" name="confirmPassword" />
+                            </div>
+                            <button class="profile-btn-primary" onclick="changePassword()">Update Password</button>
+                        </div>
+                    `;
+                    break;
+            }
+        }
+
+        function saveProfile() {
+            alert('Profile saved successfully!');
+        }
+
+        function changePassword() {
+            alert('Password updated successfully!');
+        }
+
+
+     document.getElementById('logoutBtn').addEventListener('click', async () => {
+    try {
+        // Send logout request
+        const res = await fetch('/logout', { method: 'POST' });
+
+        if (res.ok) {
+            // Redirect to home page instead of login
+            window.location.href = '/';
+        } else {
+            console.error('Logout failed');
+        }
+    } catch (error) {
+        console.error('Error during logout:', error);
+    }
+});
+    </script>
+</body>
+</html>

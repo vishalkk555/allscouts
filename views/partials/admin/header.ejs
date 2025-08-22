@@ -24,6 +24,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.10.1/sweetalert2.all.min.js"></script>
+
+    
+
 </head>
 
 <body>
@@ -39,13 +42,13 @@
         </div>
         <nav>
             <ul class="menu-aside">
-                <li class="menu-item active">
+                <li class="menu-item ">
                     <a class="menu-link" href="/admin/"> <i class="icon material-icons md-home"></i>
                         <span class="text">Dashboard</span>
                     </a>
                 </li>
-                <li class="menu-item">
-    <a class="menu-link" href="/admin/addProduct">
+                <li class="menu-item ">
+    <a class="menu-link" href="/admin/products">
         <i class="icon material-icons md-shopping_bag"></i>
         <span class="text">Products</span>
     </a>
@@ -66,16 +69,11 @@
         <span class="text">Category</span>
     </a>
 </li>
-                <li class="menu-item has-submenu">
-                    <a class="menu-link" href="page-form-product-1.html"> <i class="icon material-icons md-add_box"></i>
-                        <span class="text">Add product</span>
+                <li class="menu-item">
+                    <a class="menu-link" href="/admin/users"> <i class="icon material-icons md-add_box"></i>
+                        <span class="text">Customer</span>
                     </a>
-                    <div class="submenu">
-                        <a href="page-form-product-1.html">Add product 1</a>
-                        <a href="page-form-product-2.html">Add product 2</a>
-                        <a href="page-form-product-3.html">Add product 3</a>
-                        <a href="page-form-product-4.html">Add product 4</a>
-                    </div>
+                   
                 </li>
                 <li class="menu-item has-submenu">
                     <a class="menu-link" href="page-transactions-1.html"> <i class="icon material-icons md-monetization_on"></i>
@@ -186,4 +184,21 @@
                     </li>
                 </ul>
             </div>
+
+
+
+                <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const currentPath = window.location.pathname; // e.g. "/admin/products"
+            document.querySelectorAll(".menu-item a").forEach(link => {
+                if (link.getAttribute("href") === currentPath) {
+                    link.parentElement.classList.add("active"); 
+                } else {
+                    link.parentElement.classList.remove("active");
+                }
+            });
+        });
+    </script>
+
+
         </header>
