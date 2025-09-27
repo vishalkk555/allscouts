@@ -1,0 +1,209 @@
+ <%- include("../partials/admin/header") %>
+
+<body>
+    <!-- Debug: Check if data is being passed -->
+    <!-- <pre><%# JSON.stringify({totalOrders, currentPage, totalPages, ordersCount: orders?.length}, null, 2) %></pre> -->
+    
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Orders</h1>
+            <p class="page-subtitle">Manage your orders</p>
+        </div>
+
+        <!-- Search and Filter Section -->
+        <div class="controls-section">
+            <div class="search-container">
+                <form id="searchForm" class="search-form">
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        name="search" 
+                        placeholder="Search by Order ID ..." 
+                        value="<%= search || '' %>"
+                        class="search-input"
+                    >
+                    <button type="submit" class="search-btn">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <button type="button" id="clearBtn" class="clear-btn">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                </form>
+            </div>
+
+            <div class="filter-container">
+                <form id="filterForm" class="filter-form">
+                    <select id="statusFilter" name="status" class="status-select">
+                        <option value="">All Orders</option>
+                        <option value="Pending" <%= statusFilter === 'Pending' ? 'selected' : '' %>>Pending</option>
+                        <option value="Shipped" <%= statusFilter === 'Shipped' ? 'selected' : '' %>>Shipped</option>
+                        <option value="Delivered" <%= statusFilter === 'Delivered' ? 'selected' : '' %>>Delivered</option>
+                        <option value="Cancelled" <%= statusFilter === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
+                        <option value="Returned" <%= statusFilter === 'Returned' ? 'selected' : '' %>>Returned</option>
+                    </select>
+                    <button type="submit" class="filter-btn">
+                        <i class="fas fa-filter"></i> Apply Filter
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Orders Table -->
+        <div class="table-container">
+            <% if (orders && orders.length > 0) { %>
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th>SL NO.</th>
+                            <th>ORDER ID</th>
+                            <th>CUSTOMER </th>
+                            <th>DATE</th>
+                            <th>AMOUNT</th>
+                            <th>ORDER STATUS</th>
+                            <th>PAYMENT STATUS</th>
+                            <th>RETURN STATUS</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% orders.forEach((order, index) => { %>
+                            <tr>
+                                <td class="text-center"><%= ((currentPage - 1) * limit) + index + 1 %></td>
+                                <td class="order-id">#<%= order.displayOrderId || order.orderNumber || order._id.toString().slice(-8).toUpperCase() %></td>
+                                <td class="customer-name">
+                                    <%= order.customerName || order.deliveryAddress?.name || order.userId?.name || 'N/A' %>
+                                </td>
+                                <td class="order-date">
+                                    <%= order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric'
+                                    }) : 'N/A' %>
+                                </td>
+                                <td class="amount">
+                                    ₹<%= order.orderAmount ? order.orderAmount.toLocaleString('en-IN') : '0' %>
+                                </td>
+                                <td class="text-center">
+                                    <span class="status-badge status-<%= (order.orderStatus || 'pending').toLowerCase() %>">
+                                        <%= order.orderStatus || 'Pending' %>
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="payment-badge payment-<%= (order.paymentStatus || 'pending').toLowerCase().replace(/\s+/g, '-') %>">
+                                        <%= order.paymentStatus || 'Pending' %>
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="return-badge return-<%= (order.returnStatus || 'none').toLowerCase().replace(/\s+/g, '-') %>">
+                                        <%= order.returnStatus || 'None' %>
+                                    </span>
+                                </td>
+                                <td class="actions text-center">
+                                    <button 
+                                        class="view-btn" 
+                                        onclick="viewOrderDetails('<%= order._id %>')"
+                                        title="View Details"
+                                    >
+                                        <i class="fas fa-eye"></i> View Details
+                                    </button>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+
+                <!-- Pagination -->
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        Showing <%= ((currentPage - 1) * limit) + 1 %> to <%= Math.min(currentPage * limit, totalOrders) %> of <%= totalOrders %> orders
+                    </div>
+                    
+                    <div class="pagination">
+                        <% if (currentPage > 1) { %>
+                            <a href="?page=<%= currentPage - 1 %>&search=<%= encodeURIComponent(search || '') %>&status=<%= encodeURIComponent(statusFilter || '') %>" class="page-link">
+                                <i class="fas fa-chevron-left"></i> Previous
+                            </a>
+                        <% } %>
+
+                        <% 
+                            let startPage = Math.max(1, currentPage - 2);
+                            let endPage = Math.min(totalPages, currentPage + 2);
+                        %>
+
+                        <% for (let i = startPage; i <= endPage; i++) { %>
+                            <a 
+                                href="?page=<%= i %>&search=<%= encodeURIComponent(search || '') %>&status=<%= encodeURIComponent(statusFilter || '') %>" 
+                                class="page-link <%= i === currentPage ? 'active' : '' %>"
+                            >
+                                <%= i %>
+                            </a>
+                        <% } %>
+
+                        <% if (currentPage < totalPages) { %>
+                            <a href="?page=<%= currentPage + 1 %>&search=<%= encodeURIComponent(search || '') %>&status=<%= encodeURIComponent(statusFilter || '') %>" class="page-link">
+                                Next <i class="fas fa-chevron-right"></i>
+                            </a>
+                        <% } %>
+                    </div>
+                </div>
+            <% } else { %>
+                <div class="no-orders">
+                    <i class="fas fa-shopping-cart"></i>
+                    <h3>No Orders Found</h3>
+                    <p>There are no orders matching your search criteria.</p>
+                </div>
+            <% } %>
+        </div>
+    </div>
+
+    <script>
+        // Search functionality
+        document.getElementById('searchForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const searchValue = document.getElementById('searchInput').value.trim();
+            const currentStatus = document.getElementById('statusFilter').value;
+            
+            let url = '/admin/orders?';
+            if (searchValue) url += `search=${encodeURIComponent(searchValue)}&`;
+            if (currentStatus) url += `status=${encodeURIComponent(currentStatus)}&`;
+            
+            window.location.href = url.slice(0, -1); // Remove trailing &
+        });
+
+        // Clear functionality
+        document.getElementById('clearBtn').addEventListener('click', function() {
+            document.getElementById('searchInput').value = '';
+            window.location.href = '/admin/orders';
+        });
+
+        // Filter functionality
+        document.getElementById('filterForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const statusValue = document.getElementById('statusFilter').value;
+            const currentSearch = document.getElementById('searchInput').value.trim();
+            
+            let url = '/admin/orders?';
+            if (currentSearch) url += `search=${encodeURIComponent(currentSearch)}&`;
+            if (statusValue) url += `status=${encodeURIComponent(statusValue)}&`;
+            
+            window.location.href = url.slice(0, -1); // Remove trailing &
+        });
+
+        // View order details
+        function viewOrderDetails(orderId) {
+            window.location.href = `/admin/orders/${orderId}`;
+        }
+
+        // Auto-submit filter on change
+        document.getElementById('statusFilter').addEventListener('change', function() {
+            document.getElementById('filterForm').dispatchEvent(new Event('submit'));
+        });
+
+        // Debug: Log table dimensions
+        console.log('Table container width:', document.querySelector('.table-container').offsetWidth);
+        console.log('Table width:', document.querySelector('.orders-table').offsetWidth);
+        console.log('Number of columns:', document.querySelectorAll('.orders-table th').length);
+    </script>
+</body>
+</html>

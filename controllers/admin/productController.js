@@ -5,6 +5,7 @@ const path = require("path")
 const fs = require("fs");
 const uploadDir = path.join(__dirname, '../../uploads/products');
 const Product = require("../../models/productSchema");
+const User = require("../../models/userSchema");
 
 
 // Debug function to check models and connections
@@ -158,7 +159,7 @@ const editProduct = async (req, res) => {
             return res.json(productData);
         }
 
-        // Alternative: No-fetch approach (uncomment to use)
+        // Alternative: No-fetch approach
         /*
         res.render('editProduct', {
             product: JSON.stringify(productData),
@@ -182,8 +183,8 @@ const editProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
   try {
     const productId = req.params.id;
-    const { productName, category, regularPrice, description, size_S, size_M, size_L, size_XL } = req.body;
-    console.log("this is from update " ,req.body)
+    const { productName, category, regularPrice, description, size_S, size_M, size_L, size_XL, deletedImages } = req.body;
+    console.log("this is from update ", req.body);
     const images = req.files ? req.files.map(file => file.filename) : [];
   
     const stock = [
@@ -192,9 +193,16 @@ const updateProduct = async (req, res) => {
       { size: 'L', quantity: parseInt(size_L) || 0 },
       { size: 'XL', quantity: parseInt(size_XL) || 0 },
     ];
-    const totalStock = stock.reduce((sum, item) => sum + item.quantity, 0);
 
-  
+    for (let item of stock) {
+      if (item.quantity < 0) {
+        return res.status(400).json({
+          message: `Invalid stock: size ${item.size} cannot have negative quantity`
+        });
+      }
+    }
+
+    const totalStock = stock.reduce((sum, item) => sum + item.quantity, 0);
 
     const updateData = {
       productName,
@@ -203,25 +211,40 @@ const updateProduct = async (req, res) => {
       stock,
       totalStock,
       status: totalStock > 0 ? 'Available' : 'out of stock',
-      // Include description even if it's an empty string, but trim it
       description: description ? description.trim() : '',
     };
 
-    if (images.length > 0) {
-      const existingProduct = await Product.findById(productId);
-      updateData.productImage = [
-        ...(existingProduct.productImage || []),
-        ...images
-      ];
+    // Always fetch existing product to handle deletions and additions
+    const existingProduct = await Product.findById(productId);
+    if (!existingProduct) {
+      return res.status(404).json({ message: 'Product not found' });
     }
 
+    let productImages = existingProduct.productImage || [];
+
+    if (deletedImages) {
+      let deletedImagesArray = [];
+      try {
+        deletedImagesArray = JSON.parse(deletedImages);
+      } catch (e) {
+        console.error('Error parsing deletedImages:', e);
+      }
+      if (Array.isArray(deletedImagesArray) && deletedImagesArray.length > 0) {
+        productImages = productImages.filter(image => !deletedImagesArray.includes(image));
+      }
+    }
+
+    // Add new images (includes cropped versions treated as new)
+    if (images.length > 0) {
+      productImages = [...productImages, ...images];
+    }
+
+    updateData.productImage = productImages;
 
     const product = await Product.findByIdAndUpdate(productId, updateData, { new: true });
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
-
-   
 
     res.status(200).json({ message: 'Product updated successfully' });
   } catch (error) {
@@ -360,3 +383,4 @@ module.exports = {
     blockProduct,
     unblockProduct
 }
+

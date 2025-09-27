@@ -24,7 +24,7 @@
                             name="categoryName" 
                             class="form-input" 
                             placeholder="Enter category name"
-                            required
+                            
                         >
                         <div class="error-message" id="categoryNameError"></div>
                     </div>
@@ -50,7 +50,7 @@
             categoryNameError.style.display = "none";
 
             if (!name) {
-                categoryNameError.textContent = "Category name is required.";
+                // categoryNameError.textContent = "Category name is required.";
                 categoryNameError.style.display = "block";
                 return;
             }

@@ -156,6 +156,17 @@
                   <a href="#" class="cs_wishlist_btn" data-product-id="<%= product._id %>">
                     <i class="fa-regular fa-heart"></i>
                   </a>
+
+                  <% if (product.status.toLowerCase() === "out of stock") { %>
+    <!--  Out of stock label instead of button -->
+    <span class="badge bg-danger cs_outofstock_label">Out of Stock</span>
+  <% } else { %>
+    <!--  Add to Cart button for available items -->
+<button type="button" class="cs_cart_btn select-stock-btn" data-product-id="<%= product._id %>">
+  <i class="fa-solid fa-cart-plus"></i>
+</button>
+
+  <% } %>
                 </div>
                 <div class="cs_product_info">
                   <h3 class="cs_product_title">
@@ -191,6 +202,30 @@
   </div>
   <div class="cs_height_140 cs_height_lg_80"></div>
   <hr>
+<div class="modal fade" id="stockSelectModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="stockSelectForm">
+        <input type="hidden" id="selectedProductId">
+        
+        <div class="modal-header">
+          <h5 class="modal-title">Select Size</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        
+        <div class="modal-body">
+          <div id="stockOptions" class="size-options"></div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success">Add to Cart</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 </section>
 <!-- End shop -->
 
@@ -234,4 +269,168 @@
       btn.textContent = content.classList.contains('active') ? '-' : '+';
     });
   });
+
+  //Add to cart
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".select-stock-btn").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const productId = btn.dataset.productId;
+      document.getElementById("selectedProductId").value = productId;
+
+      try {
+        const res = await fetch(`/getStock/${productId}`);
+        const data = await res.json();
+
+        if (data.success) {
+          const stockOptions = document.getElementById("stockOptions");
+          stockOptions.innerHTML = "";
+
+          // Check if there are any available sizes
+          const availableSizes = data.stock.filter(item => item.quantity > 0);
+          
+          if (availableSizes.length === 0) {
+            stockOptions.innerHTML = '<p class="text-danger">No sizes available</p>';
+            return;
+          }
+
+          // Create radio buttons for each available size
+          availableSizes.forEach((item, index) => {
+            const div = document.createElement("div");
+            div.className = "form-check";
+            
+            div.innerHTML = `
+              <input class="form-check-input" type="radio" name="selectedSize" 
+                     id="size${index}" value="${item.size}" ${index === 0 ? 'checked' : ''}>
+              <label class="form-check-label" for="size${index}">
+                ${item.size} (${item.quantity} left)
+              </label>
+            `;
+            
+            stockOptions.appendChild(div);
+          });
+
+          // Show the modal
+          new bootstrap.Modal(document.getElementById("stockSelectModal")).show();
+        }
+      } catch (err) {
+        console.error("Error fetching stock:", err);
+        alert("Error loading sizes. Please try again.");
+      }
+    });
+  });
+
+  // Handle Add to Cart form submit
+  document.getElementById("stockSelectForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const productId = document.getElementById("selectedProductId").value;
+    const size = document.querySelector("input[name='selectedSize']:checked")?.value;
+    
+    console.log("Selected size:", size); // Debug log
+
+    if (!size) {
+      alert("Please select a size");
+      return;
+    }
+
+    try {
+      const res = await fetch("/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, size, quantity: 1 })
+      });
+
+      const data = await res.json();
+      
+      if (data.success) {
+        // Use SweetAlert for better UX
+        Swal.fire({
+          icon: "success",
+          title: "Success!",
+          text: "Product added to cart!",
+          timer: 1500,
+          showConfirmButton: false
+        });
+        
+        // Close the modal
+        bootstrap.Modal.getInstance(document.getElementById("stockSelectModal")).hide();
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: data.message || "Something went wrong"
+        });
+      }
+    } catch (err) {
+      console.error("Add to cart error:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Could not add to cart. Please try again."
+      });
+    }
+  });
+});
+
+
+  document.addEventListener("DOMContentLoaded", () => {
+  // Wishlist buttons
+  const wishlistBtns = document.querySelectorAll(".cs_wishlist_btn");
+
+  wishlistBtns.forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const productId = btn.getAttribute("data-product-id");
+
+      try {
+        const res = await fetch("/wishlist/add", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ productId })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          Swal.fire({
+            icon: "success",
+            title: "Added to Wishlist",
+            text: data.message,
+            timer: 1500,
+            showConfirmButton: false
+          });
+          // Optionally, toggle the heart icon to filled
+          btn.querySelector("i").classList.remove("fa-regular");
+          btn.querySelector("i").classList.add("fa-solid");
+        } else if (data.exists) {
+          Swal.fire({
+            icon: "info",
+            title: "Already in Wishlist",
+            text: data.message,
+            timer: 1500,
+            showConfirmButton: false
+          });
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: data.message || "Something went wrong"
+          });
+        }
+
+      } catch (err) {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Could not add to wishlist"
+        });
+        console.error(err);
+      }
+    });
+  });
+});
+
 </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+

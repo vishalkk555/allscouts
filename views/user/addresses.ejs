@@ -1,0 +1,281 @@
+<%- include("../partials/user/header") %>
+
+<div class="addresses-body">
+    <!-- Main Container -->
+    <div class="addresses-container">
+        <!-- Sidebar -->
+        <aside class="change-password-sidebar">
+            <ul class="change-password-sidebar-menu">
+                <li><a href="/profile">Profile</a></li>
+                <li><a href="/orders" >Orders</a></li>
+                <li><a href="/addresses" class="change-password-active">Addresses</a></li>
+                <li><a href="#">Wallet</a></li>
+                <li><a href="/changePassword">Change Password</a></li>
+            </ul>
+            <div class="addresses-logout-section">
+                <button class="addresses-logout-btn" id="logoutBtn">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="addresses-main-content">
+            <div class="addresses-header">
+                <h1 class="addresses-page-title">My Addresses</h1>
+                <a href="/addAddress" class="addresses-add-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                    </svg>
+                    Add New Address
+                </a>
+            </div>
+
+            <div class="addresses-grid" id="addressesGrid">
+                <!-- Address cards will be populated here -->
+                <% if (addresses && addresses.length > 0) { %>
+                    <% addresses.forEach((address, index) => { %>
+                        <div class="addresses-card" data-address-id="<%= address._id %>">
+                            <div class="addresses-card-header">
+                                <div class="addresses-type-badge addresses-type-<%= address.saveAs.toLowerCase() %>">
+                                    <% if (address.saveAs === 'Home') { %>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                                        </svg>
+                                    <% } else if (address.saveAs === 'Work') { %>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M20 6h-2.5l-1.5-1.5h-5L9.5 6H7c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h13c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/>
+                                        </svg>
+                                    <% } else { %>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                                        </svg>
+                                    <% } %>
+                                    <%= address.saveAs %>
+                                </div>
+                                <% if (address.isDefault) { %>
+                                    <div class="addresses-default-badge">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                        </svg>
+                                        Default
+                                    </div>
+                                <% } %>
+                            </div>
+
+                            <div class="addresses-card-content">
+                                <h3 class="addresses-name"><%= address.name %></h3>
+                                <div class="addresses-details">
+                                    <p class="addresses-address">
+                                        <%= address.houseName %>, <%= address.street %><br>
+                                        <%= address.city %>, <%= address.state %><br>
+                                        <%= address.country %> - <%= address.pincode %>
+                                    </p>
+                                    <p class="addresses-contact">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                                        </svg>
+                                        <%= address.number %>
+                                    </p>
+                                    <p class="addresses-email">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                                        </svg>
+                                        <%= address.email %>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="addresses-card-actions">
+                                <button class="addresses-action-btn addresses-edit-btn" onclick="editAddress('<%= address._id %>')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                                    </svg>
+                                    Edit
+                                </button>
+                                
+                                <% if (!address.isDefault) { %>
+                                    <button class="addresses-action-btn addresses-default-btn" onclick="setDefault('<%= address._id %>')">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                        </svg>
+                                        Set Default
+                                    </button>
+                                    
+                                    <button class="addresses-action-btn addresses-delete-btn" onclick="deleteAddress('<%= address._id %>')">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                                        </svg>
+                                        Delete
+                                    </button>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% }); %>
+                <% } else { %>
+                    <div class="addresses-empty">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor" class="addresses-empty-icon">
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                        </svg>
+                        <h3>No Addresses Found</h3>
+                        <p>You haven't added any addresses yet. Add your first address to get started.</p>
+                        <a href="/addAddress" class="addresses-add-first-btn">Add Your First Address</a>
+                    </div>
+                <% } %>
+            </div>
+        </main>
+    </div>
+</div>
+
+
+<script>
+// Edit address function
+function editAddress(addressId) {
+    window.location.href = `/editAddress/${addressId}`;
+}
+
+// Set default address function
+function setDefault(addressId) {
+    Swal.fire({
+        title: 'Set as Default?',
+        text: 'This address will be used as your default shipping address.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, set as default',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading
+            const loadingAlert = Swal.fire({
+                title: 'Updating...',
+                text: 'Setting address as default.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            fetch('/setDefaultAddress', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ addressId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingAlert.close();
+                
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Default Address Updated!',
+                        text: 'This address has been set as your default.',
+                        confirmButtonColor: '#10b981'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Failed to Update',
+                        text: data.message || 'Failed to set default address. Please try again.'
+                    });
+                }
+            })
+            .catch(error => {
+                loadingAlert.close();
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Network Error',
+                    text: 'Please check your connection and try again.'
+                });
+            });
+        }
+    });
+}
+
+// Delete address function
+function deleteAddress(addressId) {
+    Swal.fire({
+        title: 'Delete Address?',
+        text: 'This action cannot be undone. Are you sure you want to delete this address?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading
+            const loadingAlert = Swal.fire({
+                title: 'Deleting...',
+                text: 'Please wait while we delete the address.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            fetch('/deleteAddress', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ addressId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingAlert.close();
+                
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Address Deleted!',
+                        text: 'The address has been successfully deleted.',
+                        confirmButtonColor: '#1a1a1a'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Failed to Delete',
+                        text: data.message || 'Failed to delete address. Please try again.'
+                    });
+                }
+            })
+            .catch(error => {
+                loadingAlert.close();
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Network Error',
+                    text: 'Please check your connection and try again.'
+                });
+            });
+        }
+    });
+}
+
+// Logout functionality
+document.querySelector('.addresses-logout-btn').addEventListener('click', function() {
+    Swal.fire({
+        title: 'Logout?',
+        text: 'Are you sure you want to logout?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, logout',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = '/logout';
+        }
+    });
+});
+</script>
+</document_content>

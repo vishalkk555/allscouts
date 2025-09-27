@@ -10,7 +10,7 @@
             <span class="active"><%= product.productName %></span>
         </nav>
 
-        <% if (product && !product.isBlocked && product.status === 'Available') { %>
+        <% if (product && !product.isBlocked && ['Available','out of stock'].includes(product.status)) { %>
         <!-- Main Product Section -->
         <div class="product-main">
             <!-- Image Gallery -->
@@ -67,7 +67,7 @@
                 </div>
 
                 <!-- Coupon Section -->
-                <div class="coupon-section">
+                <!-- <div class="coupon-section">
                     <div class="coupon-header">
                         <i class="fas fa-tag"></i> Apply Coupon & Save More
                     </div>
@@ -78,7 +78,7 @@
                     <div class="demo-note">
                         <i class="fas fa-info-circle"></i> Demo coupons available: SUMMER20, WELCOME10 - Full functionality coming soon!
                     </div>
-                </div>
+                </div> -->
 
                 <!-- Size Selection -->
                 <div class="size-section">
@@ -448,7 +448,7 @@
             const productId = document.getElementById('addToCartBtn').dataset.productId;
             const quantity = parseInt(document.getElementById('quantityInput').value);
             
-            fetch('/cart/add', {
+            fetch('/add', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -457,14 +457,14 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (data.error) {
-                    alert(data.error);
-                } else {
-                    alert('Product added to cart!');
-                    // Optionally update cart count in header
-                    updateCartCount();
-                }
-            })
+    if (!data.success) {
+        alert(data.message || 'Failed to add product.');
+    } else {
+        alert('Product added to cart!');
+        updateCartCount();
+    }
+})
+
             .catch(error => {
                 console.error('Error:', error);
                 alert('Failed to add to cart. Please try again.');
@@ -472,31 +472,48 @@
         }
 
         // Add to wishlist functionality
-        function addToWishlist(productId) {
-            fetch('/wishlist/add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `productId=${productId}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    alert(data.error);
-                } else {
-                    alert('Added to wishlist!');
-                    // Change heart icon to filled
-                    const heartBtn = document.querySelector('.wishlist-btn i');
-                    heartBtn.classList.remove('far');
-                    heartBtn.classList.add('fas');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to add to wishlist. Please try again.');
+       function addToWishlist(productId) {
+    fetch('/wishlist/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `productId=${productId}`
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Added!',
+                text: data.message,
+                showConfirmButton: false,
+                timer: 1500
+            });
+            document.querySelector('.wishlist-btn i').classList.replace('far','fas');
+        } else if (data.exists) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Already in Wishlist',
+                text: data.message,
+                showConfirmButton: false,
+                timer: 1500
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: data.message || 'Something went wrong!',
             });
         }
+    })
+    .catch(() => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to add to wishlist. Please try again.',
+        });
+    });
+}
+
 
         // Coupon functionality (demo)
         function applyCoupon() {
@@ -559,30 +576,49 @@
             });
         });
 
-        // Quick add to cart for related products
-        function quickAddToCart(productId) {
-            // For related products, we'll assume default size and quantity
-            fetch('/cart/add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `productId=${productId}&size=M&quantity=1`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    alert(data.error);
+      function quickAddToCart(productId) {
+    fetch('/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `productId=${productId}&size=M&quantity=1`
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: data.message || 'Could not add product to cart'
+            });
+        } else {
+            Swal.fire({
+                icon: 'success',
+                title: 'Added!',
+                text: 'Product added to cart successfully',
+                showCancelButton: true,
+                confirmButtonText: 'Go to Cart',
+                cancelButtonText: 'Continue Shopping'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    window.location.href = '/cart';
                 } else {
-                    alert('Product added to cart!');
                     updateCartCount();
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to add to cart. Please try again.');
             });
         }
+    })
+    .catch(err => {
+        console.error(err);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Something went wrong!'
+        });
+    });
+}
+
 
         // Auto-select first available size on page load
         document.addEventListener('DOMContentLoaded', function() {

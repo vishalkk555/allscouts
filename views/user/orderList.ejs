@@ -1,0 +1,286 @@
+<%- include("../partials/user/header") %>
+
+
+
+<div class="profile-container">
+    <!-- Sidebar -->
+    <aside class="change-password-sidebar">
+        <ul class="change-password-sidebar-menu">
+            <li><a href="/profile">Profile</a></li>
+            <li><a href="/orders" class="change-password-active">Orders</a></li>
+            <li><a href="/Addresses">Addresses</a></li>
+            <li><a href="/wallet">Wallet</a></li>
+            <li><a href="/changePassword">Change Password</a></li>
+        </ul>
+        <div class="change-password-logout-section">
+            <button class="change-password-logout-btn" id="logoutBtn">Logout</button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="orders-content">
+        <!-- Header Section -->
+        <div class="orders-header">
+            <h1 class="orders-title">My Orders</h1>
+            <p class="orders-subtitle">Track and manage your orders</p>
+        </div>
+
+        <!-- Search Section -->
+        <div class="search-section">
+            <div class="search-container">
+                <input type="text" class="search-input" id="orderNumberSearch" placeholder="Search ...">
+                <button type="button" class="btn-search" onclick="searchOrders()">Search</button>
+                <button type="button" class="btn-clear" onclick="clearSearch()">Clear</button>
+            </div>
+        </div>
+
+        <!-- Table Section -->
+        <div class="table-container">
+            <div id="loadingDiv" class="loading">
+                <p>Loading orders...</p>
+            </div>
+            <div id="tableContent">
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Date</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Order Status</th>
+                            <th>Payment Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody">
+                        <!-- Orders will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="noOrdersDiv" class="no-orders" style="display: none;">
+                <p>No orders found.</p>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-container" id="paginationContainer">
+            <div class="pagination-info" id="paginationInfo">
+                <!-- Pagination info will be populated here -->
+            </div>
+            <div class="pagination-controls" id="paginationControls">
+                <!-- Pagination controls will be populated here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentPage = 1;
+    let totalPages = 1;
+    let searchQuery = '';
+
+    // Load orders on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadOrders();
+    });
+
+    // Search function
+    function searchOrders() {
+        const query = document.getElementById('orderNumberSearch').value.trim();
+        searchQuery = query;
+        currentPage = 1;
+        loadOrders();
+    }
+
+    // Clear search function
+    function clearSearch() {
+        document.getElementById('orderNumberSearch').value = '';
+        searchQuery = '';
+        currentPage = 1;
+        loadOrders();
+    }
+
+    // Load orders function
+    async function loadOrders(page = currentPage) {
+        try {
+            showLoading(true);
+            
+            const queryParams = new URLSearchParams({
+                page: page,
+                limit: 10
+            });
+
+            if (searchQuery) {
+                queryParams.append('orderNumber', searchQuery);
+            }
+
+            const response = await fetch(`/orders/my-orders?${queryParams}`);
+            const data = await response.json();
+
+            if (data.success) {
+                populateOrdersTable(data.orders);
+                updatePagination(data.currentPage, data.totalPages, data.totalOrders);
+                currentPage = data.currentPage;
+                totalPages = data.totalPages;
+            } else {
+                showError(data.message || 'Failed to load orders');
+            }
+        } catch (error) {
+            console.error('Error loading orders:', error);
+            showError('Error loading orders. Please try again.');
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // Populate orders table
+    function populateOrdersTable(orders) {
+        const tbody = document.getElementById('ordersTableBody');
+        const noOrdersDiv = document.getElementById('noOrdersDiv');
+        const tableContent = document.getElementById('tableContent');
+
+        if (orders.length === 0) {
+            tableContent.style.display = 'none';
+            noOrdersDiv.style.display = 'block';
+            noOrdersDiv.innerHTML = '<p>' + (searchQuery ? 'No orders found matching your search.' : 'You have no orders yet.') + '</p>';
+            return;
+        }
+
+        tableContent.style.display = 'block';
+        noOrdersDiv.style.display = 'none';
+
+        tbody.innerHTML = orders.map(order => `
+            <tr>
+                <td>
+                    <span class="order-number">${order.orderNumber || 'N/A'}</span>
+                </td>
+                <td>
+                    <span class="order-date">${formatDate(order.createdAt)}</span>
+                </td>
+                <td>
+                    <span class="items-count">${order.orderedItem.length} item(s)</span>
+                </td>
+                <td>
+                    <span class="order-total">₹${order.orderAmount.toFixed(2)}</span>
+                </td>
+                <td>
+                    <span class="status-badge status-${order.orderStatus.toLowerCase()}">
+                        ${order.orderStatus}
+                    </span>
+                </td>
+                <td>
+                    <span class="payment-status payment-${order.paymentStatus.toLowerCase()}">
+                        ${order.paymentStatus}
+                    </span>
+                </td>
+                <td>
+                    <a href="/orders/view/${order._id}" class="action-view">View</a>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // Update pagination
+    function updatePagination(currentPage, totalPages, totalOrders) {
+        const infoContainer = document.getElementById('paginationInfo');
+        const controlsContainer = document.getElementById('paginationControls');
+        
+        // Update info
+        infoContainer.textContent = `Showing ${totalOrders > 0 ? ((currentPage - 1) * 10 + 1) : 0}-${Math.min(currentPage * 10, totalOrders)} of ${totalOrders} orders`;
+        
+        if (totalPages <= 1) {
+            controlsContainer.innerHTML = '';
+            return;
+        }
+
+        let controlsHTML = '';
+        
+        // Previous button
+        controlsHTML += `<button class="pagination-btn" ${currentPage <= 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">‹ Previous</button>`;
+
+        // Page numbers (show max 5 pages)
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, currentPage + 2);
+
+        // Adjust if we're near the beginning or end
+        if (endPage - startPage < 4) {
+            if (startPage === 1) {
+                endPage = Math.min(5, totalPages);
+            } else if (endPage === totalPages) {
+                startPage = Math.max(1, totalPages - 4);
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            controlsHTML += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+        }
+
+        // Next button
+        controlsHTML += `<button class="pagination-btn" ${currentPage >= totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">Next ›</button>`;
+        
+        controlsContainer.innerHTML = controlsHTML;
+    }
+
+     
+    
+
+
+    // Change page function
+    function changePage(page) {
+        if (page !== currentPage && page >= 1 && page <= totalPages) {
+            loadOrders(page);
+        }
+    }
+
+    
+       document.getElementById('logoutBtn').addEventListener('click', async () => {
+    try {
+        // Send logout request
+        const res = await fetch('/logout', { method: 'POST' });
+
+        if (res.ok) {
+            // Redirect to home page instead of login
+            window.location.href = '/';
+        } else {
+            console.error('Logout failed');
+        }
+    } catch (error) {
+        console.error('Error during logout:', error);
+    }
+});
+
+
+    // Utility functions
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    }
+
+    function showLoading(show) {
+        document.getElementById('loadingDiv').style.display = show ? 'block' : 'none';
+        document.getElementById('tableContent').style.display = show ? 'none' : 'block';
+    }
+
+    function showError(message) {
+        alert(message);
+    }
+
+    function logout() {
+        if (confirm('Are you sure you want to logout?')) {
+            window.location.href = '/logout';
+        }
+    }
+
+    // Enter key search functionality
+    document.getElementById('orderNumberSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            searchOrders();
+        }
+    });
+</script>
+
+<%- include("../partials/user/footer") %>

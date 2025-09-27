@@ -1,7 +1,8 @@
 const User=require('../../models/userSchema')
 const env = require("dotenv").config
 const nodemailer = require("nodemailer")
-const bcrypt=require('bcrypt')
+const bcrypt=require('bcrypt');
+const { session } = require('passport');
 
 // Hash password
 async function securePassword(password) {
@@ -14,6 +15,8 @@ async function securePassword(password) {
 
 
 const login=async (req,res) => {
+
+
    try {
     
       const {email,password}  = req.body
@@ -326,17 +329,8 @@ const loadProductPage = async (req,res) => {
   }
 }
 
-const userProfile = async (req,res) => {
-  try {
 
-    res.render('profile')
-    
-  } catch (error) {
-    
-    console.log("failed to load profile page")
 
-  }
-}
 
 const logout = async (req,res) => {
   req.session.destroy(err => {
@@ -512,6 +506,7 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+
 module.exports = {
     loadHomePage,
     pageNotFound,
@@ -523,7 +518,6 @@ module.exports = {
     verifyOtp,
     resendOtp,
     loadProductPage,
-    userProfile,
     logout,
     forgotPassword,
     sendForgotPasswordOtp,

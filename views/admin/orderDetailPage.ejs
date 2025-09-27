@@ -1,0 +1,375 @@
+<%- include("../partials/admin/header") %>
+
+<body>
+    <div class="main-content">
+        <!-- Header Section -->
+        <div class="page-header">
+            <div class="header-left">
+                <button onclick="goBack()" class="back-btn">
+                    <i class="fas fa-arrow-left"></i> Back to Orders
+                </button>
+                <div class="order-title">
+                    <h1>Order #<%= order.displayOrderId %></h1>
+                    <p class="order-date">Placed on <%= order.formattedDate %></p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button type="button" class="save-btn" onclick="submitOrderUpdate()">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+        </div>
+
+        <form id="orderUpdateForm" class="order-form">
+            <div class="details-grid">
+                <!-- Order Status Section -->
+                <div class="details-card">
+                    <h3><i class="fas fa-clipboard-list"></i> Order Status</h3>
+                    <div class="form-group">
+                        <label for="orderStatus">Order Status</label>
+                        <select id="orderStatus" name="orderStatus" class="form-select">
+                            <option value="Pending" <%= order.orderStatus === 'Pending' ? 'selected' : '' %>>Pending</option>
+                            <option value="Confirmed" <%= order.orderStatus === 'Confirmed' ? 'selected' : '' %>>Confirmed</option>
+                            <option value="Processing" <%= order.orderStatus === 'Processing' ? 'selected' : '' %>>Processing</option>
+                            <option value="Shipped" <%= order.orderStatus === 'Shipped' ? 'selected' : '' %>>Shipped</option>
+                            <option value="Delivered" <%= order.orderStatus === 'Delivered' ? 'selected' : '' %>>Delivered</option>
+                            <option value="Cancelled" <%= order.orderStatus === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
+                            <option value="Returned" <%= order.orderStatus === 'Returned' ? 'selected' : '' %>>Returned</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="paymentStatus">Payment Status</label>
+                        <select id="paymentStatus" name="paymentStatus" class="form-select">
+                            <option value="Pending" <%= order.paymentStatus === 'Pending' ? 'selected' : '' %>>Pending</option>
+                            <option value="Paid" <%= order.paymentStatus === 'Paid' ? 'selected' : '' %>>Paid</option>
+                            <option value="Failed" <%= order.paymentStatus === 'Failed' ? 'selected' : '' %>>Failed</option>
+                            <option value="Refunded" <%= order.paymentStatus === 'Refunded' ? 'selected' : '' %>>Refunded</option>
+                            <option value="Partially Refunded" <%= order.paymentStatus === 'Partially Refunded' ? 'selected' : '' %>>Partially Refunded</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Customer Details -->
+                <div class="details-card">
+                    <h3><i class="fas fa-user"></i> Customer Details</h3>
+                    <div class="customer-info">
+                        <p><strong>Name:</strong> <%= order.userId?.name || 'N/A' %></p>
+                        <p><strong>Email:</strong> <%= order.userId?.email || 'N/A' %></p>
+                        <p><strong>Phone:</strong> <%= order.userId?.phone || 'N/A' %></p>
+                        <p><strong>Payment Method:</strong> <%= order.paymentMethod || 'N/A' %></p>
+                    </div>
+                </div>
+
+                <!-- Shipping Address -->
+                <div class="details-card">
+                    <h3><i class="fas fa-shipping-fast"></i> Shipping Address</h3>
+                    <div class="address-info">
+                        <% if (order.shippingAddress) { %>
+                            <p><strong><%= order.shippingAddress.name %></strong></p>
+                            <p><%= order.shippingAddress.houseName %>, <%= order.shippingAddress.street %></p>
+                            <p><%= order.shippingAddress.city %>, <%= order.shippingAddress.state %></p>
+                            <p><%= order.shippingAddress.country %> - <%= order.shippingAddress.pincode %></p>
+                            <p><strong>Phone:</strong> <%= order.shippingAddress.number %></p>
+                            <% if (order.shippingAddress.email) { %>
+                                <p><strong>Email:</strong> <%= order.shippingAddress.email %></p>
+                            <% } %>
+                            <span class="address-type"><%= order.shippingAddress.saveAs || 'Address' %></span>
+                        <% } else { %>
+                            <p class="no-address">Address not available</p>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ordered Items Table - Compact Version -->
+            <div class="items-section">
+                <h3><i class="fas fa-shopping-cart"></i> Ordered Items</h3>
+                <div class="compact-table-container">
+                    <table class="compact-items-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Size</th>
+                                <th>Qty</th>
+                                <th>Status</th>
+                                <th>Return Request</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% order.orderedItem.forEach((item, index) => { %>
+                                <tr data-item-id="<%= item._id %>">
+                                    <td class="compact-product-cell">
+                                        <div class="compact-product-info">
+                                            <% if (item.productId && item.productId.productImage && item.productId.productImage.length > 0) { %>
+                                                <img src="/uploads/products/<%= item.productId.productImage[0] %>" alt="<%= item.productId.name %>" class="compact-product-image">
+                                            <% } else { %>
+                                                <div class="compact-no-image"><i class="fas fa-image"></i></div>
+                                            <% } %>
+                                            <div class="compact-product-name">
+                                                <%= item.productId?.name || 'Product not found' %>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><%= item.size %></td>
+                                    <td><%= item.quantity %></td>
+                                    <td>
+                                        <select name="productStatus_<%= item._id %>" class="compact-status-select" data-item-id="<%= item._id %>">
+                                            <option value="Pending" <%= item.productStatus === 'Pending' ? 'selected' : '' %>>Pending</option>
+                                            <option value="Confirmed" <%= item.productStatus === 'Confirmed' ? 'selected' : '' %>>Confirmed</option>
+                                            <option value="Processing" <%= item.productStatus === 'Processing' ? 'selected' : '' %>>Processing</option>
+                                            <option value="Shipped" <%= item.productStatus === 'Shipped' ? 'selected' : '' %>>Shipped</option>
+                                            <option value="Delivered" <%= item.productStatus === 'Delivered' ? 'selected' : '' %>>Delivered</option>
+                                            <option value="Cancelled" <%= item.productStatus === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
+                                            <option value="Returned" <%= item.productStatus === 'Returned' ? 'selected' : '' %>>Returned</option>
+                                        </select>
+                                    </td>
+                                    <td class="compact-return-cell">
+                                        <% 
+                                            const hasReturnRequest = item.productStatus === 'Return Requested' || 
+                                                                   item.productStatus === 'Return Approved' || 
+                                                                   item.productStatus === 'Return Rejected';
+                                        %>
+                                        <% if (hasReturnRequest) { %>
+                                            <div class="compact-return-request">
+                                                <span class="compact-status-badge <%= item.productStatus.toLowerCase().replace(/\s+/g, '-') %>">
+                                                    <%= item.productStatus === 'Return Requested' ? 'Requested' : 
+                                                        item.productStatus === 'Return Approved' ? 'Approved' : 
+                                                        'Rejected' %>
+                                                </span>
+                                                <% if (item.productStatus === 'Return Requested') { %>
+                                                    <div class="compact-return-actions">
+                                                        <button type="button" class="compact-approve-btn" onclick="handleReturnRequest('<%= order._id %>', '<%= item._id %>', 'approve')" title="Approve Return">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                        <button type="button" class="compact-reject-btn" onclick="handleReturnRequest('<%= order._id %>', '<%= item._id %>', 'reject')" title="Reject Return">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </div>
+                                                <% } %>
+                                                <% if (item.returnReason) { %>
+                                                    <div class="return-reason" title="<%= item.returnReason %>">
+                                                        <i class="fas fa-info-circle"></i>
+                                                    </div>
+                                                <% } %>
+                                            </div>
+                                        <% } else { %>
+                                            <span class="no-return">No Request</span>
+                                        <% } %>
+                                    </td>
+                                    <td class="compact-total-cell">₹<%= item.totalProductPrice.toLocaleString('en-IN') %></td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="order-summary">
+                <div class="summary-card">
+                    <h3><i class="fas fa-calculator"></i> Order Summary</h3>
+                    <div class="summary-row">
+                        <span>Subtotal:</span>
+                        <span>₹<%= order.subtotal.toLocaleString('en-IN') %></span>
+                    </div>
+                    <% if (order.couponDiscount > 0) { %>
+                        <div class="summary-row discount">
+                            <span>Coupon Discount (<%= order.couponCode || 'Applied' %>):</span>
+                            <span>-₹<%= order.couponDiscount.toLocaleString('en-IN') %></span>
+                        </div>
+                    <% } %>
+                    <% if (order.shippingCharge > 0) { %>
+                        <div class="summary-row">
+                            <span>Shipping Charge:</span>
+                            <span>₹<%= order.shippingCharge.toLocaleString('en-IN') %></span>
+                        </div>
+                    <% } else { %>
+                        <div class="summary-row">
+                            <span>Shipping Charge:</span>
+                            <span>Free</span>
+                        </div>
+                    <% } %>
+                    <div class="summary-row total">
+                        <span><strong>Total Amount:</strong></span>
+                        <span><strong>₹<%= order.finalTotal.toLocaleString('en-IN') %></strong></span>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Return Request Modal -->
+    <div id="returnModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Return Request Action</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="returnActionForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="returnNotes">Admin Notes (Optional)</label>
+                        <textarea id="returnNotes" name="notes" rows="4" class="form-textarea" placeholder="Add any notes for this return request..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="cancel-btn" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="confirm-btn" id="confirmActionBtn">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentReturnAction = null;
+        let currentOrderId = null;
+        let currentItemId = null;
+
+        function goBack() {
+            window.location.href = '/admin/orders';
+        }
+
+        function submitOrderUpdate() {
+            const form = document.getElementById('orderUpdateForm');
+            const formData = new FormData(form);
+            
+            const orderData = {
+                orderStatus: formData.get('orderStatus'),
+                paymentStatus: formData.get('paymentStatus'),
+                orderedItems: []
+            };
+
+            // Collect product status updates
+            const productStatusSelects = document.querySelectorAll('.compact-status-select');
+            productStatusSelects.forEach(select => {
+                const itemId = select.getAttribute('data-item-id');
+                orderData.orderedItems.push({
+                    itemId: itemId,
+                    productStatus: select.value
+                });
+            });
+
+            // Show loading
+            const saveBtn = document.querySelector('.save-btn');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            saveBtn.disabled = true;
+
+            fetch(`/admin/orders/<%= order._id %>/update`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(orderData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Order updated successfully!', 'success');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showNotification(data.message || 'Failed to update order', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred while updating the order', 'error');
+            })
+            .finally(() => {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            });
+        }
+
+        function handleReturnRequest(orderId, itemId, action) {
+            currentOrderId = orderId;
+            currentItemId = itemId;
+            currentReturnAction = action;
+            
+            document.getElementById('returnModal').style.display = 'block';
+            document.getElementById('confirmActionBtn').textContent = 
+                action === 'approve' ? 'Approve Return' : 'Reject Return';
+            document.getElementById('confirmActionBtn').className = 
+                action === 'approve' ? 'confirm-btn approve' : 'confirm-btn reject';
+        }
+
+        function closeModal() {
+            document.getElementById('returnModal').style.display = 'none';
+            document.getElementById('returnNotes').value = '';
+            currentReturnAction = null;
+            currentOrderId = null;
+            currentItemId = null;
+        }
+
+        document.getElementById('returnActionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!currentReturnAction || !currentOrderId || !currentItemId) {
+                showNotification('Invalid request parameters', 'error');
+                return;
+            }
+
+            const notes = document.getElementById('returnNotes').value;
+            
+            fetch(`/admin/orders/${currentOrderId}/return-request/${currentItemId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: currentReturnAction,
+                    notes: notes
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    closeModal();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showNotification(data.message || 'Failed to process return request', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred while processing the request', 'error');
+            });
+        });
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                ${message}
+            `;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('returnModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>

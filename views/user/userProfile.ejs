@@ -1,0 +1,105 @@
+
+ <%- include("../partials/user/header") %>  
+
+<body class="profile-body">
+  
+
+    <!-- Main Container -->
+    <div class="profile-container">
+        <!-- Sidebar -->
+        <aside class="change-password-sidebar">
+            <ul class="change-password-sidebar-menu">
+                <li><a href="#" class="change-password-active">Profile</a></li>
+                <li><a href="/orders">Orders</a></li>
+                <li><a href="/Addresses">Addresses</a></li>
+                <li><a href="#">Wallet</a></li>
+                <li><a href="/changePassword">Change Password</a></li>
+            </ul>
+            <div class="change-password-logout">
+                <button class="change-password-logout-btn" id="logoutBtn">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="profile-main-content">
+            <h1 class="profile-page-title">Profile</h1>
+            <p class="profile-page-subtitle">Manage your account information and preferences</p>
+
+            <!-- User Information Section -->
+            <div class="profile-user-section">
+                <div class="profile-user-avatar">
+                    <% if (user.profileImage && user.profileImage.length > 0) { %>
+                        <img src="<%= user.profileImage[0] %>" alt="Profile Picture">
+                    <% } else { %>
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                        </svg>
+                    <% } %>
+                </div>
+                <div class="profile-user-info">
+                    <h2 class="profile-user-name"><%= user.name || 'N/A' %></h2>
+                    <div class="profile-user-details">
+                        <div class="profile-user-detail-item">
+                            <span class="profile-user-detail-label">Email:</span>
+                            <%= user.email || 'N/A' %>
+                        </div>
+                        <div class="profile-user-detail-item">
+                            <span class="profile-user-detail-label">Phone:</span>
+                            <%= user.phone || 'N/A' %>
+                        </div>
+                        <div class="profile-user-detail-item">
+                            <span class="profile-user-detail-label">DOB:</span>
+                            <%= user.dob || 'N/A' %>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <a href="/editProfile" class="profile-edit-link">Edit</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Summary Section -->
+            <!-- <div class="profile-section">
+                <h3 class="profile-section-title">Account Summary</h3>
+                <div class="profile-summary-grid">
+                    <div class="profile-summary-card">
+                        <div class="profile-summary-number">12/4/2025</div>
+                        <div class="profile-summary-label">Member Since</div>
+                    </div>
+                    <div class="profile-summary-card">
+                        <div class="profile-summary-number">16</div>
+                        <div class="profile-summary-label">Total Orders</div>
+                    </div>
+                    <div class="profile-summary-card">
+                        <div class="profile-summary-number">2</div>
+                        <div class="profile-summary-label">Saved Items</div>
+                    </div>
+                    <div class="profile-summary-card">
+                        <div class="profile-summary-number">GTKFDY</div>
+                        <div class="profile-summary-label">Referral ID</div>
+                    </div>
+                </div>
+            </div> -->
+        </main>
+    </div>
+    <script>
+
+       document.getElementById('logoutBtn').addEventListener('click', async () => {
+    try {
+        // Send logout request
+        const res = await fetch('/logout', { method: 'POST' });
+
+        if (res.ok) {
+            // Redirect to home page instead of login
+            window.location.href = '/';
+        } else {
+            console.error('Logout failed');
+        }
+    } catch (error) {
+        console.error('Error during logout:', error);
+    }
+});
+
+    </script>
+</body>
+</html>

@@ -5,6 +5,7 @@ const adminController = require("../controllers/admin/adminController");
 const categoryController = require("../controllers/admin/categoryController")
 const productController = require("../controllers/admin/productController")
 const customerController = require("../controllers/admin/customerController")
+const orderController = require("../controllers/admin/orderController")
 const {userAuth,adminAuth} = require("../middlewares/auth")
 
 
@@ -45,6 +46,16 @@ router.patch('/api/customers/:id/block', adminAuth, customerController.blockCust
 router.patch('/api/customers/:id/unblock', adminAuth, customerController.unblockCustomer);
 
 
+
+router.get('/orders' , orderController.ordersListPage)
+// GET /admin/orders/:id - Order details page
+router.get('/orders/:id',  orderController.orderDetailsPage);
+
+// POST /admin/orders/:id/update - Update order details
+router.post('/orders/:id/update',  orderController.updateOrderDetails);
+
+// POST /admin/orders/:id/return-request/:itemId - Handle return request
+router.post('/orders/:id/return-request/:itemId', orderController.handleReturnRequest);
 
 
 

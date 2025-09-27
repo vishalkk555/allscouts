@@ -1,0 +1,540 @@
+<%- include("../partials/user/header") %>
+
+<body class="edit-address-body">
+   
+    <!-- Main Container -->
+    <div class="edit-address-container">
+        <!-- Sidebar -->
+        <aside class="edit-address-sidebar">
+            <ul class="edit-address-sidebar-menu">
+                <li><a href="/profile">Profile</a></li>
+                <li><a href="#">Orders</a></li>
+                <li><a href="/addresses" class="edit-address-active">Addresses</a></li>
+                <li><a href="#">Wallet</a></li>
+                <li><a href="/change-password">Change Password</a></li>
+            </ul>
+            <div class="edit-address-logout-section">
+                <button class="edit-address-logout-btn">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="edit-address-main-content">
+            <a href="/addresses" class="edit-address-back-link">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                </svg>
+                Back to Addresses
+            </a>
+
+            <h1 class="edit-address-page-title">Edit Address</h1>
+            <p class="edit-address-page-subtitle">Update your delivery address information</p>
+
+            <!-- Form -->
+            <form id="editAddressForm" class="edit-address-form">
+                <!-- Hidden field for address ID -->
+                <input type="hidden" id="addressId" name="addressId" value="<%= address._id %>">
+                
+                <!-- Contact Information -->
+                <h3 class="edit-address-section-title">Contact Information</h3>
+                
+                <div class="edit-address-form-row">
+                    <div class="edit-address-form-group">
+                        <label for="name" class="edit-address-form-label">
+                            Full Name <span class="edit-address-required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="name" 
+                            name="name" 
+                            class="edit-address-form-input"
+                            placeholder="Enter full name"
+                            value="<%= address.name %>"
+                            required
+                        >
+                    </div>
+
+                    <div class="edit-address-form-group">
+                        <label for="email" class="edit-address-form-label">
+                            Email Address <span class="edit-address-required">*</span>
+                        </label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            class="edit-address-form-input"
+                            placeholder="Enter email address"
+                            value="<%= address.email %>"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="edit-address-form-group">
+                    <label for="number" class="edit-address-form-label">
+                        Phone Number <span class="edit-address-required">*</span>
+                    </label>
+                    <input 
+                        type="tel" 
+                        id="number" 
+                        name="number" 
+                        class="edit-address-form-input"
+                        placeholder="Enter 10-digit phone number"
+                        value="<%= address.number %>"
+                        maxlength="10"
+                        required
+                    >
+                </div>
+
+                <!-- Address Information -->
+                <h3 class="edit-address-section-title">Address Details</h3>
+
+                <div class="edit-address-form-group">
+                    <label for="houseName" class="edit-address-form-label">
+                        House/Building Name <span class="edit-address-required">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="houseName" 
+                        name="houseName" 
+                        class="edit-address-form-input"
+                        placeholder="Enter house/building name and number"
+                        value="<%= address.houseName %>"
+                        required
+                    >
+                </div>
+
+                <div class="edit-address-form-group">
+                    <label for="street" class="edit-address-form-label">
+                        Street Address <span class="edit-address-required">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="street" 
+                        name="street" 
+                        class="edit-address-form-input"
+                        placeholder="Enter street address"
+                        value="<%= address.street %>"
+                        required
+                    >
+                </div>
+
+                <div class="edit-address-form-row">
+                    <div class="edit-address-form-group">
+                        <label for="city" class="edit-address-form-label">
+                            City <span class="edit-address-required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="city" 
+                            name="city" 
+                            class="edit-address-form-input"
+                            placeholder="Enter city"
+                            value="<%= address.city %>"
+                            required
+                        >
+                    </div>
+
+                    <div class="edit-address-form-group">
+                        <label for="state" class="edit-address-form-label">
+                            State <span class="edit-address-required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="state" 
+                            name="state" 
+                            class="edit-address-form-input"
+                            placeholder="Enter state"
+                            value="<%= address.state %>"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="edit-address-form-row">
+                    <div class="edit-address-form-group">
+                        <label for="country" class="edit-address-form-label">
+                            Country <span class="edit-address-required">*</span>
+                        </label>
+                        <select id="country" name="country" class="edit-address-form-select" required>
+                            <option value="">Select Country</option>
+                            <option value="India" <%= address.country === 'India' ? 'selected' : '' %>>India</option>
+                            <option value="United States" <%= address.country === 'United States' ? 'selected' : '' %>>United States</option>
+                            <option value="Canada" <%= address.country === 'Canada' ? 'selected' : '' %>>Canada</option>
+                            <option value="United Kingdom" <%= address.country === 'United Kingdom' ? 'selected' : '' %>>United Kingdom</option>
+                            <option value="Australia" <%= address.country === 'Australia' ? 'selected' : '' %>>Australia</option>
+                        </select>
+                    </div>
+
+                    <div class="edit-address-form-group">
+                        <label for="pincode" class="edit-address-form-label">
+                            Pincode <span class="edit-address-required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="pincode" 
+                            name="pincode" 
+                            class="edit-address-form-input"
+                            placeholder="Enter pincode"
+                            value="<%= address.pincode %>"
+                            maxlength="6"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <!-- Address Type -->
+                <div class="edit-address-form-group">
+                    <label class="edit-address-form-label">
+                        Save Address As <span class="edit-address-required">*</span>
+                    </label>
+                    <div class="edit-address-radio-group">
+                        <div class="edit-address-radio-item">
+                            <input 
+                                type="radio" 
+                                id="saveAsHome" 
+                                name="saveAs" 
+                                value="Home" 
+                                class="edit-address-radio-input"
+                                <%= address.saveAs === 'Home' ? 'checked' : '' %>
+                                required
+                            >
+                            <label for="saveAsHome" class="edit-address-radio-label">Home</label>
+                        </div>
+                        <div class="edit-address-radio-item">
+                            <input 
+                                type="radio" 
+                                id="saveAsWork" 
+                                name="saveAs" 
+                                value="Work" 
+                                class="edit-address-radio-input"
+                                <%= address.saveAs === 'Work' ? 'checked' : '' %>
+                                required
+                            >
+                            <label for="saveAsWork" class="edit-address-radio-label">Work</label>
+                        </div>
+                        <div class="edit-address-radio-item">
+                            <input 
+                                type="radio" 
+                                id="saveAsOther" 
+                                name="saveAs" 
+                                value="Other" 
+                                class="edit-address-radio-input"
+                                <%= address.saveAs === 'Other' ? 'checked' : '' %>
+                                required
+                            >
+                            <label for="saveAsOther" class="edit-address-radio-label">Other</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Default Address Option -->
+                <div class="edit-address-checkbox-group">
+                    <div class="edit-address-checkbox-item">
+                        <input 
+                            type="checkbox" 
+                            id="isDefault" 
+                            name="isDefault" 
+                            class="edit-address-checkbox-input"
+                            <%= address.isDefault ? 'checked' : '' %>
+                        >
+                        <label for="isDefault" class="edit-address-checkbox-label">
+                            Set as default address
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="edit-address-form-actions">
+                    <button type="button" class="edit-address-btn edit-address-btn-cancel" onclick="cancelEdit()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="edit-address-btn edit-address-btn-update">
+                        Update Address
+                    </button>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script>
+        // Form validation functions
+        function validateName(name) {
+            return /^[a-zA-Z\s]{2,50}$/.test(name.trim());
+        }
+
+        function validateEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function validatePhoneNumber(phone) {
+            return /^[6-9]\d{9}$/.test(phone);
+        }
+
+        function validatePincode(pincode) {
+            return /^\d{6}$/.test(pincode);
+        }
+
+        function validateText(text, minLength = 2, maxLength = 100) {
+            return text.trim().length >= minLength && text.trim().length <= maxLength;
+        }
+
+        // Phone number input formatting
+        document.getElementById('number').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 10) {
+                value = value.slice(0, 10);
+            }
+            e.target.value = value;
+        });
+
+        // Pincode input formatting
+        document.getElementById('pincode').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 6) {
+                value = value.slice(0, 6);
+            }
+            e.target.value = value;
+        });
+
+        // Cancel edit function
+        function cancelEdit() {
+            Swal.fire({
+                title: 'Cancel Changes?',
+                text: 'Are you sure you want to cancel? All changes will be lost.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, cancel!',
+                cancelButtonText: 'Continue editing'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Changes Cancelled',
+                        text: 'Redirecting back to addresses...',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.href = '/addresses';
+                    });
+                }
+            });
+        }
+
+        // Add error message function
+        function showFieldError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            field.classList.add('edit-address-error');
+            
+            // Remove existing error message
+            const existingError = field.parentNode.querySelector('.edit-address-error-message');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // Add new error message
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'edit-address-error-message';
+            errorDiv.textContent = message;
+            field.parentNode.appendChild(errorDiv);
+        }
+
+        // Clear field error function
+        function clearFieldError(fieldId) {
+            const field = document.getElementById(fieldId);
+            field.classList.remove('edit-address-error');
+            
+            const existingError = field.parentNode.querySelector('.edit-address-error-message');
+            if (existingError) {
+                existingError.remove();
+            }
+        }
+
+        // Form submission
+        document.getElementById('editAddressForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Clear all previous errors
+            document.querySelectorAll('.edit-address-form-input, .edit-address-form-select').forEach(input => {
+                clearFieldError(input.id);
+            });
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            let hasErrors = false;
+            
+            // Validate all fields
+            if (!validateName(data.name)) {
+                showFieldError('name', 'Name should contain only letters and spaces (2-50 characters)');
+                hasErrors = true;
+            }
+            
+            if (!validateEmail(data.email)) {
+                showFieldError('email', 'Please enter a valid email address');
+                hasErrors = true;
+            }
+            
+            if (!validatePhoneNumber(data.number)) {
+                showFieldError('number', 'Phone number should be 10 digits starting with 6-9');
+                hasErrors = true;
+            }
+            
+            if (!validateText(data.houseName)) {
+                showFieldError('houseName', 'House name is required (2-100 characters)');
+                hasErrors = true;
+            }
+            
+            if (!validateText(data.street)) {
+                showFieldError('street', 'Street address is required (2-100 characters)');
+                hasErrors = true;
+            }
+            
+            if (!validateText(data.city)) {
+                showFieldError('city', 'City name is required (2-100 characters)');
+                hasErrors = true;
+            }
+            
+            if (!validateText(data.state)) {
+                showFieldError('state', 'State name is required (2-100 characters)');
+                hasErrors = true;
+            }
+            
+            if (!data.country) {
+                showFieldError('country', 'Please select a country');
+                hasErrors = true;
+            }
+            
+            if (!validatePincode(data.pincode)) {
+                showFieldError('pincode', 'Pincode should be exactly 6 digits');
+                hasErrors = true;
+            }
+            
+            if (!data.saveAs) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Validation Error',
+                    text: 'Please select how to save this address'
+                });
+                hasErrors = true;
+            }
+            
+            if (hasErrors) {
+                return;
+            }
+            
+            // Confirmation dialog
+            const result = await Swal.fire({
+                title: 'Update Address?',
+                text: 'Are you sure you want to update this address?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#1a1a1a',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, update it!'
+            });
+            
+            if (result.isConfirmed) {
+                // Show loading
+                const loadingAlert = Swal.fire({
+                    title: 'Updating Address...',
+                    text: 'Please wait while we update your address.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                try {
+                    // Convert number to Number type
+                    data.number = parseInt(data.number);
+                    data.isDefault = document.getElementById('isDefault').checked;
+                    
+                    // Submit form data
+                    const response = await fetch('/updateAddress', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    const responseData = await response.json();
+                    
+                    if (!response.ok) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Validation Error',
+                            text: responseData.message
+                        });
+                        return;
+                    }
+
+                    loadingAlert.close();
+                    
+                    if (response.ok && responseData.success) {
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'Address Updated!',
+                            text: 'Your address has been updated successfully.',
+                            confirmButtonColor: '#1a1a1a'
+                        });
+                        
+                        // Redirect to addresses page
+                        window.location.href = '/addresses';
+                        
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Failed to Update Address',
+                            text: responseData.message || 'Failed to update address. Please try again.'
+                        });
+                    }
+                } catch (error) {
+                    loadingAlert.close();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Network Error',
+                        text: 'Please check your connection and try again.'
+                    });
+                }
+            }
+        });
+
+        // Real-time validation
+        document.getElementById('name').addEventListener('blur', function() {
+            if (this.value && !validateName(this.value)) {
+                showFieldError('name', 'Name should contain only letters and spaces (2-50 characters)');
+            } else {
+                clearFieldError('name');
+            }
+        });
+
+        document.getElementById('email').addEventListener('blur', function() {
+            if (this.value && !validateEmail(this.value)) {
+                showFieldError('email', 'Please enter a valid email address');
+            } else {
+                clearFieldError('email');
+            }
+        });
+
+        document.getElementById('number').addEventListener('blur', function() {
+            if (this.value && !validatePhoneNumber(this.value)) {
+                showFieldError('number', 'Phone number should be 10 digits starting with 6-9');
+            } else {
+                clearFieldError('number');
+            }
+        });
+
+        document.getElementById('pincode').addEventListener('blur', function() {
+            if (this.value && !validatePincode(this.value)) {
+                showFieldError('pincode', 'Pincode should be exactly 6 digits');
+            } else {
+                clearFieldError('pincode');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -27,10 +27,31 @@ const userSchema  = new Schema({
         type:String,
         required : false
     },
+    dob:{
+        type: String,
+        required:false,
+    },
+    profileImage:{
+        type: Array,
+        required: false,
+    },
     isBlocked: {
         type : Boolean,
         default : false
     },
+     wishlist: [
+      {
+        productId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: true
+        },
+        dateAdded: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
     isAdmin: {
         type:Boolean,
         default:false

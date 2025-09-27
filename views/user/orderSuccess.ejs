@@ -1,0 +1,330 @@
+
+    <%- include("../partials/user/header") %>
+    
+    
+    <style>
+        /* Scoped styles for order confirmation page */
+        .order-confirmation-wrapper {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .order-confirmation-wrapper * {
+            box-sizing: border-box;
+        }
+
+        /* Header styles matching your site */
+        .order-confirmation-header {
+            background-color: #1a1a1a;
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .order-confirmation-nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .order-confirmation-logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .order-confirmation-nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .order-confirmation-nav-links a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .order-confirmation-nav-links a:hover {
+            color: #ddd;
+        }
+
+        /* Main content */
+        .order-confirmation-main {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .order-confirmation-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 3rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .order-confirmation-success-icon {
+            width: 80px;
+            height: 80px;
+            background-color: #28a745;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+            font-size: 2.5rem;
+            color: white;
+        }
+
+        .order-confirmation-title {
+            color: #1a1a1a;
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .order-confirmation-order-id {
+            color: #6c757d;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .order-confirmation-order-number {
+            color: #1a1a1a;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        .order-confirmation-message {
+            color: #495057;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 3rem;
+            padding: 1.5rem;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+
+        .order-confirmation-email {
+            color: #007bff;
+            font-weight: 600;
+        }
+
+        .order-confirmation-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .order-confirmation-btn {
+            padding: 0.875rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 160px;
+        }
+
+        .order-confirmation-btn-primary {
+            background-color: #1a1a1a;
+            color: white;
+        }
+
+        .order-confirmation-btn-primary:hover {
+            background-color: #333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .order-confirmation-btn-secondary {
+            background-color: white;
+            color: #1a1a1a;
+            border: 2px solid #1a1a1a;
+        }
+
+        .order-confirmation-btn-secondary:hover {
+            background-color: #1a1a1a;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .order-confirmation-additional-info {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .order-confirmation-info-title {
+            color: #1a1a1a;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .order-confirmation-info-text {
+            color: #6c757d;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .order-confirmation-nav {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .order-confirmation-nav-links {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .order-confirmation-main {
+                padding: 2rem 1rem;
+            }
+
+            .order-confirmation-card {
+                padding: 2rem 1rem;
+            }
+
+            .order-confirmation-title {
+                font-size: 2rem;
+            }
+
+            .order-confirmation-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .order-confirmation-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="order-confirmation-wrapper">
+       
+
+        <!-- Main Content -->
+        <main class="order-confirmation-main">
+            <div class="order-confirmation-card">
+                <!-- Success Icon -->
+                <div class="order-confirmation-success-icon">
+                    ✓
+                </div>
+
+                <!-- Title -->
+                <h1 class="order-confirmation-title">Order Successful!</h1>
+
+                <!-- Order ID -->
+                <div class="order-confirmation-order-id">
+                    Order ID: <span class="order-confirmation-order-number">#<%= orderId %></span>
+                </div>
+
+                <!-- Message -->
+                <div class="order-confirmation-message">
+                    Thank you for your purchase! Your order details will be sent to 
+                    <span class="order-confirmation-email"><%= email %></span>
+                    within the next few minutes.
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="order-confirmation-buttons">
+                    <a href="/shop" class="order-confirmation-btn order-confirmation-btn-primary">
+                        Continue Shopping
+                    </a>
+                    <a href="/orders" class="order-confirmation-btn order-confirmation-btn-secondary">
+                        Order Details
+                    </a>
+                </div>
+            </div>
+
+            <!-- Additional Information -->
+            <div class="order-confirmation-additional-info">
+                <h3 class="order-confirmation-info-title">What happens next?</h3>
+                <p class="order-confirmation-info-text">
+                    We're processing your order right now. You'll receive a confirmation email shortly, 
+                    followed by shipping updates as your items make their way to you. 
+                    If you have any questions, feel free to contact our support team.
+                </p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Order confirmation page JavaScript
+        (function() {
+            // Animate success icon on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                const successIcon = document.querySelector('.order-confirmation-success-icon');
+                if (successIcon) {
+                    successIcon.style.transform = 'scale(0)';
+                    successIcon.style.transition = 'transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+                    
+                    setTimeout(() => {
+                        successIcon.style.transform = 'scale(1)';
+                    }, 300);
+                }
+
+                // Animate cards
+                const cards = document.querySelectorAll('.order-confirmation-card, .order-confirmation-additional-info');
+                cards.forEach((card, index) => {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px)';
+                    card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                    
+                    setTimeout(() => {
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, 500 + (index * 200));
+                });
+            });
+
+            // Button click analytics (if you have analytics)
+            const buttons = document.querySelectorAll('.order-confirmation-btn');
+            buttons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const buttonType = this.classList.contains('order-confirmation-btn-primary') ? 'continue-shopping' : 'order-details';
+                    console.log(`Order confirmation: ${buttonType} clicked`);
+                    
+                    // Add your analytics tracking here
+                    // Example: gtag('event', 'click', { event_category: 'order-confirmation', event_label: buttonType });
+                });
+            });
+
+            // Optional: Auto-redirect after a certain time (uncomment if needed)
+            /*
+            setTimeout(() => {
+                if (confirm('Would you like to continue shopping?')) {
+                    window.location.href = '/shop';
+                }
+            }, 30000); // 30 seconds
+            */
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,536 @@
+<%- include("../partials/user/header") %>
+
+<body class="add-address-body">
+   
+
+    <!-- Main Container -->
+    <div class="add-address-container">
+        <!-- Sidebar -->
+        <aside class="add-address-sidebar">
+            <ul class="add-address-sidebar-menu">
+                <li><a href="/profile">Profile</a></li>
+                <li><a href="#">Orders</a></li>
+                <li><a href="/addresses" class="add-address-active">Addresses</a></li>
+                <li><a href="#">Wallet</a></li>
+                <li><a href="/changePassword">Change Password</a></li>
+            </ul>
+            <div class="add-address-logout-section">
+                <button class="add-address-logout-btn">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="add-address-main-content">
+            <a href="/addresses" class="add-address-back-link">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                </svg>
+                Back to Addresses
+            </a>
+
+            <h1 class="add-address-page-title">Add New Address</h1>
+            <p class="add-address-page-subtitle">Add a new delivery address to your account</p>
+
+            <!-- Form -->
+            <form id="addAddressForm" class="add-address-form">
+                <!-- Contact Information -->
+                <h3 class="add-address-section-title">Contact Information</h3>
+                
+                <div class="add-address-form-row">
+                    <div class="add-address-form-group">
+                        <label for="name" class="add-address-form-label">
+                            Full Name <span class="add-address-required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="name" 
+                            name="name" 
+                            class="add-address-form-input"
+                            placeholder="Enter full name"
+                            required
+                        >
+                    </div>
+
+                    <div class="add-address-form-group">
+                        <label for="email" class="add-address-form-label">
+                            Email Address <span class="add-address-required">*</span>
+                        </label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            class="add-address-form-input"
+                            placeholder="Enter email address"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="add-address-form-group">
+                    <label for="number" class="add-address-form-label">
+                        Phone Number <span class="add-address-required">*</span>
+                    </label>
+                    <input 
+                        type="tel" 
+                        id="number" 
+                        name="number" 
+                        class="add-address-form-input"
+                        placeholder="Enter 10-digit phone number"
+                        maxlength="10"
+                        required
+                    >
+                </div>
+
+                <!-- Address Information -->
+                <h3 class="add-address-section-title">Address Details</h3>
+
+                <div class="add-address-form-group">
+                    <label for="houseName" class="add-address-form-label">
+                        House/Building Name <span class="add-address-required">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="houseName" 
+                        name="houseName" 
+                        class="add-address-form-input"
+                        placeholder="Enter house/building name and number"
+                        required
+                    >
+                </div>
+
+                <div class="add-address-form-group">
+                    <label for="street" class="add-address-form-label">
+                        Street Address <span class="add-address-required">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="street" 
+                        name="street" 
+                        class="add-address-form-input"
+                        placeholder="Enter street address"
+                        required
+                    >
+                </div>
+
+                <div class="add-address-form-row">
+                    <div class="add-address-form-group">
+                        <label for="city" class="add-address-form-label">
+                            City <span class="add-address-required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="city" 
+                            name="city" 
+                            class="add-address-form-input"
+                            placeholder="Enter city"
+                            required
+                        >
+                    </div>
+
+                    <div class="add-address-form-group">
+                        <label for="state" class="add-address-form-label">
+                            State <span class="add-address-required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="state" 
+                            name="state" 
+                            class="add-address-form-input"
+                            placeholder="Enter state"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="add-address-form-row">
+                    <div class="add-address-form-group">
+                        <label for="country" class="add-address-form-label">
+                            Country <span class="add-address-required">*</span>
+                        </label>
+                        <select id="country" name="country" class="add-address-form-select" required>
+                            <option value="">Select Country</option>
+                            <option value="India">India</option>
+                            <option value="United States">United States</option>
+                            <option value="Canada">Canada</option>
+                            <option value="United Kingdom">United Kingdom</option>
+                            <option value="Australia">Australia</option>
+                        </select>
+                    </div>
+
+                    <div class="add-address-form-group">
+                        <label for="pincode" class="add-address-form-label">
+                            Pincode <span class="add-address-required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="pincode" 
+                            name="pincode" 
+                            class="add-address-form-input"
+                            placeholder="Enter pincode"
+                            maxlength="6"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <!-- Address Type -->
+                <div class="add-address-form-group">
+                    <label class="add-address-form-label">
+                        Save Address As <span class="add-address-required">*</span>
+                    </label>
+                    <div class="add-address-radio-group">
+                        <div class="add-address-radio-item">
+                            <input 
+                                type="radio" 
+                                id="saveAsHome" 
+                                name="saveAs" 
+                                value="Home" 
+                                class="add-address-radio-input"
+                                required
+                            >
+                            <label for="saveAsHome" class="add-address-radio-label">Home</label>
+                        </div>
+                        <div class="add-address-radio-item">
+                            <input 
+                                type="radio" 
+                                id="saveAsWork" 
+                                name="saveAs" 
+                                value="Work" 
+                                class="add-address-radio-input"
+                                required
+                            >
+                            <label for="saveAsWork" class="add-address-radio-label">Work</label>
+                        </div>
+                        <div class="add-address-radio-item">
+                            <input 
+                                type="radio" 
+                                id="saveAsOther" 
+                                name="saveAs" 
+                                value="Other" 
+                                class="add-address-radio-input"
+                                required
+                            >
+                            <label for="saveAsOther" class="add-address-radio-label">Other</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Default Address Option -->
+                <div class="add-address-checkbox-group">
+                    <div class="add-address-checkbox-item">
+                        <input 
+                            type="checkbox" 
+                            id="isDefault" 
+                            name="isDefault" 
+                            class="add-address-checkbox-input"
+                        >
+                        <label for="isDefault" class="add-address-checkbox-label">
+                            Set as default address
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="add-address-form-actions">
+                    <button type="button" class="add-address-btn add-address-btn-cancel" onclick="clearForm()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="add-address-btn add-address-btn-add">
+                        Add Address
+                    </button>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script>
+        // Form validation functions
+        function validateName(name) {
+            return /^[a-zA-Z\s]{2,50}$/.test(name.trim());
+        }
+
+        function validateEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function validatePhoneNumber(phone) {
+            return /^[6-9]\d{9}$/.test(phone);
+        }
+
+        function validatePincode(pincode) {
+            return /^\d{6}$/.test(pincode);
+        }
+
+        function validateText(text, minLength = 2, maxLength = 100) {
+            return text.trim().length >= minLength && text.trim().length <= maxLength;
+        }
+
+        // Phone number input formatting
+        document.getElementById('number').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 10) {
+                value = value.slice(0, 10);
+            }
+            e.target.value = value;
+        });
+
+        // Pincode input formatting
+        document.getElementById('pincode').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 6) {
+                value = value.slice(0, 6);
+            }
+            e.target.value = value;
+        });
+
+        // Clear form function
+        function clearForm() {
+            Swal.fire({
+                title: 'Clear Form?',
+                text: 'This will clear all entered information.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, clear it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('addAddressForm').reset();
+                    
+                    // Clear error styles
+                    document.querySelectorAll('.add-address-form-input, .add-address-form-select').forEach(input => {
+                        input.classList.remove('add-address-error');
+                    });
+                    
+                    // Remove error messages
+                    document.querySelectorAll('.add-address-error-message').forEach(error => {
+                        error.remove();
+                    });
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Form Cleared!',
+                        text: 'All information has been cleared.',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
+            });
+        }
+
+        // Add error message function
+        function showFieldError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            field.classList.add('add-address-error');
+            
+            // Remove existing error message
+            const existingError = field.parentNode.querySelector('.add-address-error-message');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // Add new error message
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'add-address-error-message';
+            errorDiv.textContent = message;
+            field.parentNode.appendChild(errorDiv);
+        }
+
+        // Clear field error function
+        function clearFieldError(fieldId) {
+            const field = document.getElementById(fieldId);
+            field.classList.remove('add-address-error');
+            
+            const existingError = field.parentNode.querySelector('.add-address-error-message');
+            if (existingError) {
+                existingError.remove();
+            }
+        }
+
+        // Form submission
+        document.getElementById('addAddressForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Clear all previous errors
+            document.querySelectorAll('.add-address-form-input, .add-address-form-select').forEach(input => {
+                clearFieldError(input.id);
+            });
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            let hasErrors = false;
+            
+            // Validate all fields
+            if (!validateName(data.name)) {
+                showFieldError('name', 'Name should contain only letters and spaces (2-50 characters)');
+                hasErrors = true;
+            }
+            
+            if (!validateEmail(data.email)) {
+                showFieldError('email', 'Please enter a valid email address');
+                hasErrors = true;
+            }
+            
+            if (!validatePhoneNumber(data.number)) {
+                showFieldError('number', 'Phone number should be 10 digits starting with 6-9');
+                hasErrors = true;
+            }
+            
+            if (!validateText(data.houseName)) {
+                showFieldError('houseName', 'House name is required (2-100 characters)');
+                hasErrors = true;
+            }
+            
+            if (!validateText(data.street)) {
+                showFieldError('street', 'Street address is required (2-100 characters)');
+                hasErrors = true;
+            }
+            
+            if (!validateText(data.city)) {
+                showFieldError('city', 'City name is required (2-100 characters)');
+                hasErrors = true;
+            }
+            
+            if (!validateText(data.state)) {
+                showFieldError('state', 'State name is required (2-100 characters)');
+                hasErrors = true;
+            }
+            
+            if (!data.country) {
+                showFieldError('country', 'Please select a country');
+                hasErrors = true;
+            }
+            
+            if (!validatePincode(data.pincode)) {
+                showFieldError('pincode', 'Pincode should be exactly 6 digits');
+                hasErrors = true;
+            }
+            
+            if (!data.saveAs) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Validation Error',
+                    text: 'Please select how to save this address'
+                });
+                hasErrors = true;
+            }
+            
+            if (hasErrors) {
+                return;
+            }
+            
+            // Confirmation dialog
+            const result = await Swal.fire({
+                title: 'Add Address?',
+                text: 'Are you sure you want to add this address?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#1a1a1a',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, add it!'
+            });
+            
+            if (result.isConfirmed) {
+                // Show loading
+                const loadingAlert = Swal.fire({
+                    title: 'Adding Address...',
+                    text: 'Please wait while we save your address.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                try {
+                    // Convert number to Number type
+                    data.number = parseInt(data.number);
+                    data.isDefault = document.getElementById('isDefault').checked;
+                    
+                    // Submit form data
+                    const response = await fetch('/addAddress', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    const responseData = await response.json();
+                    
+                    if (!response.ok) {
+    Swal.fire({
+        icon: 'error',
+        title: 'Validation Error',
+        text: responseData.message
+    });
+    return;
+}
+
+                    loadingAlert.close();
+                    
+                    if (response.ok && responseData.success) {
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'Address Added!',
+                            text: 'Your address has been added successfully.',
+                            confirmButtonColor: '#1a1a1a'
+                        });
+                        
+                        // Redirect to addresses page
+                        window.location.href = '/addresses';
+                        
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Failed to Add Address',
+                            text: responseData.message || 'Failed to add address. Please try again.'
+                        });
+                    }
+                } catch (error) {
+                    loadingAlert.close();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Network Error',
+                        text: 'Please check your connection and try again.'
+                    });
+                }
+            }
+        });
+
+        // Real-time validation
+        document.getElementById('name').addEventListener('blur', function() {
+            if (this.value && !validateName(this.value)) {
+                showFieldError('name', 'Name should contain only letters and spaces (2-50 characters)');
+            } else {
+                clearFieldError('name');
+            }
+        });
+
+        document.getElementById('email').addEventListener('blur', function() {
+            if (this.value && !validateEmail(this.value)) {
+                showFieldError('email', 'Please enter a valid email address');
+            } else {
+                clearFieldError('email');
+            }
+        });
+
+        document.getElementById('number').addEventListener('blur', function() {
+            if (this.value && !validatePhoneNumber(this.value)) {
+                showFieldError('number', 'Phone number should be 10 digits starting with 6-9');
+            } else {
+                clearFieldError('number');
+            }
+        });
+
+        document.getElementById('pincode').addEventListener('blur', function() {
+            if (this.value && !validatePincode(this.value)) {
+                showFieldError('pincode', 'Pincode should be exactly 6 digits');
+            } else {
+                clearFieldError('pincode');
+            }
+        });
+    </script>
+</body>
+</html>
+

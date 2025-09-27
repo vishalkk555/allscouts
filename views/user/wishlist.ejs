@@ -1,0 +1,184 @@
+<%- include("../partials/user/header") %>
+<body>
+  <!-- Start Cart Page Heading -->
+  <section>
+    <div class="container">
+      <div class="cs_height_80 cs_height_lg_60"></div>
+      <div class="cs_shop_page_heading text-center">
+        <h1 class="cs_fs_50 cs_bold">Wishlist</h1>
+        <div class="cs_shop_breadcamp cs_medium">
+          <a href="/">Home</a>
+          <svg width="17" height="8" viewBox="0 0 17 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16.3536 4.35355C16.5488 4.15829 16.5488 3.84171 16.3536 3.64645L13.1716 0.464467C12.9763 0.269205 12.6597 0.269205 12.4645 0.464467C12.2692 0.659729 12.2692 0.976312 12.4645 1.17157L15.2929 4L12.4645 6.82843C12.2692 7.02369 12.2692 7.34027 12.4645 7.53553C12.6597 7.7308 12.9763 7.7308 13.1716 7.53554L16.3536 4.35355ZM-4.37114e-08 4.5L16 4.5L16 3.5L4.37114e-08 3.5L-4.37114e-08 4.5Z" fill="#5E5E5E"/>
+          </svg>
+          <span>Wishlist</span>
+        </div>
+      </div>
+      <div class="cs_height_80 cs_height_lg_60"></div>
+    </div>
+  </section>
+  <!-- End Cart Page Heading -->
+
+  <!-- Start Wishlist -->
+  <div class="container">
+    <div class="table-responsive">
+      <table class="cs_cart_table cs_size1">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Price</th>
+            <th>Stock Status</th>
+            <th>Remove</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (wishlist && wishlist.length > 0) { %>
+            <% wishlist.forEach(product => { %>
+              <tr>
+                <td>
+                  <div class="cs_cart_table_media">
+                    <!-- First product image -->
+                    <img src="/uploads/products/<%= product.productImage[0] %>" alt="Thumb">
+                     <a href="/product/<%= product._id %>">
+                    <h3><%= product.productName %></h3>
+                    </a>
+                      <% if (product.status.toLowerCase() === "blocked") { %>
+        <span class="badge bg-danger">Blocked</span>
+      <% } else { %>
+        <a href="#" class="cs_wishlist_btn" data-product-id="<%= product._id %>">
+          <i class="fa-regular fa-heart"></i>
+        </a>
+      <% } %>
+                  </div>
+                </td>
+                <td>₹<%= product.regularPrice.toLocaleString() %></td>
+                <td>
+                  <% if (product.totalStock > 0 && product.status === "Available") { %>
+                    In stock
+                  <% } else { %>
+                    Out of stock
+                  <% } %>
+                </td>
+                <td class="text-center">
+  <button 
+    class="cs_cart-table-close btn-remove" 
+    data-product-id="<%= product._id %>">
+    <i class="fa-solid fa-xmark"></i>
+  </button>
+</td>
+<td class="text-end">
+  <% if (product.totalStock > 0 && product.status === "Available") { %>
+    <button 
+      class="cs_btn cs_style_1 cs_type_1 cs_fs_16 cs_medium btn-add-cart" 
+      data-product-id="<%= product._id %>">
+      Add to Cart
+    </button>
+  <% } else { %>
+    <span class="text-muted">Unavailable</span>
+  <% } %>
+</td>
+
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr>
+              <td colspan="5" class="text-center">Your wishlist is empty.</td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <!-- End Wishlist -->
+
+  <div class="cs_height_140 cs_height_lg_80"></div>
+  <hr>
+<script>
+
+   document.addEventListener("DOMContentLoaded", () => {
+  // Handle remove from wishlist
+  document.querySelectorAll(".btn-remove").forEach(button => {
+    button.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const productId = button.getAttribute("data-product-id");
+
+      Swal.fire({
+        title: "Remove from wishlist?",
+        text: "This product will be removed from your wishlist.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, remove it!"
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          try {
+            const res = await fetch(`/wishlist/remove/${productId}`, {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" }
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+              Swal.fire("Removed!", data.message, "success").then(() => {
+                location.reload(); // refresh page to update table
+              });
+            } else {
+              Swal.fire("Error", data.message || "Could not remove", "error");
+            }
+          } catch (err) {
+            Swal.fire("Error", "Something went wrong!", "error");
+          }
+        }
+      });
+    });
+  });
+
+  // Handle add to cart
+  document.querySelectorAll(".btn-add-cart").forEach(button => {
+    button.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const productId = button.getAttribute("data-product-id");
+
+      Swal.fire({
+        title: "Add to cart?",
+        text: "This product will be moved to your shopping cart.",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#aaa",
+        confirmButtonText: "Yes, add it!"
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          try {
+            const res = await fetch(`/wishlist/addToCart/${productId}`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ size: "M", quantity: 1 }) // default values
+});
+
+
+            const data = await res.json();
+
+            if (data.success) {
+              Swal.fire("Added!", data.message, "success");
+            } else {
+              Swal.fire("Error", data.message || "Could not add", "error");
+            }
+          } catch (err) {
+            Swal.fire("Error", "Something went wrong!", "error");
+          }
+        }
+      });
+    });
+  });
+});
+
+
+</script>
+  <%- include("../partials/user/footer") %>
+  
+</body>
+</html>

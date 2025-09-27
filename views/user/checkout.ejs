@@ -1,0 +1,849 @@
+<%- include("../partials/user/header") %> 
+
+<style>
+    /* Stock Status Styles */
+    .order-item {
+        position: relative;
+        transition: all 0.3s ease;
+        padding: 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+
+    .order-item.blocked {
+        background: #fff5f5;
+        border: 2px solid #fed7d7;
+        opacity: 0.7;
+    }
+
+    .order-item.out-of-stock {
+        background: #fff5f5;
+        border: 2px solid #fed7d7;
+        opacity: 0.7;
+    }
+
+    .order-item.low-stock {
+        background: #fffaf0;
+        border: 2px solid #feebc8;
+    }
+
+    .stock-status {
+        font-size: 0.8rem;
+        font-weight: bold;
+        margin-top: 0.5rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        display: inline-block;
+    }
+
+    .stock-status.blocked {
+        background: #fed7d7;
+        color: #c53030;
+    }
+
+    .stock-status.out-of-stock {
+        background: #fed7d7;
+        color: #c53030;
+    }
+
+    .stock-status.low-stock {
+        background: #feebc8;
+        color: #dd6b20;
+    }
+
+    .stock-status.in-stock {
+        background: #c6f6d5;
+        color: #276749;
+    }
+
+    .remove-suggestion {
+        font-size: 0.8rem;
+        color: #e53e3e;
+        font-style: italic;
+        margin-top: 0.25rem;
+    }
+
+    .remove-item-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #e53e3e;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .remove-item-btn:hover {
+        background: #c53030;
+    }
+
+    .place-order-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 5% auto;
+        padding: 20px;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .close-modal {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close-modal:hover {
+        color: #000;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 15px;
+    }
+
+    .form-row .form-group {
+        flex: 1;
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+    }
+
+    .checkbox-group input {
+        width: auto;
+        margin-right: 10px;
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .address-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .address-card.selected {
+        border-color: #28a745;
+        background-color: #f8fff9;
+    }
+
+    .address-tag {
+        background: #e9ecef;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        margin-left: 10px;
+    }
+
+    .default-tag {
+        background: #28a745;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        margin-left: 10px;
+    }
+
+    
+
+</style>
+
+<body>
+    <main class="main">
+        <div class="container">
+            <div class="checkout-header">
+                <h1>Checkout</h1>
+                <div class="breadcrumb">
+                    <a href="/cart"><span>Cart</span></a> > <span class="active">Checkout</span> 
+                </div>
+            </div>
+
+            <div class="checkout-content">
+                <!-- Left Section - Address -->
+                <div class="checkout-left">
+                    <div class="address-section">
+                        <div class="section-header">
+                            <h2>Delivery Address</h2>
+                            <button class="add-address-btn" onclick="openAddressModal()">+ Add Address</button>
+                        </div>
+                        
+                        <div class="address-list">
+                            <% if (addresses && addresses.length > 0) { %>
+                                <% addresses.forEach((addr, index) => { %>
+                                    <div class="address-card <%= addr.isDefault ? 'selected' : '' %>" data-address-id="<%= addr._id %>">
+                                        <div class="address-radio">
+                                            <input type="radio" name="selectedAddress" value="<%= addr._id %>" 
+                                                   <%= addr.isDefault ? 'checked' : '' %> 
+                                                   onchange="selectAddress('<%= addr._id %>')">
+                                        </div>
+                                        <div class="address-info">
+                                            <div class="address-header">
+                                                <h4><%= addr.name %></h4>
+                                                <span class="address-tag <%= addr.saveAs.toLowerCase() %>"><%= addr.saveAs %></span>
+                                                <% if (addr.isDefault) { %>
+                                                    <span class="default-tag">Default</span>
+                                                <% } %>
+                                            </div>
+                                            <p class="address-details">
+                                                <%= addr.houseName %>, <%= addr.street %><br>
+                                                <%= addr.city %>, <%= addr.state %> - <%= addr.pincode %><br>
+                                                <%= addr.country %>
+                                            </p>
+                                            <p class="address-contact">
+                                                📞 <%= addr.number %> | ✉️ <%= addr.email %>
+                                            </p>
+                                            <button class="btn btn-success" type="button" onclick="editAddress('<%= addr._id %>')">Edit Address</button>  
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            <% } else { %>
+                                <div class="no-address">
+                                    <p>No addresses found. Please add a delivery address.</p>
+                                    <button class="add-first-address-btn" onclick="openAddressModal()">Add Your First Address</button>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Section - Order Summary -->
+                <div class="checkout-right">
+                    <div class="order-summary">
+                        <h2>Order Summary</h2>
+
+                        <!-- Order Items with Real Stock Status -->
+                        <div class="order-items">
+                            <% if (cartItems && cartItems.length > 0) { %>
+                                <% cartItems.forEach(item => { 
+                                    // Calculate real stock status
+                                    let stockStatus = 'in-stock';
+                                    let stockMessage = '✅ In Stock';
+                                    let isAvailable = true;
+                                    
+                                    if (item.productId.isBlocked) {
+                                        stockStatus = 'blocked';
+                                        stockMessage = '❌ Product Unavailable';
+                                        isAvailable = false;
+                                    } else {
+                                        const sizeStock = item.productId.stock.find(stock => stock.size === item.size);
+                                        if (!sizeStock || sizeStock.quantity <= 0) {
+                                            stockStatus = 'out-of-stock';
+                                            stockMessage = '❌ Out of Stock';
+                                            isAvailable = false;
+                                        } else if (sizeStock.quantity < item.quantity) {
+                                            stockStatus = 'low-stock';
+                                            stockMessage = `⚠️ Only ${sizeStock.quantity} left`;
+                                            isAvailable = false;
+                                        }
+                                    }
+                                %>
+                                    <div class="order-item <%= stockStatus %>" 
+                                         data-product-id="<%= item.productId._id %>" 
+                                         data-size="<%= item.size %>"
+                                         data-available="<%= isAvailable %>">
+                                        <img src="/uploads/products/<%= item.productId.productImage[0] %>" 
+                                             alt="<%= item.productId.productName %>" 
+                                             class="item-image">
+                                        <div class="item-details">
+                                            <h4><%= item.productId.productName %></h4>
+                                            <p class="item-size">Size: <%= item.size %></p>
+                                            <p class="item-quantity">Qty: <%= item.quantity %></p>
+                                            <p class="stock-status <%= stockStatus %>"><%= stockMessage %></p>
+                                            <% if (!isAvailable) { %>
+                                                <p class="remove-suggestion">Remove this item to proceed</p>
+                                            <% } %>
+                                        </div>
+                                        <div class="item-price">
+                                            ₹<%= (item.productId.regularPrice * item.quantity).toLocaleString() %>
+                                        </div>
+    <% if (!isAvailable) { %>
+    <button 
+        type="button" 
+        class="remove-item-btn" 
+        onclick="removeItem('<%= item._id %>')">
+        ×
+    </button>
+<% } %>
+
+                                    </div>
+                                <% }); %>
+                            <% } %>
+                        </div>
+
+                        <!-- Price Breakdown -->
+                        <div class="price-breakdown">
+                            <div class="price-row">
+                                <span>Subtotal (<%= totalItems %> items)</span>
+                                <span>₹<%= subtotal.toLocaleString() %></span>
+                            </div>
+                            <div class="price-row">
+                                <span>Shipping Charges</span>
+                                <span class="<%= shippingCharge === 0 ? 'free' : '' %>">
+                                    <% if (shippingCharge === 0) { %>
+                                        FREE
+                                    <% } else { %>
+                                        ₹<%= shippingCharge.toLocaleString() %>
+                                    <% } %>
+                                </span>
+                            </div>
+                            <% if (discount > 0) { %>
+                                <div class="price-row discount">
+                                    <span>Discount</span>
+                                    <span>-₹<%= discount.toLocaleString() %></span>
+                                </div>
+                            <% } %>
+                            <div class="price-row total">
+                                <span>Total Amount</span>
+                                <span>₹<%= totalAmount.toLocaleString() %></span>
+                            </div>
+                        </div>
+
+                        <!-- Payment Methods -->
+                        <div class="payment-section">
+                            <h3>Select Payment Method</h3>
+                            <div class="payment-methods">
+                                <div class="payment-option selected" data-method="cod">
+                                    <div class="payment-radio">
+                                        <input type="radio" name="paymentMethod" value="cod" checked>
+                                    </div>
+                                    <div class="payment-info">
+                                        <div class="payment-icon">💰</div>
+                                        <div>
+                                            <h4>Cash on Delivery</h4>
+                                            <p>Pay when you receive your order</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Place Order Button -->
+                        <button class="place-order-btn" onclick="validateAndPlaceOrder()" id="placeOrderBtn">
+                            Proceed to Buy - ₹<%= totalAmount.toLocaleString() %>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Address Modal -->
+    <div id="addressModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add New Address</h3>
+                <span class="close-modal" onclick="closeAddressModal()">&times;</span>
+            </div>
+            <form id="addressForm" class="address-form">
+                <input type="hidden" id="addressId" name="addressId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name">Full Name *</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email *</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="number">Phone Number *</label>
+                        <input type="tel" id="number" name="number" required maxlength="10">
+                    </div>
+                    <div class="form-group">
+                        <label for="pincode">Pincode *</label>
+                        <input type="text" id="pincode" name="pincode" required maxlength="6">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="houseName">House Name/Number *</label>
+                    <input type="text" id="houseName" name="houseName" required>
+                </div>
+                <div class="form-group">
+                    <label for="street">Street/Area *</label>
+                    <input type="text" id="street" name="street" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="city">City *</label>
+                        <input type="text" id="city" name="city" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="state">State *</label>
+                        <input type="text" id="state" name="state" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="country">Country *</label>
+                    <input type="text" id="country" name="country" value="India" required readonly>
+                </div>
+                <div class="form-group">
+                    <label for="saveAs">Save Address As *</label>
+                    <select id="saveAs" name="saveAs" required>
+                        <option value="">Select Type</option>
+                        <option value="Home">Home</option>
+                        <option value="Work">Work</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="isDefault" name="isDefault">
+                        Make this my default address
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="cancel-btn" onclick="closeAddressModal()">Cancel</button>
+                    <button type="submit" class="save-btn">Save Address</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Checkout Page JavaScript
+        let selectedAddressId = null;
+        let isEditMode = false;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCheckout();
+            checkOrderAvailability();
+        });
+
+        function checkOrderAvailability() {
+            const blockedItems = document.querySelectorAll('.order-item.blocked');
+            const outOfStockItems = document.querySelectorAll('.order-item.out-of-stock');
+            const placeOrderBtn = document.getElementById('placeOrderBtn');
+            
+            if (blockedItems.length > 0 || outOfStockItems.length > 0) {
+                placeOrderBtn.disabled = true;
+                placeOrderBtn.textContent = 'Cannot Place Order (Unavailable Items)';
+            } else {
+                placeOrderBtn.disabled = false;
+                placeOrderBtn.textContent = `Proceed to Buy - ₹<%= totalAmount.toLocaleString() %>`;
+            }
+        }
+
+        function validateAndPlaceOrder() {
+            const blockedItems = document.querySelectorAll('.order-item.blocked');
+            const outOfStockItems = document.querySelectorAll('.order-item.out-of-stock');
+            
+            if (blockedItems.length > 0 || outOfStockItems.length > 0) {
+                let errorMessage = "Cannot place order due to the following issues:\n\n";
+                
+                if (blockedItems.length > 0) {
+                    errorMessage += "Blocked Products:\n";
+                    blockedItems.forEach(item => {
+                        const productName = item.querySelector('h4').textContent;
+                        errorMessage += `• ${productName} (Product is blocked/unavailable)\n`;
+                    });
+                    errorMessage += "\n";
+                }
+                
+                if (outOfStockItems.length > 0) {
+                    errorMessage += "Out of Stock Products:\n";
+                    outOfStockItems.forEach(item => {
+                        const productName = item.querySelector('h4').textContent;
+                        const size = item.querySelector('.item-size').textContent.replace('Size: ', '');
+                        errorMessage += `• ${productName} (Size: ${size}) - Out of stock\n`;
+                    });
+                }
+                
+                errorMessage += "\nPlease remove these items from your cart to proceed.";
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Order Cannot Be Placed',
+                    text: errorMessage,
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#d33'
+                });
+                return;
+            }
+
+            placeOrder();
+        }
+
+        function removeItem(itemId) {
+            Swal.fire({
+                title: 'Remove Item?',
+                text: 'This item is unavailable and will be removed from your cart',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, remove it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/removeItem', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ itemId})
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.reload();
+                        } else {
+                            Swal.fire('Error', 'Failed to remove item', 'error');
+                           
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error removing item:', error);
+                        Swal.fire('Error', 'Failed to remove item', 'error');
+                    });
+                }
+            });
+        }
+
+        function initializeCheckout() {
+            const defaultAddress = document.querySelector('input[name="selectedAddress"]:checked');
+            if (defaultAddress) {
+                selectedAddressId = defaultAddress.value;
+            }
+
+            const addressCards = document.querySelectorAll('.address-card');
+            addressCards.forEach(card => {
+                card.addEventListener('click', function(e) {
+                    if (!e.target.classList.contains('btn')) {
+                        const radio = card.querySelector('input[type="radio"]');
+                        radio.checked = true;
+                        selectAddress(radio.value);
+                    }
+                });
+            });
+
+            const paymentOptions = document.querySelectorAll('.payment-option');
+            paymentOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    paymentOptions.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    const radio = option.querySelector('input[type="radio"]');
+                    radio.checked = true;
+                });
+            });
+
+            const modal = document.getElementById('addressModal');
+            window.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    closeAddressModal();
+                }
+            });
+
+            const addressForm = document.getElementById('addressForm');
+            addressForm.addEventListener('submit', handleAddressSubmit);
+        }
+
+        function selectAddress(addressId) {
+            selectedAddressId = addressId;
+            const addressCards = document.querySelectorAll('.address-card');
+            addressCards.forEach(card => {
+                card.classList.remove('selected');
+                if (card.dataset.addressId === addressId) {
+                    card.classList.add('selected');
+                }
+            });
+        }
+
+        function openAddressModal() {
+            const modal = document.getElementById('addressModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const form = document.getElementById('addressForm');
+            
+            isEditMode = false;
+            modalTitle.textContent = 'Add New Address';
+            form.reset();
+            document.getElementById('addressId').value = '';
+            document.getElementById('isDefault').checked = false;
+            
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeAddressModal() {
+            const modal = document.getElementById('addressModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            const form = document.getElementById('addressForm');
+            form.reset();
+            isEditMode = false;
+        }
+
+        function editAddress(addressId) {
+            fetch(`/getAddress/${addressId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch address');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        const address = data.address;
+                        
+                        document.getElementById('addressId').value = address._id;
+                        document.getElementById('name').value = address.name || '';
+                        document.getElementById('email').value = address.email || '';
+                        document.getElementById('number').value = address.number || '';
+                        document.getElementById('houseName').value = address.houseName || '';
+                        document.getElementById('street').value = address.street || '';
+                        document.getElementById('city').value = address.city || '';
+                        document.getElementById('state').value = address.state || '';
+                        document.getElementById('country').value = address.country || 'India';
+                        document.getElementById('pincode').value = address.pincode || '';
+                        document.getElementById('saveAs').value = address.saveAs || '';
+                        document.getElementById('isDefault').checked = address.isDefault || false;
+                        
+                        document.getElementById('modalTitle').textContent = 'Edit Address';
+                        isEditMode = true;
+                        
+                        const modal = document.getElementById('addressModal');
+                        modal.style.display = 'block';
+                        document.body.style.overflow = 'hidden';
+                    } else {
+                        throw new Error(data.message || 'Failed to load address');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching address:', error);
+                    Swal.fire('Error', 'Failed to load address details', 'error');
+                });
+        }
+
+        function handleAddressSubmit(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const addressData = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                number: formData.get('number'),
+                houseName: formData.get('houseName'),
+                street: formData.get('street'),
+                city: formData.get('city'),
+                state: formData.get('state'),
+                country: formData.get('country'),
+                pincode: formData.get('pincode'),
+                saveAs: formData.get('saveAs'),
+                isDefault: formData.get('isDefault') === 'on'
+            };
+
+            // Add addressId for edit mode
+            if (isEditMode) {
+                addressData.addressId = formData.get('addressId');
+            }
+
+            const url = isEditMode ? '/updateAddress' : '/addAddress';
+            const method = isEditMode ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(addressData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: isEditMode ? 'Address Updated' : 'Address Added',
+                        text: data.message || 'Address saved successfully'
+                    }).then(() => {
+                        closeAddressModal();
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Failed to save address'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error saving address:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to save address. Please try again.'
+                });
+            });
+        }
+
+        function placeOrder() {
+            if (!selectedAddressId) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Address Required',
+                    text: 'Please select a delivery address'
+                });
+                return;
+            }
+
+            const selectedPayment = document.querySelector('input[name="paymentMethod"]:checked');
+            if (!selectedPayment) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Payment Method Required',
+                    text: 'Please select a payment method'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'Confirm Cash on Delivery Order',
+                html: `
+                    <div style="text-align: left; padding: 1rem;">
+                        <p style="margin-bottom: 1rem;"><strong>Payment Method:</strong> Cash on Delivery</p>
+                        
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Confirm Order!',
+                cancelButtonText: 'Cancel',
+                showLoaderOnConfirm: true,
+                preConfirm: async () => {
+                    try {
+                        const orderData = {
+                            addressId: selectedAddressId,
+                            paymentMethod: selectedPayment.value
+                        };
+
+                        const response = await fetch('/placeOrder', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(orderData)
+                        });
+
+                        const data = await response.json();
+                        
+                        if (!response.ok) {
+                            if (data.details && data.details.length > 0) {
+                                const errorHtml = `
+                                    <div style="text-align: left;">
+                                        <p>Sorry, we encountered stock issues with your order:</p>
+                                        <ul style="text-align: left; margin-left: 20px;">
+                                            ${data.details.map(error => 
+                                                `<li><strong>${error.productName}</strong> - ${error.message}</li>`
+                                            ).join('')}
+                                        </ul>
+                                        <p>Please update your cart and try again.</p>
+                                    </div>
+                                `;
+                                
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Order Failed',
+                                    html: errorHtml,
+                                    confirmButtonText: 'OK',
+                                    confirmButtonColor: '#d33'
+                                });
+                                
+                                return { stockError: true };
+                            }
+                            throw new Error(data.error || 'Failed to place order');
+                        }
+                        
+                        return data;
+                    } catch (error) {
+                        Swal.showValidationMessage(`Order failed: ${error.message}`);
+                    }
+                }
+            }).then((result) => {
+                    if (result.isConfirmed && result.value && !result.value.stockError) {
+        Swal.fire({
+            icon: 'success',
+            title: 'Order Successful 🎉',
+            showConfirmButton: false,
+            timer: 2000
+        });
+
+       setTimeout(() => {
+    window.location.href = `/orderSuccess/${result.value.orderId}`;
+}, 2000);
+    }
+            });
+        }
+
+        // Utility functions
+        function showMessage(message, type) {
+            // Your existing showMessage function
+        }
+
+        function formatCurrency(amount) {
+            return `₹${amount.toLocaleString()}`;
+        }
+    </script>
+</body>
+</html>

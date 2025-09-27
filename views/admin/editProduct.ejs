@@ -125,6 +125,7 @@
 
    <script>
     let uploadedImages = [];
+    let deletedImages = [];
     let cropper = null;
     let currentCropIndex = -1;
     let isSubmitting = false;
@@ -316,14 +317,17 @@ if (descriptionField) {
             formData.append('size_M', document.querySelector('[name="size_M"]').value);
             formData.append('size_L', document.querySelector('[name="size_L"]').value);
             formData.append('size_XL', document.querySelector('[name="size_XL"]').value);
+// Append im// Append deleted images (includes deleted and replaced/cropped ones)
+formData.append('deletedImages', JSON.stringify(deletedImages));
+
 // Append images
-            for (const image of uploadedImages) {
-                if (!image.isExisting && !image.isModified) {
-                    const response = await fetch(image.dataUrl);
-                    const blob = await response.blob();
-                    formData.append('images', blob, image.fileName);
-                }
-            }
+for (const image of uploadedImages) {
+    if (!image.isExisting) {
+        const response = await fetch(image.dataUrl);
+        const blob = await response.blob();
+        formData.append('images', blob, image.fileName);
+    }
+}
 
             try {
                 const productId = document.getElementById('productId').value;
@@ -497,60 +501,66 @@ if (descriptionField) {
     }
 
     function applyCrop() {
-        if (!cropper || currentCropIndex === -1) return;
+    if (!cropper || currentCropIndex === -1) return;
 
-        const canvas = cropper.getCroppedCanvas({
-            maxWidth: 1200,
-            maxHeight: 1200,
-            fillColor: '#fff',
-            imageSmoothingEnabled: false,
-            imageSmoothingQuality: 'high',
-        });
+    const canvas = cropper.getCroppedCanvas({
+        maxWidth: 1200,
+        maxHeight: 1200,
+        fillColor: '#fff',
+        imageSmoothingEnabled: false,
+        imageSmoothingQuality: 'high',
+    });
 
-        const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-        uploadedImages[currentCropIndex].dataUrl = croppedDataUrl;
-        
-        if (uploadedImages[currentCropIndex].isExisting) {
-            uploadedImages[currentCropIndex].isModified = true;
-        }
-        
-        updateImageDisplay();
-        closeCropModal();
+    const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    uploadedImages[currentCropIndex].dataUrl = croppedDataUrl;
+    uploadedImages[currentCropIndex].originalDataUrl = croppedDataUrl; // Update for potential future crops
 
-        Swal.fire({
-            icon: 'success',
-            title: 'Image Cropped',
-            text: 'Image has been cropped successfully!',
-            timer: 1500,
-            showConfirmButton: false
-        });
+    if (uploadedImages[currentCropIndex].isExisting) {
+        deletedImages.push(uploadedImages[currentCropIndex].originalPath);
+        uploadedImages[currentCropIndex].isExisting = false;
     }
+    delete uploadedImages[currentCropIndex].isModified; // No longer needed
 
-    function deleteImage(index) {
-        Swal.fire({
-            title: 'Delete Image',
-            text: 'Are you sure you want to delete this image?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#e74c3c',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                uploadedImages.splice(index, 1);
-                updateImageDisplay();
-                
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Deleted!',
-                    text: 'Image has been deleted.',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
+    updateImageDisplay();
+    closeCropModal();
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Image Cropped',
+        text: 'Image has been cropped successfully!',
+        timer: 1500,
+        showConfirmButton: false
+    });
+}
+
+  function deleteImage(index) {
+    Swal.fire({
+        title: 'Delete Image',
+        text: 'Are you sure you want to delete this image?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e74c3c',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const image = uploadedImages[index];
+            if (image && image.isExisting) {
+                deletedImages.push(image.originalPath);
             }
-        });
-    }
-
+            uploadedImages.splice(index, 1);
+            updateImageDisplay();
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Deleted!',
+                text: 'Image has been deleted.',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+    });
+}
     function validateField(field) {
         const errorElement = document.getElementById(field.name + '-error');
         let isValid = true;
