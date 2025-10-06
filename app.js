@@ -9,6 +9,7 @@ const session  = require("express-session")
 const passport = require("./config/passport")
 const adminRouter = require("./routes/adminRouter");
 const blockGuard = require("./middlewares/blockGuard");
+const flash = require("connect-flash");
 
 db()
 
@@ -23,6 +24,15 @@ app.use(session({
 }));
 
 
+
+app.use(flash());
+
+// Make flash messages available in all EJS views
+app.use((req, res, next) => {
+  res.locals.success_msg = req.flash("success");
+  res.locals.error_msg = req.flash("error");
+  next();
+});
 
 
 app.use((req, res, next) => {

@@ -69,32 +69,6 @@ function generateOtp() {
 
 
 
-// const register=async (req,res) => {
-//     const {name,email,phone,password}=req.body
-//     console.log(req.body)
-//     const hashPassword=await bcrypt.hash(password,10)
-
-//     const newUser=new User({
-//         name,
-//         email,
-//         phone,
-//         password:hashPassword
-//     })
-
-//     await newUser.save()
-
-
-//     const otp  = generateOtp()
-//     req.session.otp = otp 
-//       req.session.email = email;
-
-//        console.log("Generated OTP (for demo):", otp); 
-
-//     //    res.redirect("/login");
-
-//     res.redirect('/otp')
-
-// }
 
 async function sendverificationEmail(email,otp){
   try {
@@ -167,18 +141,6 @@ const register = async (req, res) => {
   }
 };
 
-// const securePassword = async (password) =>{
-//   try {
-    
-//     const passwordHash = await bcrypt.hash(password,10)
-//     return passwordHash
-
-//   } catch (error) {
-    
-//         console.error("Error hashing password:", error.message);
-
-//   }
-// }
 
 
 const verifyOtp = async (req, res) => {

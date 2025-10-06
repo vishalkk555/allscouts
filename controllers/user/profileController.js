@@ -2,6 +2,7 @@ const Product = require("../../models/productSchema");
 const Category = require("../../models/categorySchema");
 const User = require("../../models/userSchema");
 const Address = require("../../models/addressSchema");
+const nodemailer = require("nodemailer")
 const bcrypt=require('bcrypt');
 const mongoose = require('mongoose');
 
@@ -43,6 +44,44 @@ const editProfile = async (req,res) => {
   }
 }
 
+  async function sendverificationEmail(email,otp){
+    try {
+      
+        const transporter  = nodemailer.createTransport({
+  
+          service:"gmail",
+          port:587,
+          secure:false,
+          requireTLS:true,
+          auth:{
+            user:process.env.NODEMAILER_EMAIL,
+            pass:process.env.NODEMAILER_PASSWORD
+          }
+        })
+  
+        const info = await transporter.sendMail({
+          from:process.env.NODEMAILER_EMAIL,
+          to:email,
+          subject:"Verify your account",
+          text:`Your OTP is ${otp}`,
+          html:`<b>Your OTP : ${otp}</b>`,
+  
+        })
+  
+        return info.accepted.length >0
+  
+    } catch (error) {
+      console.error("Error sending email",error)
+      return false
+    }
+  }
+
+
+function generateOtp() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+
 const updateProfile = async (req, res) => {
   try {
     const { name, email, phone, dob } = req.body;
@@ -67,36 +106,34 @@ const updateProfile = async (req, res) => {
     }
 
     // Check if email is being changed
-    if (email && email !== user.email) {
-      // Email is being changed - require OTP verification
-      const otp = generateOtp();
-      
-      // Save OTP and pending data to session
-      req.session.profileOtp = otp;
-      req.session.profileOtpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
-      req.session.pendingProfileData = {
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone ? phone.trim() : null,
-        dob: dob || null
-      };
-      if (req.file) {
-        req.session.pendingProfileData.profileImage = req.file.path;
-      }
+ if (email && email !== user.email) {
+  // Email is being changed - require OTP verification
+  const otp = generateOtp();
+  console.log(otp)
+  
+  req.session.profileOtp = otp;
+  req.session.profileOtpExpiry = Date.now() + 10 * 60 * 1000; // 10 mins
+  req.session.pendingProfileData = {
+    name: name.trim(),
+    email: email.trim(),
+    phone: phone ? phone.trim() : null,
+    dob: dob || null,
+    profileImage: req.file ? req.file.path : null
+  };
 
-      // Send OTP to the new email
-      const emailSent = await sendProfileUpdateEmail(email, otp);
-      
-      if (!emailSent) {
-        return res.status(500).json({ error: 'Failed to send OTP email' });
-      }
+  const emailSent = await sendverificationEmail(email, otp);
+  if (!emailSent) {
+    return res.status(500).json({ error: 'Failed to send OTP email' });
+  }
 
-      return res.json({ 
-        success: true, 
-        requiresOtp: true, 
-        message: 'OTP sent to your new email address for verification' 
-      });
-    }
+  
+  return res.json({
+    success: true,
+    requiresOtp: true,
+    message: `OTP sent to ${email}`,
+    email
+  });
+}
 
     // If email not changed, update directly
     user.name = name.trim();
@@ -113,12 +150,8 @@ const updateProfile = async (req, res) => {
     
     await user.save();
     
-    res.json({ 
-      success: true, 
-      message: 'Profile updated successfully',
-      requiresOtp: false 
-    });
-    
+     return res.json({ success: true, requiresOtp: false, message: 'Profile updated successfully ✅' });
+
   } catch (error) {
     console.error('Error updating profile:', error);
     res.status(500).json({ error: 'Server error' });

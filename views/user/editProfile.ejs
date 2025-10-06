@@ -81,7 +81,7 @@
             name="email" 
             class="edit-profile-form-input"
             value="<%= user.email || '' %>"
-            readonly
+           
         >
         
     </div>
@@ -132,7 +132,8 @@
         </main>
     </div>
    
-    <script>document.addEventListener('DOMContentLoaded', function() {
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
     // Verify form exists
     const form = document.getElementById('editProfileForm');
     if (!form) {
@@ -148,7 +149,7 @@
         try {
             const formData = new FormData(this);
             const name = formData.get('name').trim();
-            const email = formData.get('email').trim()
+            const email = formData.get('email').trim();
             const phone = formData.get('phone').trim();
             const dob = formData.get('dob');
 
@@ -223,21 +224,25 @@
                     method: 'POST',
                     body: formData
                 });
-
+                
                 const data = await response.json();
                 console.log('Server response:', data);
 
                 if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Profile Updated!',
-                        text: data.message,
-                        confirmButtonColor: '#1a1a1a',
-                        timer: 1500,
-                        showConfirmButton: false
-                    }).then(() => {
+                    if (data.requiresOtp) {
+                        // Redirect to OTP page
+                        window.location.href = `/otp?email=${data.email}`;
+                    } else {
+                        // Show SweetAlert and then go to profile
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'Profile Updated!',
+                            text: data.message,
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
                         window.location.href = '/profile';
-                    });
+                    }
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -247,11 +252,11 @@
                 }
             }
         } catch (error) {
-            console.error('Error in form submission:', error);
+            console.error('Error during form submission:', error);
             Swal.fire({
                 icon: 'error',
-                title: 'Error',
-                text: 'Failed to update profile. Please try again.'
+                title: 'Network Error',
+                text: 'Something went wrong. Please try again.'
             });
         }
     });
@@ -293,127 +298,6 @@
         console.error('File input with ID fileInput not found');
     }
 
-    // Delete profile image
-    window.deleteProfileImage = async function() {
-        Swal.fire({
-            title: 'Delete Profile Image?',
-            text: 'This will remove your profile image and revert to the default icon.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Yes, delete it!'
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                try {
-                    const response = await fetch('/updateImage', {
-                        method: 'DELETE',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    const data = await response.json();
-                    console.log('Delete image response:', data);
-
-                    if (data.success) {
-                        const avatarDisplay = document.getElementById('avatarDisplay');
-                        const currentAvatar = document.getElementById('currentAvatar');
-                        const defaultAvatar = document.getElementById('defaultAvatar');
-                        
-                        if (currentAvatar) {
-                            currentAvatar.remove();
-                        }
-                        if (defaultAvatar) {
-                            defaultAvatar.style.display = 'block';
-                        } else {
-                            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                            svg.setAttribute('width', '48');
-                            svg.setAttribute('height', '48');
-                            svg.setAttribute('viewBox', '0 0 24 24');
-                            svg.setAttribute('fill', 'currentColor');
-                            svg.setAttribute('id', 'defaultAvatar');
-                            svg.innerHTML = '<path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>';
-                            avatarDisplay.appendChild(svg);
-                        }
-                        
-                        const deleteButton = document.querySelector('.edit-profile-btn-delete');
-                        if (deleteButton) {
-                            deleteButton.remove();
-                        }
-                        
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Image Deleted!',
-                            text: data.message,
-                            timer: 1500,
-                            showConfirmButton: false
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: data.error || 'Failed to delete profile image'
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error deleting profile image:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Failed to delete profile image'
-                    });
-                }
-            }
-        });
-    };
-
-    // Clear form function
-    window.clearForm = function() {
-        Swal.fire({
-            title: 'Clear Form?',
-            text: 'This will clear all unsaved changes.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Yes, clear it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const form = document.getElementById('editProfileForm');
-                form.reset();
-                document.getElementById('fileInput').value = '';
-                
-                <% if (user.profileImage && user.profileImage.length > 0) { %>
-                    const currentAvatar = document.getElementById('currentAvatar');
-                    if (currentAvatar) {
-                        currentAvatar.src = '<%= user.profileImage[0] %>';
-                    }
-                <% } else { %>
-                    const currentAvatar = document.getElementById('currentAvatar');
-                    const defaultAvatar = document.getElementById('defaultAvatar');
-                    if (currentAvatar) {
-                        currentAvatar.remove();
-                    }
-                    if (defaultAvatar) {
-                        defaultAvatar.style.display = 'block';
-                    }
-                <% } %>
-                
-                document.querySelectorAll('.edit-profile-form-input').forEach(input => {
-                    input.classList.remove('edit-profile-error');
-                });
-                
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Form Cleared!',
-                    text: 'All changes have been cleared.',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-            }
-        });
-    };
-
     // Phone number input formatting
     const phoneInput = document.getElementById('phone');
     if (phoneInput) {
@@ -428,5 +312,129 @@
         console.error('Phone input with ID phone not found');
     }
 });
+
+// Delete profile image function
+async function deleteProfileImage() {
+    Swal.fire({
+        title: 'Delete Profile Image?',
+        text: 'This will remove your profile image and revert to the default icon.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, delete it!'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch('/updateImage', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                console.log('Delete image response:', data);
+
+                if (data.success) {
+                    const avatarDisplay = document.getElementById('avatarDisplay');
+                    const currentAvatar = document.getElementById('currentAvatar');
+                    const defaultAvatar = document.getElementById('defaultAvatar');
+                    
+                    if (currentAvatar) {
+                        currentAvatar.remove();
+                    }
+                    if (defaultAvatar) {
+                        defaultAvatar.style.display = 'block';
+                    } else {
+                        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                        svg.setAttribute('width', '48');
+                        svg.setAttribute('height', '48');
+                        svg.setAttribute('viewBox', '0 0 24 24');
+                        svg.setAttribute('fill', 'currentColor');
+                        svg.setAttribute('id', 'defaultAvatar');
+                        svg.innerHTML = '<path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>';
+                        avatarDisplay.appendChild(svg);
+                    }
+                    
+                    const deleteButton = document.querySelector('.edit-profile-btn-delete');
+                    if (deleteButton) {
+                        deleteButton.remove();
+                    }
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Image Deleted!',
+                        text: data.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'Failed to delete profile image'
+                    });
+                }
+            } catch (error) {
+                console.error('Error deleting profile image:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to delete profile image'
+                });
+            }
+        }
+    });
+}
+
+// Clear form function
+function clearForm() {
+    Swal.fire({
+        title: 'Clear Form?',
+        text: 'This will clear all unsaved changes.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, clear it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const form = document.getElementById('editProfileForm');
+            form.reset();
+            document.getElementById('fileInput').value = '';
+            
+            <% if (user.profileImage && user.profileImage.length > 0) { %>
+                const currentAvatar = document.getElementById('currentAvatar');
+                if (currentAvatar) {
+                    currentAvatar.src = '<%= user.profileImage[0] %>';
+                }
+            <% } else { %>
+                const currentAvatar = document.getElementById('currentAvatar');
+                const defaultAvatar = document.getElementById('defaultAvatar');
+                if (currentAvatar) {
+                    currentAvatar.remove();
+                }
+                if (defaultAvatar) {
+                    defaultAvatar.style.display = 'block';
+                }
+            <% } %>
+            
+            document.querySelectorAll('.edit-profile-form-input').forEach(input => {
+                input.classList.remove('edit-profile-error');
+            });
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Form Cleared!',
+                text: 'All changes have been cleared.',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+    });
+}
+
+
+
 </script>
 <%- include("../partials/user/footer") %>
