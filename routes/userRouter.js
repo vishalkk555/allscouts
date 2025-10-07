@@ -86,6 +86,8 @@ router.get('/getAddress/:addressId', profileController.getAddressForModal);
 
 router.post("/placeOrder" , orderController.placeOrder)
 router.get("/orderSuccess/:orderId", orderController.orderSuccessPage)
+router.post('/create-razorpay-order', orderController.createRazorpayOrder);
+router.post('/verify-payment', orderController.verifyPayment);
 
 
 

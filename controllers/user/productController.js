@@ -497,6 +497,7 @@ const getCheckoutPage = async (req, res) => {
       discount,
       totalAmount,
       totalItems,
+      razorpayKeyId: process.env.RAZORPAY_KEY_ID,
       appliedCoupon: req.session.appliedCoupon || null,
       hasUnavailableItems: hasUnavailableItems // Optional: can be used in template
     });
