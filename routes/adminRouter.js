@@ -6,6 +6,7 @@ const categoryController = require("../controllers/admin/categoryController")
 const productController = require("../controllers/admin/productController")
 const customerController = require("../controllers/admin/customerController")
 const orderController = require("../controllers/admin/orderController")
+const couponController = require("../controllers/admin/couponController")
 const {userAuth,adminAuth} = require("../middlewares/auth")
 
 
@@ -46,7 +47,7 @@ router.patch('/api/customers/:id/block', adminAuth, customerController.blockCust
 router.patch('/api/customers/:id/unblock', adminAuth, customerController.unblockCustomer);
 
 
-
+//Order Management 
 router.get('/orders' , orderController.ordersListPage)
 // GET /admin/orders/:id - Order details page
 router.get('/orders/:id',  orderController.orderDetailsPage);
@@ -56,6 +57,16 @@ router.post('/orders/:id/update',  orderController.updateOrderDetails);
 
 // POST /admin/orders/:id/return-request/:itemId - Handle return request
 router.post('/orders/:id/return-request/:itemId', orderController.handleReturnRequest);
+
+
+//Coupon Management
+router.get('/coupons',couponController.getCouponPage)
+router.get('/coupons/addCoupon',couponController.getAddCoupon)
+router.post('/coupons/addCoupon',couponController.createCoupon)
+router.patch('/coupons/toggle-status/:id',  couponController.toggleCouponStatus);
+router.get('/coupons/edit/:id',couponController.getEditCoupon)
+router.put('/coupons/edit/:id',couponController.updateCoupon)
+
 
 
 
