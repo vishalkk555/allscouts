@@ -309,6 +309,7 @@ const getProductsAPI = async (req, res) => {
     const searchQuery = req.query.search || '';
     const page = parseInt(req.query.page) || 1;
     const limit = 4;
+    const skip = (page - 1 ) * limit
 
     const query = {};
     if (searchQuery.trim()) {
