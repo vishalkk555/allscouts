@@ -1,0 +1,324 @@
+
+<body>
+    <!-- <%- include("../partials/admin/header") %> -->
+
+    <div class="offers-container">
+        <div class="offers-header">
+            <div class="header-left">
+                <h1>Offers</h1>
+                <p class="subtitle">Manage your product and category offers</p>
+            </div>
+        </div>
+
+        <!-- Search and Filter Section -->
+        <div class="offers-card">
+            <div class="search-section">
+                <div class="search-wrapper">
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        class="search-input" 
+                        placeholder="Search by Offer Name"
+                        value="<%= searchQuery || '' %>"
+                    >
+                    <button class="btn btn-search" id="searchBtn">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <button class="btn btn-clear" id="clearBtn">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                </div>
+                <div class="add-button-wrapper">
+                    <a href="/admin/offers/addOffer" class="btn btn-add">
+                        <i class="fas fa-plus"></i> Add New Offer
+                    </a>
+                </div>
+            </div>
+
+            <!-- Offers Table -->
+            <div class="table-container">
+                <table class="offers-table">
+                    <thead>
+                        <tr>
+                            <th class="col-slno">SL NO.</th>
+                            <th class="col-name">OFFER NAME</th>
+                            <th class="col-type">OFFER TYPE</th>
+                            <th class="col-discount">DISCOUNT</th>
+                            <th class="col-applied">APPLIED TO</th>
+                            <th class="col-start">START DATE</th>
+                            <th class="col-end">END DATE</th>
+                            <th class="col-status">STATUS</th>
+                            <th class="col-actions">ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (offers && offers.length > 0) { %>
+                            <% offers.forEach((offer, index) => { %>
+                                <tr>
+                                    <td class="col-slno"><%= (currentPage - 1) * limit + index + 1 %></td>
+                                    <td class="col-name">
+                                        <span class="offer-name"><%= offer.offerName %></span>
+                                    </td>
+                                    <td class="col-type">
+                                        <% if (offer.offerType === 'category') { %>
+                                            <span class="badge badge-category">Category</span>
+                                        <% } else { %>
+                                            <span class="badge badge-product">Product</span>
+                                        <% } %>
+                                    </td>
+                                    <td class="col-discount">
+                                        <span class="discount-value"><%= offer.discount %>%</span>
+                                    </td>
+                                    <td class="col-applied">
+                                        <% if (offer.offerType === 'category') { %>
+                                            <span class="applied-info">
+                                                <i class="fas fa-tag"></i> <%= offer.categoryId.length %> 
+                                                <%= offer.categoryId.length === 1 ? 'Category' : 'Categories' %>
+                                            </span>
+                                        <% } else { %>
+                                            <span class="applied-info">
+                                                <i class="fas fa-box"></i> <%= offer.productId.length %> 
+                                                <%= offer.productId.length === 1 ? 'Product' : 'Products' %>
+                                            </span>
+                                        <% } %>
+                                    </td>
+                                    <td class="col-start">
+                                        <%= new Date(offer.startDate).toLocaleDateString('en-GB', { 
+                                            day: '2-digit', 
+                                            month: '2-digit', 
+                                            year: 'numeric' 
+                                        }) %>
+                                    </td>
+                                    <td class="col-end">
+                                        <%= new Date(offer.endDate).toLocaleDateString('en-GB', { 
+                                            day: '2-digit', 
+                                            month: '2-digit', 
+                                            year: 'numeric' 
+                                        }) %>
+                                    </td>
+                                    <td class="col-status">
+                                        <% 
+                                            const now = new Date();
+                                            const startDate = new Date(offer.startDate);
+                                            const endDate = new Date(offer.endDate);
+                                            let statusClass, statusText;
+                                            
+                                            if (endDate < now) {
+                                                statusClass = 'expired';
+                                                statusText = 'EXPIRED';
+                                            } else if (startDate > now) {
+                                                statusClass = offer.status ? 'scheduled' : 'inactive';
+                                                statusText = offer.status ? 'SCHEDULED' : 'INACTIVE';
+                                            } else {
+                                                statusClass = offer.status ? 'active' : 'inactive';
+                                                statusText = offer.status ? 'ACTIVE' : 'INACTIVE';
+                                            }
+                                        %>
+                                        <span class="status-badge status-<%= statusClass %>"><%= statusText %></span>
+                                    </td>
+                                    <td class="col-actions">
+                                        <div class="action-buttons">
+                                            <button 
+                                                class="btn-action btn-edit" 
+                                                onclick="editOffer('<%= offer._id %>')"
+                                                title="Edit"
+                                            >
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <% 
+                                                const isExpired = new Date(offer.endDate) < new Date();
+                                            %>
+                                            <% if (!isExpired) { %>
+                                                <button 
+                                                    class="btn-action <%= offer.status ? 'btn-block' : 'btn-unblock' %>" 
+                                                    onclick="toggleStatus('<%= offer._id %>', <%= offer.status %>)"
+                                                    title="<%= offer.status ? 'Block' : 'Unblock' %>"
+                                                >
+                                                    <i class="fas fa-<%= offer.status ? 'ban' : 'check-circle' %>"></i>
+                                                </button>
+                                            <% } %>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="9" class="no-data">
+                                    <i class="fas fa-inbox"></i>
+                                    <p>No offers found</p>
+                                </td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <% if (totalPages > 1) { %>
+                <div class="pagination-wrapper">
+                    <div class="pagination-info">
+                        Showing <%= (currentPage - 1) * limit + 1 %> to 
+                        <%= Math.min(currentPage * limit, totalOffers) %> of 
+                        <%= totalOffers %> entries
+                    </div>
+                    <div class="pagination">
+                        <% if (currentPage > 1) { %>
+                            <a href="?page=<%= currentPage - 1 %><%= searchQuery ? '&search=' + searchQuery : '' %>" class="page-link">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        <% } else { %>
+                            <span class="page-link disabled">
+                                <i class="fas fa-chevron-left"></i>
+                            </span>
+                        <% } %>
+
+                        <% 
+                            let startPage = Math.max(1, currentPage - 2);
+                            let endPage = Math.min(totalPages, currentPage + 2);
+                            
+                            if (currentPage <= 3) {
+                                endPage = Math.min(5, totalPages);
+                            }
+                            if (currentPage > totalPages - 3) {
+                                startPage = Math.max(1, totalPages - 4);
+                            }
+                        %>
+
+                        <% if (startPage > 1) { %>
+                            <a href="?page=1<%= searchQuery ? '&search=' + searchQuery : '' %>" class="page-link">1</a>
+                            <% if (startPage > 2) { %>
+                                <span class="page-dots">...</span>
+                            <% } %>
+                        <% } %>
+
+                        <% for (let i = startPage; i <= endPage; i++) { %>
+                            <a 
+                                href="?page=<%= i %><%= searchQuery ? '&search=' + searchQuery : '' %>" 
+                                class="page-link <%= i === currentPage ? 'active' : '' %>"
+                            >
+                                <%= i %>
+                            </a>
+                        <% } %>
+
+                        <% if (endPage < totalPages) { %>
+                            <% if (endPage < totalPages - 1) { %>
+                                <span class="page-dots">...</span>
+                            <% } %>
+                            <a href="?page=<%= totalPages %><%= searchQuery ? '&search=' + searchQuery : '' %>" class="page-link"><%= totalPages %></a>
+                        <% } %>
+
+                        <% if (currentPage < totalPages) { %>
+                            <a href="?page=<%= currentPage + 1 %><%= searchQuery ? '&search=' + searchQuery : '' %>" class="page-link">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        <% } else { %>
+                            <span class="page-link disabled">
+                                <i class="fas fa-chevron-right"></i>
+                            </span>
+                        <% } %>
+                    </div>
+                </div>
+            <% } %>
+        </div>
+    </div>
+
+   
+    <script>
+
+     document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    // Search functionality
+    searchBtn.addEventListener('click', function() {
+        performSearch();
+    });
+
+    // Search on Enter key
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+
+    // Clear search
+    clearBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        window.location.href = '/admin/offers';
+    });
+
+    function performSearch() {
+        const searchQuery = searchInput.value.trim();
+        if (searchQuery) {
+            window.location.href = `/admin/offers?search=${encodeURIComponent(searchQuery)}`;
+        }
+    }
+});
+
+// Edit offer function
+function editOffer(offerId) {
+    window.location.href = `/admin/offers/editOffer/${offerId}`;
+}
+
+// Toggle offer status (Block/Unblock)
+async function toggleStatus(offerId, currentStatus) {
+    const action = currentStatus ? 'block' : 'unblock';
+    const actionText = currentStatus ? 'Block' : 'Unblock';
+    const actionTextPast = currentStatus ? 'blocked' : 'unblocked';
+
+    const result = await Swal.fire({
+        title: `${actionText} Offer?`,
+        text: `Are you sure you want to ${action} this offer?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: currentStatus ? '#e74c3c' : '#27ae60',
+        cancelButtonColor: '#95a5a6',
+        confirmButtonText: `Yes, ${action} it!`,
+        cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(`/admin/offers/toggle-status/${offerId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: `Offer ${actionTextPast} successfully`,
+                    confirmButtonColor: '#27ae60'
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message || `Failed to ${action} offer`,
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: `An error occurred while ${action}ing the offer`,
+                confirmButtonColor: '#e74c3c'
+            });
+        }
+    }
+}
+
+    </script>
+
+</body>
+</html>

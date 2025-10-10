@@ -34,7 +34,6 @@ const createCoupon = async(req,res,next) => {
             });
         }
 
-        // Validate coupon code format
         if (!/^[A-Z0-9]+$/.test(couponCode)) {
             return res.status(400).json({
                 success: false,
@@ -42,7 +41,6 @@ const createCoupon = async(req,res,next) => {
             });
         }
 
-        // Check if coupon code already exists
         const existingCoupon = await Coupon.findOne({ 
             couponCode: couponCode.toUpperCase() 
         });
@@ -54,7 +52,6 @@ const createCoupon = async(req,res,next) => {
             });
         }
 
-        // Validate discount value
         const discountValue = parseFloat(discount);
         if (discountValue <= 0) {
             return res.status(400).json({
@@ -70,7 +67,6 @@ const createCoupon = async(req,res,next) => {
             });
         }
 
-        // Validate min purchase
         const minPurchaseValue = parseFloat(minPurchase);
         if (minPurchaseValue < 0) {
             return res.status(400).json({
@@ -87,7 +83,6 @@ const createCoupon = async(req,res,next) => {
             });
         }
 
-        // Validate max redemption
         const maxRedeemValue = parseInt(maxRedeem);
         if (maxRedeemValue <= 0) {
             return res.status(400).json({
@@ -96,7 +91,6 @@ const createCoupon = async(req,res,next) => {
             });
         }
 
-        // Validate expiry date
         const expiryDate = new Date(expiry);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -108,7 +102,6 @@ const createCoupon = async(req,res,next) => {
             });
         }
 
-        // Create new coupon
         const newCoupon = new Coupon({
             couponCode: couponCode.toUpperCase(),
             type,
@@ -129,21 +122,7 @@ const createCoupon = async(req,res,next) => {
         });
 
     } catch (error) {
-        console.error('Error creating coupon:', error);
-
-        // Handle mongoose validation errors
-        if (error.name === 'ValidationError') {
-            const messages = Object.values(error.errors).map(err => err.message);
-            return res.status(400).json({
-                success: false,
-                message: messages.join(', ')
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            message: 'Server error while creating coupon'
-        });
+       next(error)
     }
 }
 

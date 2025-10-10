@@ -7,6 +7,7 @@ const productController = require("../controllers/admin/productController")
 const customerController = require("../controllers/admin/customerController")
 const orderController = require("../controllers/admin/orderController")
 const couponController = require("../controllers/admin/couponController")
+const offerController = require("../controllers/admin/offerController")
 const {userAuth,adminAuth} = require("../middlewares/auth")
 
 
@@ -66,6 +67,15 @@ router.post('/coupons/addCoupon',couponController.createCoupon)
 router.patch('/coupons/toggle-status/:id',  couponController.toggleCouponStatus);
 router.get('/coupons/edit/:id',couponController.getEditCoupon)
 router.put('/coupons/edit/:id',couponController.updateCoupon)
+
+
+//Offer Management
+router.get("/offers",offerController.getOffersPage)
+router.patch('/offers/toggle-status/:id',  offerController.toggleOfferStatus);
+router.get("/offers/addOffer",offerController.getAddOfferPage)
+router.post("/offers/addOffer", offerController.createOffer)
+router.get('/offers/editOffer/:id',offerController.getEditOfferPage)
+router.put('/offers/editOffer/:id',offerController.updateOffer)
 
 
 
