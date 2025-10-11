@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title><%= typeof title !== 'undefined' ? title : 'Verify OTP' %></title>
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+  
+  <!-- SweetAlert2 CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.7.32/sweetalert2.min.css">
+  
+  <!-- Local Styles -->
+  <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+
+<body class="otp-page">
+  <div class="card">
+    <h2>Verify OTP</h2>
+    <p>Enter the 6-digit code sent to your email <strong><%= email %></strong></p>
+
+    <form id="otpForm">
+      <input type="text" name="otp" maxlength="6" placeholder="Enter OTP" required />
+      <button type="submit" class="btn">Verify OTP</button>
+    </form>
+
+    <div class="resend-info">
+      <span id="timer">Resend OTP in 30s</span><br>
+      <button id="resendBtn" disabled onclick="resendOTP()">Resend OTP</button>
+    </div>
+
+    <div class="login-link" style="margin-top: 15px;">
+      Already verified? <a href="/login">Login</a>
+    </div>
+  </div>
+
+  <!-- SweetAlert2 JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.7.32/sweetalert2.min.js"></script>
+
+  <script>
+    let countdown = 30;
+    const timerElement = document.getElementById('timer');
+    const resendBtn = document.getElementById('resendBtn');
+
+    const interval = setInterval(() => {
+      countdown--;
+      if (countdown > 0) {
+        timerElement.textContent = `Resend OTP in ${countdown}s`;
+      } else {
+        clearInterval(interval);
+        timerElement.textContent = '';
+        resendBtn.disabled = false;
+      }
+    }, 1000);
+
+    document.getElementById('otpForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const otpValue = document.querySelector('input[name="otp"]').value.trim();
+
+      if (!otpValue) {
+        Swal.fire('Error', 'Please enter the OTP', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch('/verifyOtp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ otp: otpValue })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          Swal.fire({
+            title: 'OTP Verified!',
+            icon: 'success',
+            showConfirmButton: false,
+            timer: 1500
+          }).then(() => {
+            window.location.href = data.redirectUrl;
+          });
+        } else {
+          Swal.fire({
+            title: data.message || 'Invalid OTP',
+            icon: 'error',
+            showConfirmButton: false,
+            timer: 1500
+          });
+          document.querySelector('input[name="otp"]').value = '';
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        Swal.fire('Error', 'Something went wrong', 'error');
+      }
+    });
+
+    function resendOTP() {
+  resendBtn.disabled = true;
+  countdown = 30;
+  timerElement.textContent = `Resend OTP in 30s`;
+
+  fetch('/resendOtp', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  }).then(response => response.json())
+    .then(data => {
+      if(data.success){
+        Swal.fire('OTP Sent', 'A new OTP has been sent to your email.', 'success');
+      } else {
+        Swal.fire('Error', data.message || 'Failed to send OTP.', 'error');
+      }
+    })
+    .catch(err => {
+      console.error('Resend OTP Error:', err);
+      Swal.fire('Error', 'Something went wrong while resending OTP.', 'error');
+    });
+
+  const newInterval = setInterval(() => {
+    countdown--;
+    if (countdown > 0) {
+      timerElement.textContent = `Resend OTP in ${countdown}s`;
+    } else {
+      clearInterval(newInterval);
+      timerElement.textContent = '';
+      resendBtn.disabled = false;
+    }
+  }, 1000);
+}
+
+  </script>
+</body>
+</html>

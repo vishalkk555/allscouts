@@ -59,26 +59,33 @@
                     </span>
                 </div>
 
-                <!-- Price Section -->
-                <div class="price-section">
-                    <span class="current-price">₹<%= product.regularPrice.toFixed(2) %></span>
-                    <span class="original-price">₹<%= (product.regularPrice * 1.25).toFixed(2) %></span>
-                    <span class="discount-badge">-20%</span>
-                </div>
+           
 
-                <!-- Coupon Section -->
-                <!-- <div class="coupon-section">
-                    <div class="coupon-header">
-                        <i class="fas fa-tag"></i> Apply Coupon & Save More
-                    </div>
-                    <div class="coupon-code">
-                        <input type="text" class="coupon-input" placeholder="Enter coupon code" value="SUMMER20">
-                        <button class="apply-coupon-btn" onclick="applyCoupon()">Apply</button>
-                    </div>
-                    <div class="demo-note">
-                        <i class="fas fa-info-circle"></i> Demo coupons available: SUMMER20, WELCOME10 - Full functionality coming soon!
-                    </div>
-                </div> -->
+               <!-- Price Section -->
+<div class="price-section">
+    <% if (product.offer && product.offer.hasOffer) { %>
+        <!-- With Offer -->
+        <div class="price-with-offer">
+            <span class="current-price">₹<%= product.offer.finalPrice.toFixed(2) %></span>
+            <span class="original-price">₹<%= product.offer.regularPrice.toFixed(2) %></span>
+            <span class="discount-badge">-<%= product.offer.discountPercentage %>%</span>
+        </div>
+        <div class="offer-badge">
+            <i class="fas fa-tag"></i>
+            <span class="offer-text">
+                <%= product.offer.offerName %> 
+                (<%= product.offer.offerType === 'category' ? 'Category Offer' : 'Product Offer' %>)
+            </span>
+        </div>
+        <div class="savings-text">
+            You save ₹<%= product.offer.savings.toFixed(2) %>!
+        </div>
+    <% } else { %>
+        <!-- No Offer -->
+        <span class="current-price">₹<%= product.regularPrice.toFixed(2) %></span>
+    <% } %>
+</div>
+
 
                 <!-- Size Selection -->
                 <div class="size-section">
@@ -222,39 +229,56 @@
             </div>
         </div>
 
-        <!-- Related Products -->
-        <div class="related-products">
-            <h2>Related Products</h2>
-            <div class="products-grid">
-                <% relatedProducts.forEach(related => { %>
-                    <div class="product-card">
-                        <img src="/uploads/products/<%= related.productImage[0] || 'placeholder.jpg' %>" 
-                             alt="<%= related.productName %>" 
-                             class="product-card-image"
-                             onerror="this.src='/assets/img/placeholder.jpg'">
-                        <div class="product-card-body">
-                            <a href="/product/<%= related._id %>" class="product-card-title">
-                                <%= related.productName %>
-                            </a>
-                            <div class="product-card-price">₹<%= related.regularPrice.toFixed(2) %></div>
-                            <div class="product-card-rating">
-                                <div class="stars">
-                                    <% 
-                                    let relatedAvgRating = related.reviews.length > 0 
-                                        ? Math.round(related.reviews.reduce((sum, r) => sum + r.rating, 0) / related.reviews.length) 
-                                        : 0; 
-                                    %>
-                                    <% for (let i = 1; i <= 5; i++) { %>
-                                        <i class="fas fa-star star <%= i <= relatedAvgRating ? 'filled' : '' %>"></i>
-                                    <% } %>
-                                </div>
-                                <span>(<%= relatedAvgRating %>/5)</span>
-                            </div>
+
+       <!-- Related Products -->
+<div class="related-products">
+    <h2>Related Products</h2>
+    <div class="products-grid">
+        <% relatedProducts.forEach(related => { %>
+            <div class="product-card">
+                <a href="/product/<%= related._id %>">
+                    <img src="/uploads/products/<%= related.productImage[0] || 'placeholder.jpg' %>" 
+                         alt="<%= related.productName %>" 
+                         class="product-card-image"
+                         onerror="this.src='/assets/img/placeholder.jpg'">
+                    
+                    <% if (related.offer && related.offer.hasOffer) { %>
+                        <div class="product-offer-badge">-<%= related.offer.discountPercentage %>%</div>
+                    <% } %>
+                </a>
+                
+                <div class="product-card-body">
+                    <a href="/product/<%= related._id %>" class="product-card-title">
+                        <%= related.productName %>
+                    </a>
+                    
+                    <% if (related.offer && related.offer.hasOffer) { %>
+                        <div class="product-card-price-wrapper">
+                            <div class="product-card-price offer-price">₹<%= related.offer.finalPrice.toFixed(2) %></div>
+                            <div class="product-card-original-price">₹<%= related.offer.regularPrice.toFixed(2) %></div>
                         </div>
+                    <% } else { %>
+                        <div class="product-card-price">₹<%= related.regularPrice.toFixed(2) %></div>
+                    <% } %>
+                    
+                    <div class="product-card-rating">
+                        <div class="stars">
+                            <% 
+                            let relatedAvgRating = related.reviews.length > 0 
+                                ? Math.round(related.reviews.reduce((sum, r) => sum + r.rating, 0) / related.reviews.length) 
+                                : 0; 
+                            %>
+                            <% for (let i = 1; i <= 5; i++) { %>
+                                <i class="fas fa-star star <%= i <= relatedAvgRating ? 'filled' : '' %>"></i>
+                            <% } %>
+                        </div>
+                        <span>(<%= relatedAvgRating %>/5)</span>
                     </div>
-                <% }) %>
+                </div>
             </div>
-        </div>
+        <% }) %>
+    </div>
+</div>
 
         <% } else { %>
         <div style="text-align: center; padding: 50px 0;">
@@ -439,117 +463,222 @@
         });
 
         // Add to cart functionality
-        function addToCart() {
-            if (!selectedSize) {
-                alert('Please select a size.');
-                return;
-            }
-            
-            const productId = document.getElementById('addToCartBtn').dataset.productId;
-            const quantity = parseInt(document.getElementById('quantityInput').value);
-            
-            fetch('/add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `productId=${productId}&size=${selectedSize}&quantity=${quantity}`
-            })
-            .then(response => response.json())
-            .then(data => {
-    if (!data.success) {
-        alert(data.message || 'Failed to add product.');
-    } else {
-        alert('Product added to cart!');
-        updateCartCount();
+       function addToCart() {
+    const productId = document.getElementById('addToCartBtn').dataset.productId;
+    const selectedSizeElement = document.querySelector('.size-option.selected');
+    const quantity = parseInt(document.getElementById('quantityInput').value);
+
+    // Validation
+    if (!selectedSizeElement) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Size Required',
+            text: 'Please select a size',
+            confirmButtonColor: '#ff6b35'
+        });
+        return;
     }
-})
 
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to add to cart. Please try again.');
-            });
-        }
+    const size = selectedSizeElement.dataset.size;
+    const availableQuantity = parseInt(selectedSizeElement.dataset.quantity);
 
-        // Add to wishlist functionality
-       function addToWishlist(productId) {
-    fetch('/wishlist/add', {
+    if (quantity > availableQuantity) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Insufficient Stock',
+            text: `Only ${availableQuantity} items available for size ${size}`,
+            confirmButtonColor: '#e74c3c'
+        });
+        return;
+    }
+
+    // Get the final price (with offer if applicable)
+    const priceElement = document.querySelector('.current-price');
+    const priceText = priceElement.textContent.replace('₹', '').replace(',', '').trim();
+    const finalPrice = parseFloat(priceText);
+
+    if (isNaN(finalPrice)) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Price Error',
+            text: 'Unable to determine product price',
+            confirmButtonColor: '#e74c3c'
+        });
+        return;
+    }
+
+    // Prepare cart data
+    const cartData = {
+        productId: productId,
+        size: size,
+        quantity: quantity,
+        price: finalPrice // This will be the offer price if available
+    };
+
+    // Show loading state
+    const addToCartBtn = document.getElementById('addToCartBtn');
+    const originalText = addToCartBtn.innerHTML;
+    addToCartBtn.disabled = true;
+    addToCartBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+
+    // Add to cart via AJAX
+    fetch('/add', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `productId=${productId}`
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cartData)
     })
-    .then(res => res.json())
+    .then(response => response.json())
     .then(data => {
         if (data.success) {
             Swal.fire({
                 icon: 'success',
-                title: 'Added!',
-                text: data.message,
+                title: 'Added to Cart!',
+                text: 'Product added to your cart successfully',
                 showConfirmButton: false,
                 timer: 1500
             });
-            document.querySelector('.wishlist-btn i').classList.replace('far','fas');
-        } else if (data.exists) {
-            Swal.fire({
-                icon: 'info',
-                title: 'Already in Wishlist',
-                text: data.message,
-                showConfirmButton: false,
-                timer: 1500
-            });
+            
+            // Update cart count if you have a cart icon
+            updateCartCount();
         } else {
             Swal.fire({
                 icon: 'error',
-                title: 'Oops...',
-                text: data.message || 'Something went wrong!',
+                title: 'Error',
+                text: data.message || 'Failed to add to cart',
+                confirmButtonColor: '#e74c3c'
             });
         }
     })
-    .catch(() => {
+    .catch(error => {
+        console.error('Error:', error);
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'Failed to add to wishlist. Please try again.',
+            text: 'An error occurred while adding to cart',
+            confirmButtonColor: '#e74c3c'
         });
+    })
+    .finally(() => {
+        // Restore button state
+        addToCartBtn.disabled = false;
+        addToCartBtn.innerHTML = originalText;
     });
 }
 
-
-        // Coupon functionality (demo)
-        function applyCoupon() {
-            const couponCode = document.querySelector('.coupon-input').value.trim();
-            
-            if (!couponCode) {
-                alert('Please enter a coupon code.');
-                return;
+function updateCartCount() {
+    // Update cart count in header if you have one
+    fetch('/updateQuantity')
+        .then(response => response.json())
+        .then(data => {
+            const cartCountElement = document.querySelector('.cart-count');
+            if (cartCountElement && data.count !== undefined) {
+                cartCountElement.textContent = data.count;
+                
+                // Optional: Add animation to cart icon
+                cartCountElement.classList.add('cart-updated');
+                setTimeout(() => {
+                    cartCountElement.classList.remove('cart-updated');
+                }, 300);
             }
-            
-            // Demo functionality - you can implement actual coupon logic
-            const demoCoupons = {
-                'SUMMER20': 20,
-                'WELCOME10': 10,
-                'SAVE15': 15
-            };
-            
-            if (demoCoupons[couponCode]) {
-                alert(`Coupon applied! You saved ${demoCoupons[couponCode]}% (Demo functionality)`);
-            } else {
-                alert('Invalid coupon code. Try: SUMMER20, WELCOME10, or SAVE15 (Demo)');
-            }
-        }
+        })
+        .catch(error => console.error('Error updating cart count:', error));
+}
 
-        // Update cart count (optional - if you have a cart counter in header)
-        function updateCartCount() {
-            fetch('/cart/count')
-                .then(response => response.json())
-                .then(data => {
-                    const cartCounter = document.querySelector('.cart-count');
-                    if (cartCounter) {
-                        cartCounter.textContent = data.count;
-                    }
-                })
-                .catch(error => console.error('Error updating cart count:', error));
+// Optional: Add CSS for cart count animation
+const style = document.createElement('style');
+style.textContent = `
+    .cart-count {
+        transition: all 0.3s ease;
+    }
+    .cart-count.cart-updated {
+        transform: scale(1.3);
+        color: #27ae60;
+    }
+`;
+document.head.appendChild(style);
+
+
+         // Add to wishlist functionality
+      function addToWishlist(productId) {
+
+    // Get current offer price if available
+    const priceElement = document.querySelector('.current-price');
+    const priceText = priceElement.textContent.replace('₹', '').replace(',', '').trim();
+    const currentPrice = parseFloat(priceText);
+
+    const wishlistBtn = document.querySelector('.wishlist-btn');
+    const originalIcon = wishlistBtn.innerHTML;
+    wishlistBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    wishlistBtn.disabled = true;
+
+    fetch('/wishlist/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            productId: productId,
+            price: currentPrice // Optional: store current price for reference
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Added to Wishlist!',
+                text: 'Product added to your wishlist',
+                showConfirmButton: false,
+                timer: 1500
+            });
+            
+            // Update wishlist icon to filled heart
+            wishlistBtn.innerHTML = '<i class="fas fa-heart"></i>';
+            wishlistBtn.classList.add('in-wishlist');
+            
+            // Update wishlist count if you have one
+            updateWishlistCount();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.message || 'Failed to add to wishlist',
+                confirmButtonColor: '#e74c3c'
+            });
+            wishlistBtn.innerHTML = originalIcon;
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'An error occurred while adding to wishlist',
+            confirmButtonColor: '#e74c3c'
+        });
+        wishlistBtn.innerHTML = originalIcon;
+    })
+    .finally(() => {
+        wishlistBtn.disabled = false;
+    });
+}
+
+function updateWishlistCount() {
+    fetch('/wishlist/count')
+        .then(response => response.json())
+        .then(data => {
+            const wishlistCountElement = document.querySelector('.wishlist-count');
+            if (wishlistCountElement && data.count !== undefined) {
+                wishlistCountElement.textContent = data.count;
+            }
+        })
+        .catch(error => console.error('Error updating wishlist count:', error));
+}
+
+
+
 
         // Related product quick actions
         document.querySelectorAll('.product-card').forEach(card => {

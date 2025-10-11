@@ -3,8 +3,10 @@ const Product = require("../../models/productSchema")
 const User = require("../../models/userSchema")
 const Cart = require("../../models/cartSchema")
 const Address = require("../../models/addressSchema");
+const Offer = require("../../models/offerSchema")
 const mongoose = require('mongoose');
-// Get single product details
+
+
 // Get product details
 const getProductDetails = async (req, res) => {
   try {
@@ -12,23 +14,113 @@ const getProductDetails = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(productId)) {
       return res.redirect('/shop');
     }
+
     const product = await Product.findById(productId).populate('category');
-    if (!product || product.isBlocked ||!['Available','out of stock'].includes(product.status)) {
+    if (!product || product.isBlocked || !['Available', 'out of stock'].includes(product.status)) {
       return res.redirect('/shop');
     }
-    // Get exactly 4 related products from the same category
+
     const relatedProducts = await Product.find({
       category: product.category._id,
       _id: { $ne: product._id },
       isBlocked: false,
       status: 'Available'
     }).limit(4).populate('category');
-    res.render('product_details', { product, relatedProducts });
+
+    // Calculate offers for the main product
+    const productWithOffer = await calculateProductOffer(product);
+
+    // Calculate offers for related products
+    const relatedProductsWithOffers = await Promise.all(
+      relatedProducts.map(async (relatedProduct) => {
+        return await calculateProductOffer(relatedProduct);
+      })
+    );
+
+    res.render('product_details', { 
+      product: productWithOffer, 
+      relatedProducts: relatedProductsWithOffers 
+    });
   } catch (error) {
     console.error(error);
     res.redirect('/shop');
   }
 };
+
+// Helper function to calculate product offer
+async function calculateProductOffer(product) {
+  const now = new Date();
+  
+  // Find active product-specific offers
+  const productOffers = await Offer.find({
+    offerType: 'product',
+    productId: product._id,
+    status: true,
+    startDate: { $lte: now },
+    endDate: { $gte: now }
+  }).sort({ discount: -1 }); // Sort by discount descending
+
+  // Find active category offers
+  const categoryOffers = await Offer.find({
+    offerType: 'category',
+    categoryId: product.category._id,
+    status: true,
+    startDate: { $lte: now },
+    endDate: { $gte: now }
+  }).sort({ discount: -1 }); // Sort by discount descending
+
+  let bestOffer = null;
+  let offerType = null;
+
+  // Get the best product offer
+  const bestProductOffer = productOffers.length > 0 ? productOffers[0] : null;
+  
+  // Get the best category offer
+  const bestCategoryOffer = categoryOffers.length > 0 ? categoryOffers[0] : null;
+
+  // Determine which offer is better
+  if (bestProductOffer && bestCategoryOffer) {
+    if (bestProductOffer.discount >= bestCategoryOffer.discount) {
+      bestOffer = bestProductOffer;
+      offerType = 'product';
+    } else {
+      bestOffer = bestCategoryOffer;
+      offerType = 'category';
+    }
+  } else if (bestProductOffer) {
+    bestOffer = bestProductOffer;
+    offerType = 'product';
+  } else if (bestCategoryOffer) {
+    bestOffer = bestCategoryOffer;
+    offerType = 'category';
+  }
+
+  // Calculate prices
+  const regularPrice = product.regularPrice;
+  let finalPrice = regularPrice;
+  let discountPercentage = 0;
+  let appliedOfferName = null;
+
+  if (bestOffer) {
+    discountPercentage = bestOffer.discount;
+    finalPrice = regularPrice - (regularPrice * (discountPercentage / 100));
+    appliedOfferName = bestOffer.offerName;
+  }
+
+  // Return product with offer details
+  return {
+    ...product.toObject(),
+    offer: {
+      hasOffer: bestOffer !== null,
+      offerName: appliedOfferName,
+      offerType: offerType,
+      discountPercentage: discountPercentage,
+      regularPrice: regularPrice,
+      finalPrice: parseFloat(finalPrice.toFixed(2)),
+      savings: parseFloat((regularPrice - finalPrice).toFixed(2))
+    }
+  };
+}
 
 // Add review
 const addReview = async (req, res) => {

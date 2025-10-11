@@ -131,9 +131,9 @@ const loadCart = async (req, res) => {
  */
 const addToCart = async (req, res) => {
   console.log("req.body:", req.body);
-  console.log("Add to cart ")
+  console.log("Add to cart ");
   try {
-    const { productId, size, quantity } = req.body;
+    const { productId, size, quantity, price } = req.body;
     const userId = req.session.user;
 
     if (!userId) {
@@ -144,6 +144,13 @@ const addToCart = async (req, res) => {
     if (isNaN(qty) || qty < 1) {
       return res.status(400).json({ success: false, message: "Invalid quantity" });
     }
+
+    // Validate price is provided
+    if (!price || isNaN(parseFloat(price))) {
+      return res.status(400).json({ success: false, message: "Invalid price" });
+    }
+
+    const finalPrice = parseFloat(price);
 
     // Fetch product
     const product = await Product.findById(productId)
@@ -184,15 +191,18 @@ const addToCart = async (req, res) => {
     }
 
     if (existingItem) {
+      // Update existing item
       existingItem.quantity += qty;
-      existingItem.total = existingItem.quantity * existingItem.price;
+      existingItem.price = finalPrice; // Update with current offer price
+      existingItem.total = existingItem.quantity * finalPrice;
     } else {
+      // Add new item with offer price
       cart.item.push({
         productId,
         size,
         quantity: qty,
-        price: product.regularPrice,
-        total: qty * product.regularPrice,
+        price: finalPrice, // Store the offer price
+        total: qty * finalPrice,
         stock: sizeStock.quantity
       });
     }
@@ -260,14 +270,14 @@ const updateCartQuantity = async (req, res) => {
     }
 
     // Validate stock availability
-    const stockValidation = validateStockAvailability(product, cartItem.size, newQuantity);
+    const stockValidation = validateStockAvailabilityNew(product, cartItem.size, newQuantity);
     if (!stockValidation.success) {
       return res.status(400).json(stockValidation);
     }
 
-    // Update quantity and total
+    // Update quantity and total (keep the same price that was added to cart)
     cart.item[itemIndex].quantity = newQuantity;
-    cart.item[itemIndex].total = newQuantity * cartItem.price;
+    cart.item[itemIndex].total = newQuantity * cartItem.price; // Use the stored price
     
     // Recalculate cart total
     cart.cartTotal = cart.item.reduce((acc, curr) => acc + curr.total, 0);
@@ -288,6 +298,47 @@ const updateCartQuantity = async (req, res) => {
     });
   }
 };
+
+// Helper function for stock validation
+function validateStockAvailabilityNew(product, size, quantity) {
+  if (!product || product.isBlocked || product.category?.isBlocked) {
+    return {
+      success: false,
+      message: "Product is no longer available"
+    };
+  }
+
+  const sizeStock = product.stock.find(s => s.size === size);
+  if (!sizeStock) {
+    return {
+      success: false,
+      message: "Selected size is not available"
+    };
+  }
+
+  if (quantity > sizeStock.quantity) {
+    return {
+      success: false,
+      message: `Only ${sizeStock.quantity} items available in stock`,
+      availableQty: sizeStock.quantity
+    };
+  }
+
+  // Maximum quantity limit
+  const MAX_QTY = 5;
+  if (quantity > MAX_QTY) {
+    return {
+      success: false,
+      message: `Maximum ${MAX_QTY} items allowed per product`,
+      availableQty: MAX_QTY
+    };
+  }
+
+  return {
+    success: true,
+    availableQty: Math.min(sizeStock.quantity, MAX_QTY)
+  };
+}
 
 /**
  * Remove item from cart
