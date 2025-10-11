@@ -4,6 +4,8 @@ const User = require("../../models/userSchema");
 const Address = require("../../models/addressSchema");
 const nodemailer = require("nodemailer")
 const bcrypt=require('bcrypt');
+const path = require('path');
+const fs = require('fs').promises;
 const mongoose = require('mongoose');
 
 
@@ -28,64 +30,55 @@ const userProfile = async (req,res) => {
 }
 
 
-const editProfile = async (req,res) => {
-  try {
-    const user = await User.findById(req.session.user)
-    
-    if(!user) return res.redirect('/login')
-    
-      res.render("editProfile",{user})
-    
-  } catch (error) {
+const uploadDir = path.join(__dirname, '..', 'Uploads', 'products');
 
-     console.log("Error in loadin editprofile");
-    res.status(500).send("Error loading edit profile");
-    
+const editProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.session.user);
+    if (!user) return res.redirect('/login');
+    res.render('editProfile', { user });
+  } catch (error) {
+    console.error('Error loading editProfile:', error);
+    res.status(500).send('Error loading edit profile');
+  }
+};
+
+async function sendverificationEmail(email, otp) {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      port: 587,
+      secure: false,
+      requireTLS: true,
+      auth: {
+        user: process.env.NODEMAILER_EMAIL,
+        pass: process.env.NODEMAILER_PASSWORD
+      }
+    });
+
+    const info = await transporter.sendMail({
+      from: process.env.NODEMAILER_EMAIL,
+      to: email,
+      subject: 'Verify your account',
+      text: `Your OTP is ${otp}`,
+      html: `<b>Your OTP: ${otp}</b>`,
+    });
+
+    return info.accepted.length > 0;
+  } catch (error) {
+    console.error('Error sending email:', error);
+    return false;
   }
 }
-
-  async function sendverificationEmail(email,otp){
-    try {
-      
-        const transporter  = nodemailer.createTransport({
-  
-          service:"gmail",
-          port:587,
-          secure:false,
-          requireTLS:true,
-          auth:{
-            user:process.env.NODEMAILER_EMAIL,
-            pass:process.env.NODEMAILER_PASSWORD
-          }
-        })
-  
-        const info = await transporter.sendMail({
-          from:process.env.NODEMAILER_EMAIL,
-          to:email,
-          subject:"Verify your account",
-          text:`Your OTP is ${otp}`,
-          html:`<b>Your OTP : ${otp}</b>`,
-  
-        })
-  
-        return info.accepted.length >0
-  
-    } catch (error) {
-      console.error("Error sending email",error)
-      return false
-    }
-  }
-
 
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-
 const updateProfile = async (req, res) => {
   try {
     const { name, email, phone, dob } = req.body;
-    
+
     // Basic validations
     if (!name || !/^[a-zA-Z\s]+$/.test(name)) {
       return res.status(400).json({ error: 'Invalid name' });
@@ -105,89 +98,191 @@ const updateProfile = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    let newProfileImage = null;
+    if (req.file) {
+      newProfileImage = `/uploads/products/${req.file.filename}`; // Relative path
+    }
+
     // Check if email is being changed
- if (email && email !== user.email) {
-  // Email is being changed - require OTP verification
-  const otp = generateOtp();
-  console.log(otp)
-  
-  req.session.profileOtp = otp;
-  req.session.profileOtpExpiry = Date.now() + 10 * 60 * 1000; // 10 mins
-  req.session.pendingProfileData = {
-    name: name.trim(),
-    email: email.trim(),
-    phone: phone ? phone.trim() : null,
-    dob: dob || null,
-    profileImage: req.file ? req.file.path : null
-  };
+    if (email && email !== user.email) {
+      const otp = generateOtp();
+      console.log("Email Change Otp : ",otp)
+      req.session.profileOtp = otp;
+      req.session.profileOtpExpiry = Date.now() + 10 * 60 * 1000; // 10 mins
+      req.session.pendingProfileData = {
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone ? phone.trim() : null,
+        dob: dob || null,
+        profileImage: newProfileImage
+      };
 
-  const emailSent = await sendverificationEmail(email, otp);
-  if (!emailSent) {
-    return res.status(500).json({ error: 'Failed to send OTP email' });
-  }
+      const emailSent = await sendverificationEmail(email, otp);
+      if (!emailSent) {
+        if (newProfileImage) {
+          const filePath = path.join(uploadDir, path.basename(newProfileImage));
+          await fs.unlink(filePath).catch(err => console.error('Cleanup unlink error:', err));
+        }
+        return res.status(500).json({ error: 'Failed to send OTP email' });
+      }
 
-  
-  return res.json({
-    success: true,
-    requiresOtp: true,
-    message: `OTP sent to ${email}`,
-    email
-  });
-}
+      return res.json({
+        success: true,
+        requiresOtp: true,
+        message: `OTP sent to ${email}`,
+        email
+      });
+    }
 
     // If email not changed, update directly
     user.name = name.trim();
     user.phone = phone ? phone.trim() : null;
     user.dob = dob || null;
-    
     if (email) {
-      user.email = email.trim(); // In case email was provided but same as current
+      user.email = email.trim();
     }
-    
-    if (req.file) {
-      user.profileImage = [req.file.path];
-    }
-    
-    await user.save();
-    
-     return res.json({ success: true, requiresOtp: false, message: 'Profile updated successfully ✅' });
 
+    if (newProfileImage) {
+      // Delete old image if exists
+      if (user.profileImage && user.profileImage.length > 0) {
+        const oldFileName = path.basename(user.profileImage[0]);
+        const oldFilePath = path.join(uploadDir, oldFileName);
+        await fs.unlink(oldFilePath).catch(err => console.error('Old unlink error:', err));
+      }
+      user.profileImage = [newProfileImage];
+    }
+
+    await user.save();
+
+    return res.json({ success: true, requiresOtp: false, message: 'Profile updated successfully ' });
   } catch (error) {
     console.error('Error updating profile:', error);
+    if (req.file) {
+      const filePath = path.join(uploadDir, req.file.filename);
+      await fs.unlink(filePath).catch(err => console.error('Error cleanup unlink:', err));
+    }
     res.status(500).json({ error: 'Server error' });
   }
+};
+
+const deleteProfileImage = async (req, res) => {
+  try {
+    const user = await User.findById(req.session.user);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.profileImage && user.profileImage.length > 0) {
+      const fileName = path.basename(user.profileImage[0]);
+      const filePath = path.join(uploadDir, fileName);
+      await fs.unlink(filePath).catch(err => console.error('File delete error:', err));
+      user.profileImage = [];
+      await user.save();
+      return res.json({ success: true, message: 'Profile image deleted successfully' });
+    } else {
+      return res.json({ success: true, message: 'No profile image to delete' });
+    }
+  } catch (error) {
+    console.error('Error deleting profile image:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+const loadOtp = async (req, res) => {
+  const email = req.query.email;
+  if (!email) {
+    return res.redirect('/editProfile');
+  }
+  res.render('emailOtpp', { email });
+};
+
+const verifyProfileOtp = async (req, res) => {
+  try {
+
+  
+    const { otp, email } = req.body;
+      
+    if (!req.session.profileOtp || req.session.profileOtp !== otp || Date.now() > req.session.profileOtpExpiry) {
+      return res.status(400).json({ success: false, error: 'Invalid or expired OTP' });
+    }
+    const user = await User.findById(req.session.user);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const pending = req.session.pendingProfileData;
+    if (!pending || pending.email !== email) {
+      return res.status(400).json({ error: 'No pending updates or email mismatch' });
+    }
+
+    // Apply pending changes
+    user.name = pending.name;
+    user.email = pending.email;
+    user.phone = pending.phone;
+    user.dob = pending.dob;
+
+    if (pending.profileImage) {
+      if (user.profileImage && user.profileImage.length > 0) {
+        const oldFileName = path.basename(user.profileImage[0]);
+        const oldFilePath = path.join(uploadDir, oldFileName);
+        await fs.unlink(oldFilePath).catch(err => console.error('Old unlink:', err));
+      }
+      user.profileImage = [pending.profileImage];
+    }
+
+    await user.save();
+
+    // Clear session data
+    delete req.session.profileOtp;
+    delete req.session.profileOtpExpiry;
+    delete req.session.pendingProfileData;
+
+   return res.json({ 
+  success: true, 
+  message: 'Profile updated successfully ',
+  redirectUrl: '/profile'  
+});
+
+  } catch (error) {
+    console.error('Verify error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// New: Load OTP page
+const loadEmailOtp = async (req, res) => {
+  const email = req.query.email;
+  if (!email) {
+    return res.redirect('/editProfile');
+  }
+  res.render('emailOtpp', { email }); // Assuming your OTP EJS template is named 'otp.ejs'
 };
 
 
 
 
-const deleteProfileImage = async (req, res) => {
-    try {
-        const user = await User.findById(req.session.user); // make sure you're using req.session.user
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        
-        if (user.profileImage && user.profileImage.length > 0) {
-            const filePath = path.resolve(user.profileImage[0]); // resolve absolute path
-            try {
-                await fs.promises.unlink(filePath); // delete the file
-                console.log("Profile image deleted:", filePath);
-            } catch (err) {
-                console.error("File delete error:", err);
-            }
-            user.profileImage = []; // clear image field
-            await user.save();
-            return res.json({ success: true, message: "Profile image deleted successfully" });
-        } else {
-            return res.json({ success: true, message: "No profile image to delete" });
-        }
-
-    } catch (error) {
-        console.error('Error deleting profile image:', error);
-        res.status(500).json({ error: 'Server error' });
+const resendProfileOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!req.session.pendingProfileData || req.session.pendingProfileData.email !== email) {
+      return res.status(400).json({ error: 'No pending update' });
     }
+
+    const otp = generateOtp();
+    console.log("Resend Otp :",otp)
+    req.session.profileOtp = otp;
+    req.session.profileOtpExpiry = Date.now() + 10 * 60 * 1000;
+
+    const emailSent = await sendverificationEmail(email, otp);
+    if (!emailSent) {
+      return res.status(500).json({ error: 'Failed to send OTP' });
+    }
+
+    return res.json({ success: true, message: 'OTP resent' });
+  } catch (error) {
+    console.error('Resend error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
 };
 
 
@@ -918,6 +1013,9 @@ module.exports = {
     editProfile,
     updateProfile,
     deleteProfileImage,
+    loadEmailOtp,
+    verifyProfileOtp,
+    resendProfileOtp,
     changePassword,
     updatePassword,
     getAddresses,

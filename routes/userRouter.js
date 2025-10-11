@@ -28,6 +28,11 @@ router.get('/profile',userAuth ,profileController.userProfile)
 router.get('/editProfile',profileController.editProfile)
 router.post('/editProfile', upload.single('profileImage'),profileController.updateProfile)
 
+
+router.get('/emailOtp', profileController.loadEmailOtp); // New: Load OTP page
+router.post('/verifyEmailOtp', profileController.verifyProfileOtp); // New: Verify OTP
+router.post('/resendProfileOtp', profileController.resendProfileOtp);
+
 router.delete('/updateImage', profileController.deleteProfileImage);
 router.get('/changePassword', profileController.changePassword)
 router.post('/changePassword',profileController.updatePassword)
