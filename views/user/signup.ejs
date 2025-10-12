@@ -19,7 +19,7 @@
       <p class="error"><%= message %></p>
     <% } %>
 
-    <form id="signupForm" action="/signup" method="POST" novalidate>
+    <form id="signupForm" novalidate>
       <div class="form-group">
         <label for="name">Name</label>
         <input type="text" name="name" id="name" value="<%= data?.name || '' %>" required />
@@ -50,6 +50,12 @@
         <small class="error-message"></small>
       </div>
 
+      <div class="form-group">
+        <label for="referralCode">Referral Code (Optional)</label>
+        <input type="text" name="referralCode" id="referralCode" value="<%= data?.referralCode || '' %>" />
+        <small class="error-message"></small>
+      </div>
+
       <% if (locals.message && message.length > 0) { %>
         <div class="alert alert-danger text-center"><%= message %></div>
       <% } %>
@@ -63,34 +69,71 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-  const name = document.getElementById('name');
-  const email = document.getElementById('email');
-  const phone = document.getElementById('phone');
-  const password = document.getElementById('password');
-  const confirmPassword = document.getElementById('confirmPassword');
+  const nameInput = document.getElementById('name');
+  const emailInput = document.getElementById('email');
+  const phoneInput = document.getElementById('phone');
+  const passwordInput = document.getElementById('password');
+  const confirmPasswordInput = document.getElementById('confirmPassword');
+  const referralCodeInput = document.getElementById('referralCode');
   const form = document.getElementById('signupForm');
 
-  const passwordPattern = /^(?=.*[A-Z])(?=.*\d).{8,}$/; // min 8 chars, 1 uppercase, 1 number
-  const namePattern = /^[A-Za-z]+$/; // Only characters, no space or symbols
-  const phonePattern = /^[6-9]\d{9}$/; // 10 digits starting with 6-9
+  const passwordPattern = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+  const namePattern = /^[A-Za-z]+$/;
+  const phonePattern = /^[6-9]\d{9}$/;
+  const referralCodePattern = /^[A-Za-z0-9]{6}$/;
 
-  name.addEventListener('blur', () => validateName(name));
-  email.addEventListener('blur', () => validateEmailField(email));
-  phone.addEventListener('blur', () => validatePhone(phone));
-  password.addEventListener('blur', () => validatePassword(password));
-  confirmPassword.addEventListener('blur', () => validateConfirmPassword(confirmPassword, password));
+  nameInput.addEventListener('blur', () => validateName(nameInput));
+  emailInput.addEventListener('blur', () => validateEmailField(emailInput));
+  phoneInput.addEventListener('blur', () => validatePhone(phoneInput));
+  passwordInput.addEventListener('blur', () => validatePassword(passwordInput));
+  confirmPasswordInput.addEventListener('blur', () => validateConfirmPassword(confirmPasswordInput, passwordInput));
+  referralCodeInput.addEventListener('blur', () => validateReferralCode(referralCodeInput));
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
     let valid = true;
 
-    if (!validateName(name)) valid = false;
-    if (!validateEmailField(email)) valid = false;
-    if (!validatePhone(phone)) valid = false;
-    if (!validatePassword(password)) valid = false;
-    if (!validateConfirmPassword(confirmPassword, password)) valid = false;
+    if (!validateName(nameInput)) valid = false;
+    if (!validateEmailField(emailInput)) valid = false;
+    if (!validatePhone(phoneInput)) valid = false;
+    if (!validatePassword(passwordInput)) valid = false;
+    if (!validateConfirmPassword(confirmPasswordInput, passwordInput)) valid = false;
+    if (!validateReferralCode(referralCodeInput)) valid = false;
 
-    if (!valid) e.preventDefault();
+    if (!valid) return;
+
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+
+    try {
+      const response = await fetch('/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        window.location.href = result.redirectUrl || '/otp';
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Signup Failed',
+          text: result.message || 'An error occurred',
+          confirmButtonColor: '#d33'
+        });
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'An error occurred during signup',
+        confirmButtonColor: '#d33'
+      });
+    }
   });
 
   function validateName(input) {
@@ -113,17 +156,14 @@
 
   function validatePhone(input) {
     const value = input.value.trim();
-
     if (!phonePattern.test(value)) {
       setError(input, 'Phone must start with 6-9 and be 10 digits');
       return false;
     }
-
     if (/^(\d)\1{9}$/.test(value)) {
       setError(input, 'Phone number cannot be all same digits');
       return false;
     }
-
     clearError(input);
     return true;
   }
@@ -140,6 +180,16 @@
   function validateConfirmPassword(input, passwordInput) {
     if (input.value !== passwordInput.value) {
       setError(input, 'Passwords do not match');
+      return false;
+    }
+    clearError(input);
+    return true;
+  }
+
+  function validateReferralCode(input) {
+    const value = input.value.trim();
+    if (value && !referralCodePattern.test(value)) {
+      setError(input, 'Referral code must be 6 alphanumeric characters');
       return false;
     }
     clearError(input);
