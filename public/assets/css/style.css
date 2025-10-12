@@ -8706,7 +8706,7 @@ body {
     font-weight: 700;
     border-radius: 5px;
     letter-spacing: 0.5px;
-    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+    box-shadow: 0 2px 8px #e74c3c4d;
 }
 
 /* Offer Badge */
@@ -13378,5 +13378,54 @@ body {
         .order-summary {
             max-width: none;
             margin-left: 0;
+        }
+    }
+
+    /* Shop page offer pricing styling */
+    .price-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+    }
+
+    .cs_original_price {
+        text-decoration: line-through;
+        color: #999;
+        font-size: 14px;
+        font-weight: 400;
+    }
+
+    .cs_current_price {
+        color: #333;
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .cs_discount_percentage {
+        background: #ff4444;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    /* Responsive adjustments for pricing */
+    @media (max-width: 768px) {
+        .price-container {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+        }
+        
+        .cs_current_price {
+            font-size: 16px;
+        }
+        
+        .cs_original_price {
+            font-size: 13px;
         }
     }

@@ -27,7 +27,6 @@ router.post('/logout',userController.logout)
 router.get('/profile',userAuth ,profileController.userProfile)
 router.get('/editProfile',profileController.editProfile)
 router.post('/editProfile', upload.single('profileImage'),profileController.updateProfile)
-
 router.delete('/updateImage', profileController.deleteProfileImage);
 router.get('/changePassword', profileController.changePassword)
 router.post('/changePassword',profileController.updatePassword)
@@ -83,7 +82,8 @@ router.post("/addAddress" , productController.addAddress)
 router.get('/getAddress/:addressId', profileController.getAddressForModal);
 
 
-
+router.post('/applyCoupon',orderController.applyCoupon)
+router.post('/removeCoupon',orderController.removeCoupon)
 router.post("/placeOrder" , orderController.placeOrder)
 router.get("/orderSuccess/:orderId", orderController.orderSuccessPage)
 router.post('/create-razorpay-order', orderController.createRazorpayOrder);

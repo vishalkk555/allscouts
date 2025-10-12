@@ -4,6 +4,7 @@ const User = require("../../models/userSchema")
 const Cart = require("../../models/cartSchema")
 const Address = require("../../models/addressSchema");
 const Offer = require("../../models/offerSchema")
+const Coupon = require("../../models/couponSchema")
 const mongoose = require('mongoose');
 
 
@@ -210,7 +211,14 @@ const getShop = async (req, res) => {
     const limit = 9;
     const skip = (page - 1) * limit;
     const total = await Product.countDocuments(query);
-    const products = await Product.find(query).sort(sort).skip(skip).limit(limit).populate('category');
+    const rawProducts = await Product.find(query).sort(sort).skip(skip).limit(limit).populate('category');
+
+    // Calculate offers for all products
+    const products = await Promise.all(
+      rawProducts.map(async (product) => {
+        return await calculateProductOffer(product);
+      })
+    );
 
     // Categories
     const categories = await Category.find({ isActive: true });
@@ -294,13 +302,73 @@ const getWishlist = async (req, res) => {
       return res.redirect("/login");
     }
 
-    const user = await User.findById(userId).populate("wishlist.productId");
-    // Filter out blocked products
-    const wishlistProducts = user
-      ? user.wishlist
-          .map(item => item.productId)
-          .filter(product => product && !product.isBlocked)
-      : [];
+    const user = await User.findById(userId).populate({
+      path: 'wishlist.productId',
+      populate: {
+        path: 'category',
+        select: 'name isBlocked'
+      }
+    });
+
+    if (!user) {
+      return res.redirect("/login");
+    }
+
+    // Calculate offers and modify product prices
+    const wishlistProducts = [];
+    
+    for (const item of user.wishlist) {
+      const product = item.productId;
+      
+      // Skip if product doesn't exist or is blocked
+      if (!product || product.isBlocked || product.category?.isBlocked) {
+        continue;
+      }
+
+      // Calculate current offer
+      const now = new Date();
+      
+      const productOffers = await Offer.find({
+        offerType: 'product',
+        productId: product._id,
+        status: true,
+        startDate: { $lte: now },
+        endDate: { $gte: now }
+      }).sort({ discount: -1 });
+
+      const categoryOffers = await Offer.find({
+        offerType: 'category',
+        categoryId: product.category._id,
+        status: true,
+        startDate: { $lte: now },
+        endDate: { $gte: now }
+      }).sort({ discount: -1 });
+
+      let bestOffer = null;
+      const bestProductOffer = productOffers.length > 0 ? productOffers[0] : null;
+      const bestCategoryOffer = categoryOffers.length > 0 ? categoryOffers[0] : null;
+
+      if (bestProductOffer && bestCategoryOffer) {
+        bestOffer = bestProductOffer.discount >= bestCategoryOffer.discount ? bestProductOffer : bestCategoryOffer;
+      } else {
+        bestOffer = bestProductOffer || bestCategoryOffer;
+      }
+
+      // Calculate final price
+      let finalPrice = product.regularPrice;
+      if (bestOffer) {
+        finalPrice = product.regularPrice - (product.regularPrice * (bestOffer.discount / 100));
+        finalPrice = parseFloat(finalPrice.toFixed(2));
+      }
+
+      // Create modified product object
+      const productObj = product.toObject();
+      productObj.price = finalPrice; // Your EJS uses this
+      productObj.regularPrice = finalPrice; // Or this - set both to be safe
+      productObj.originalPrice = product.regularPrice; // Store original if needed later
+      
+      wishlistProducts.push(productObj);
+    }
 
     res.render("wishlist", {
       wishlist: wishlistProducts,
@@ -344,9 +412,9 @@ const removeFromWishlist = async (req, res) => {
 
 const addToCart = async (req, res) => {
   try {
-     const userId = req.session.user;
+    const userId = req.session.user;
     const { productId } = req.params;
-    const { size = "M", quantity = 1 } = req.body; // default size M if not provided
+    const { size = "M", quantity = 1 } = req.body;
 
     if (!userId) {
       return res.status(401).json({ success: false, message: "Please log in" });
@@ -368,6 +436,41 @@ const addToCart = async (req, res) => {
 
     if (!product || product.isBlocked || product.category?.isBlocked || product.status !== "Available") {
       return res.status(400).json({ success: false, message: "Product unavailable" });
+    }
+
+    // Calculate current offer price
+    const now = new Date();
+    
+    const productOffers = await Offer.find({
+      offerType: 'product',
+      productId: product._id,
+      status: true,
+      startDate: { $lte: now },
+      endDate: { $gte: now }
+    }).sort({ discount: -1 });
+
+    const categoryOffers = await Offer.find({
+      offerType: 'category',
+      categoryId: product.category._id,
+      status: true,
+      startDate: { $lte: now },
+      endDate: { $gte: now }
+    }).sort({ discount: -1 });
+
+    let bestOffer = null;
+    const bestProductOffer = productOffers.length > 0 ? productOffers[0] : null;
+    const bestCategoryOffer = categoryOffers.length > 0 ? categoryOffers[0] : null;
+
+    if (bestProductOffer && bestCategoryOffer) {
+      bestOffer = bestProductOffer.discount >= bestCategoryOffer.discount ? bestProductOffer : bestCategoryOffer;
+    } else {
+      bestOffer = bestProductOffer || bestCategoryOffer;
+    }
+
+    let currentOfferPrice = product.regularPrice;
+    if (bestOffer) {
+      currentOfferPrice = product.regularPrice - (product.regularPrice * (bestOffer.discount / 100));
+      currentOfferPrice = parseFloat(currentOfferPrice.toFixed(2));
     }
 
     // Check stock for selected size
@@ -396,17 +499,18 @@ const addToCart = async (req, res) => {
       });
     }
 
-    // Update existing or add new
+    // Update existing or add new with current offer price
     if (existingItem) {
       existingItem.quantity += qty;
-      existingItem.total = existingItem.quantity * existingItem.price;
+      existingItem.price = currentOfferPrice; // Update with current offer price
+      existingItem.total = existingItem.quantity * currentOfferPrice;
     } else {
       cart.item.push({
         productId,
         size,
         quantity: qty,
-        price: product.regularPrice,
-        total: qty * product.regularPrice,
+        price: currentOfferPrice, // Use current offer price
+        total: qty * currentOfferPrice,
         stock: sizeStock.quantity
       });
     }
@@ -416,15 +520,13 @@ const addToCart = async (req, res) => {
     await cart.save();
 
     // Remove from wishlist if exists
-   // Remove from wishlist if it exists
-const user = await User.findById(userId);
-if (user && user.wishlist && user.wishlist.length > 0) {
-  user.wishlist = user.wishlist.filter(
-    item => item.productId.toString() !== productId
-  );
-  await user.save();
-}
-
+    const user = await User.findById(userId);
+    if (user && user.wishlist && user.wishlist.length > 0) {
+      user.wishlist = user.wishlist.filter(
+        item => item.productId.toString() !== productId
+      );
+      await user.save();
+    }
 
     return res.json({ success: true, message: "Product added to cart successfully" });
     
@@ -441,7 +543,7 @@ if (user && user.wishlist && user.wishlist.length > 0) {
 const addToWishlist = async (req, res) => {
   try {
     const userId = req.session.user;
-    const { productId } = req.body;
+    const { productId, price } = req.body;
 
     if (!userId) {
       return res.status(401).json({
@@ -451,7 +553,7 @@ const addToWishlist = async (req, res) => {
     }
 
     // Validate product exists
-    const product = await Product.findById(productId);
+    const product = await Product.findById(productId).populate('category');
     if (!product) {
       return res.status(404).json({
         success: false,
@@ -462,7 +564,7 @@ const addToWishlist = async (req, res) => {
     // Get user
     const user = await User.findById(userId);
 
-    //  Check if already in wishlist
+    // Check if already in wishlist
     const exists = user.wishlist.some(
       (item) => item.productId.toString() === productId
     );
@@ -475,8 +577,50 @@ const addToWishlist = async (req, res) => {
       });
     }
 
-    // Add product
-    user.wishlist.push({ productId });
+    // Calculate current offer price if not provided
+    let finalPrice = price || product.regularPrice;
+    
+    if (!price) {
+      // Calculate offer price
+      const now = new Date();
+      
+      const productOffers = await Offer.find({
+        offerType: 'product',
+        productId: product._id,
+        status: true,
+        startDate: { $lte: now },
+        endDate: { $gte: now }
+      }).sort({ discount: -1 });
+
+      const categoryOffers = await Offer.find({
+        offerType: 'category',
+        categoryId: product.category._id,
+        status: true,
+        startDate: { $lte: now },
+        endDate: { $gte: now }
+      }).sort({ discount: -1 });
+
+      let bestOffer = null;
+      const bestProductOffer = productOffers.length > 0 ? productOffers[0] : null;
+      const bestCategoryOffer = categoryOffers.length > 0 ? categoryOffers[0] : null;
+
+      if (bestProductOffer && bestCategoryOffer) {
+        bestOffer = bestProductOffer.discount >= bestCategoryOffer.discount ? bestProductOffer : bestCategoryOffer;
+      } else {
+        bestOffer = bestProductOffer || bestCategoryOffer;
+      }
+
+      if (bestOffer) {
+        finalPrice = product.regularPrice - (product.regularPrice * (bestOffer.discount / 100));
+        finalPrice = parseFloat(finalPrice.toFixed(2));
+      }
+    }
+
+    // Add product with offer price
+    user.wishlist.push({ 
+      productId,
+      price: finalPrice
+    });
     await user.save();
 
     return res.json({
@@ -494,9 +638,7 @@ const addToWishlist = async (req, res) => {
 };
 
 
-
-// Get checkout page
-const getCheckoutPage = async (req, res) => {
+const getCheckoutPage = async (req, res, next) => {
   try {
     const userId = req.session.user;
 
@@ -515,13 +657,22 @@ const getCheckoutPage = async (req, res) => {
       return res.redirect('/cart');
     }
 
+    // Fetch active coupons
+    const coupons = await Coupon.find({
+      status: true,
+      expiry: { $gte: new Date() },
+      maxRedeem: { $gt: 0 }
+    });
+
     // Calculate totals and stock status
     let subtotal = 0;
     let totalItems = 0;
     let hasUnavailableItems = false;
 
     const cartItems = cart.item.map(cartItem => {
-      const itemTotal = cartItem.productId.regularPrice * cartItem.quantity;
+      // Use the stored price from cart (which includes offer price if applicable)
+      const itemPrice = cartItem.price || cartItem.productId.regularPrice;
+      const itemTotal = itemPrice * cartItem.quantity;
       subtotal += itemTotal;
       totalItems += cartItem.quantity;
       
@@ -549,35 +700,44 @@ const getCheckoutPage = async (req, res) => {
       return {
         ...cartItem.toObject(),
         stockStatus: stockStatus,
-        isAvailable: isAvailable
+        isAvailable: isAvailable,
+        itemPrice: itemPrice,
+        itemTotal: itemTotal
       };
     });
 
-    // Shipping charge - CORRECTED LOGIC: ₹100 if subtotal < 1000, FREE if >= 1000
-    const shippingCharge = subtotal < 1000 ? 100 : 0;
-
-    // Coupon discount (your existing logic preserved)
+    // Coupon discount
     let discount = 0;
+    let appliedCoupon = null;
     if (req.session.appliedCoupon) {
       const coupon = await Coupon.findOne({
-        code: req.session.appliedCoupon.code,
-        isActive: true,
-        expiryDate: { $gte: new Date() }
+        couponCode: req.session.appliedCoupon.code,
+        status: true,
+        expiry: { $gte: new Date() },
+        maxRedeem: { $gt: 0 }
       });
 
-      if (coupon) {
-        if (coupon.discountType === 'percentage') {
-          discount = Math.floor((subtotal * coupon.discountValue) / 100);
+      if (coupon && subtotal >= coupon.minPurchase) {
+        appliedCoupon = {
+          code: coupon.couponCode,
+          type: coupon.type,
+          discount: coupon.discount,
+          minPurchase: coupon.minPurchase,
+          description: coupon.description
+        };
+
+        if (coupon.type === 'percentageDiscount') {
+          discount = Math.floor((subtotal * coupon.discount) / 100);
           if (coupon.maxDiscount) discount = Math.min(discount, coupon.maxDiscount);
         } else {
-          discount = coupon.discountValue;
+          discount = coupon.discount;
         }
       } else {
         delete req.session.appliedCoupon;
       }
     }
 
-    const totalAmount = subtotal + shippingCharge - discount;
+    const totalAmount = subtotal - discount;
 
     res.render('checkout', {
       title: 'Checkout - ALLSCOUTS',
@@ -585,24 +745,20 @@ const getCheckoutPage = async (req, res) => {
       addresses,
       cartItems,
       subtotal,
-      shippingCharge,
       discount,
       totalAmount,
       totalItems,
+      coupons,
+      appliedCoupon,
       razorpayKeyId: process.env.RAZORPAY_KEY_ID,
-      appliedCoupon: req.session.appliedCoupon || null,
-      hasUnavailableItems: hasUnavailableItems // Optional: can be used in template
+      hasUnavailableItems
     });
 
   } catch (error) {
     console.error('Error loading checkout page:', error);
-    res.status(500).render('user/error', {
-      message: 'Something went wrong while loading checkout page',
-      error: error.message
-    });
+    next(error);
   }
 };
-
 
 // Add new address
 const addAddress = async (req, res) => {

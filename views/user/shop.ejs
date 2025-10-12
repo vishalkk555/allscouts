@@ -173,7 +173,19 @@
                     <a href="/product/<%= product._id %>"><%= product.productName %></a>
                   </h3>
                   <div class="cs_product_price">
-                    <span class="cs_current_price">₹<%= product.regularPrice %></span>
+                    <% if (product.offer && product.offer.hasOffer) { %>
+                      <!-- Show offer pricing -->
+                      <div class="price-container">
+                        <span class="cs_original_price">₹<%= product.offer.regularPrice.toLocaleString() %></span>
+                        <span class="cs_current_price">₹<%= product.offer.finalPrice.toLocaleString() %></span>
+                        <span class="cs_discount_percentage">-<%= product.offer.discountPercentage %>% OFF</span>
+                      </div>
+                    <% } else { %>
+                      <!-- Show regular pricing -->
+                      <div class="price-container">
+                        <span class="cs_current_price">₹<%= product.regularPrice.toLocaleString() %></span>
+                      </div>
+                    <% } %>
                   </div>
                 </div>
               </div>
@@ -335,10 +347,31 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
+      // Get the current price from the product card (with offer if applicable)
+      const productCard = document.querySelector(`[data-product-id="${productId}"]`).closest('.cs_product');
+      const priceElement = productCard.querySelector('.cs_current_price');
+      const priceText = priceElement.textContent.replace('₹', '').replace(',', '').trim();
+      const finalPrice = parseFloat(priceText);
+
+      if (isNaN(finalPrice)) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Price Error',
+          text: 'Unable to determine product price',
+          confirmButtonColor: '#e74c3c'
+        });
+        return;
+      }
+
       const res = await fetch("/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId, size, quantity: 1 })
+        body: JSON.stringify({ 
+          productId, 
+          size, 
+          quantity: 1,
+          price: finalPrice // Pass the offer price
+        })
       });
 
       const data = await res.json();
