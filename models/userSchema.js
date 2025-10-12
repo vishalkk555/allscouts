@@ -56,12 +56,17 @@ const userSchema  = new Schema({
         type:Boolean,
         default:false
     },
+    
+     referralCode:{
+      type:String,
+      required:false
+    },
+   
    
     createdOn : {
         type:Date,
         default:Date.now
     }
-   
 })
 
 

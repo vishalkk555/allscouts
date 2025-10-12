@@ -1,9 +1,6 @@
-
- <%- include("../partials/user/header") %>  
+<%- include("../partials/user/header") %>  
 
 <body class="profile-body">
-  
-
     <!-- Main Container -->
     <div class="profile-container">
         <!-- Sidebar -->
@@ -58,7 +55,37 @@
                 </div>
             </div>
 
-            <!-- Account Summary Section -->
+            <!-- Referral Code Section -->
+            <div class="profile-section referral-section">
+                <h3 class="profile-section-title">
+                    <i class="fas fa-gift"></i> Your Referral Code
+                </h3>
+                <div class="referral-card">
+                    <div class="referral-content">
+                        <div class="referral-code-display">
+                            <span class="referral-code-label">Share this code:</span>
+                            <div class="referral-code-box">
+                                <span class="referral-code" id="referralCode"><%= user.referralCode || 'N/A' %></span>
+                                <button class="copy-btn" onclick="copyReferralCode()" title="Copy to clipboard">
+                                    <i class="far fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="referral-info">
+                            <p class="referral-description">
+                                <i class="fas fa-star"></i>
+                                Invite your friends and earn <strong>₹50</strong> when they sign up using your code!
+                            </p>
+                            <p class="referral-bonus">
+                                <i class="fas fa-gift"></i>
+                                Your friend will also receive <strong>₹100</strong> as a joining bonus!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Summary Section (Optional - Commented Out) -->
             <!-- <div class="profile-section">
                 <h3 class="profile-section-title">Account Summary</h3>
                 <div class="profile-summary-grid">
@@ -75,31 +102,62 @@
                         <div class="profile-summary-label">Saved Items</div>
                     </div>
                     <div class="profile-summary-card">
-                        <div class="profile-summary-number">GTKFDY</div>
-                        <div class="profile-summary-label">Referral ID</div>
+                        <div class="profile-summary-number"><%= user.referralCode || 'N/A' %></div>
+                        <div class="profile-summary-label">Referral Code</div>
                     </div>
                 </div>
             </div> -->
         </main>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                const res = await fetch('/logout', { method: 'POST' });
 
-       document.getElementById('logoutBtn').addEventListener('click', async () => {
-    try {
-        // Send logout request
-        const res = await fetch('/logout', { method: 'POST' });
+                if (res.ok) {
+                    window.location.href = '/';
+                } else {
+                    console.error('Logout failed');
+                }
+            } catch (error) {
+                console.error('Error during logout:', error);
+            }
+        });
 
-        if (res.ok) {
-            // Redirect to home page instead of login
-            window.location.href = '/';
-        } else {
-            console.error('Logout failed');
+        function copyReferralCode() {
+            const referralCode = document.getElementById('referralCode').textContent;
+            
+            navigator.clipboard.writeText(referralCode).then(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Copied!',
+                    text: 'Referral code copied to clipboard',
+                    timer: 1500,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+
+                // Optional: Change button icon temporarily
+                const copyBtn = document.querySelector('.copy-btn i');
+                copyBtn.classList.remove('fa-copy');
+                copyBtn.classList.add('fa-check');
+                
+                setTimeout(() => {
+                    copyBtn.classList.remove('fa-check');
+                    copyBtn.classList.add('fa-copy');
+                }, 2000);
+            }).catch(err => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Failed to copy',
+                    text: 'Please copy manually',
+                    timer: 2000
+                });
+            });
         }
-    } catch (error) {
-        console.error('Error during logout:', error);
-    }
-});
-
     </script>
 </body>
 </html>

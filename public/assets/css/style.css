@@ -8504,6 +8504,149 @@ body {
 .profile-btn-primary:hover {
     background-color: #333;
 }
+    /* Referral Section Styles */
+.referral-section {
+    margin-top: 2rem;
+}
+
+.profile-section {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 2rem;
+}
+
+.profile-section-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.profile-section-title i {
+    color: #ff6b35;
+}
+
+.referral-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 25px;
+    color: #ffffff;
+}
+
+.referral-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.referral-code-display {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.referral-code-label {
+    font-size: 14px;
+    opacity: 0.9;
+    font-weight: 500;
+}
+
+.referral-code-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 15px 20px;
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+}
+
+.referral-code {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    font-family: 'Courier New', monospace;
+    flex: 1;
+}
+
+.copy-btn {
+    background: rgba(255, 255, 255, 0.3);
+    border: none;
+    padding: 10px 15px;
+    border-radius: 6px;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 18px;
+}
+
+.copy-btn:hover {
+    background: rgba(255, 255, 255, 0.4);
+    transform: scale(1.05);
+}
+
+.referral-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.referral-description,
+.referral-bonus {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.referral-description i,
+.referral-bonus i {
+    font-size: 16px;
+}
+
+.referral-description strong,
+.referral-bonus strong {
+    color: #ffd700;
+    font-weight: 700;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .referral-code {
+        font-size: 18px;
+        letter-spacing: 1px;
+    }
+
+    .referral-code-box {
+        padding: 12px 15px;
+    }
+
+    .copy-btn {
+        padding: 8px 12px;
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 576px) {
+    .profile-section {
+        padding: 20px 15px;
+    }
+
+    .referral-card {
+        padding: 20px;
+    }
+
+    .referral-code {
+        font-size: 16px;
+    }
+}
 
 /* Responsive */
 @media (max-width: 768px) {
