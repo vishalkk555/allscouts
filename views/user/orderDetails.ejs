@@ -669,22 +669,50 @@
             <div class="info-card">
                 <h3>Shipping Information</h3>
                 <% if (order.deliveryAddress) { %>
-                <div class="info-row">
-                    <span class="info-label">Name:</span>
-                    <span class="info-value"><%= order.deliveryAddress.firstName %> <%= order.deliveryAddress.lastName %></span>
-                </div>
-                <% if (order.deliveryAddress.phone) { %>
-                <div class="info-row">
-                    <span class="info-label">Phone:</span>
-                    <span class="info-value"><%= order.deliveryAddress.phone %></span>
-                </div>
-                <% } %>
-                <div class="info-row">
-                    <span class="info-label">Address:</span>
-                    <span class="info-value">
-                        <%= order.deliveryAddress.street %>, <%= order.deliveryAddress.city %>, <%= order.deliveryAddress.state %> - <%= order.deliveryAddress.zipCode %>
-                    </span>
-                </div>
+                    <% 
+                    // Handle different address structures
+                    let shippingAddr = null;
+                    if (order.deliveryAddress.address && order.deliveryAddress.address.length > 0) {
+                        // If address is an array, get the first one
+                        shippingAddr = order.deliveryAddress.address[0];
+                    } else if (order.deliveryAddress.name || order.deliveryAddress.houseName) {
+                        // If address is directly in the object
+                        shippingAddr = order.deliveryAddress;
+                    }
+                    %>
+                    
+                    <% if (shippingAddr) { %>
+                        <div class="info-row">
+                            <span class="info-label">Name:</span>
+                            <span class="info-value"><%= shippingAddr.name || 'N/A' %></span>
+                        </div>
+                        <% if (shippingAddr.number) { %>
+                        <div class="info-row">
+                            <span class="info-label">Phone:</span>
+                            <span class="info-value"><%= shippingAddr.number %></span>
+                        </div>
+                        <% } %>
+                        <% if (shippingAddr.email) { %>
+                        <div class="info-row">
+                            <span class="info-label">Email:</span>
+                            <span class="info-value"><%= shippingAddr.email %></span>
+                        </div>
+                        <% } %>
+                        <div class="info-row">
+                            <span class="info-label">Address:</span>
+                            <span class="info-value">
+                                <%= shippingAddr.houseName || '' %><%= shippingAddr.houseName && shippingAddr.street ? ', ' : '' %><%= shippingAddr.street || '' %><%= (shippingAddr.houseName || shippingAddr.street) && shippingAddr.city ? ', ' : '' %><%= shippingAddr.city || '' %><%= (shippingAddr.houseName || shippingAddr.street || shippingAddr.city) && shippingAddr.state ? ', ' : '' %><%= shippingAddr.state || '' %><%= shippingAddr.pincode ? ' - ' + shippingAddr.pincode : '' %>
+                            </span>
+                        </div>
+                        <% if (shippingAddr.country) { %>
+                        <div class="info-row">
+                            <span class="info-label">Country:</span>
+                            <span class="info-value"><%= shippingAddr.country %></span>
+                        </div>
+                        <% } %>
+                    <% } else { %>
+                        <p>No shipping address available</p>
+                    <% } %>
                 <% } else { %>
                 <p>No shipping address available</p>
                 <% } %>
@@ -740,12 +768,15 @@
             <h3 style="margin: 0 0 20px 0; color: #333;">Order Progress</h3>
             <div class="progress-timeline">
                 <div class="progress-line">
-                    <div class="progress-line-fill" style="width: <%= 
-                        order.orderStatus === 'Pending' ? '0%' :
-                        order.orderStatus === 'Shipped' ? '50%' :
-                        order.orderStatus === 'Delivered' ? '100%' :
-                        order.orderStatus === 'Cancelled' ? '0%' : '25%'
-                    %>;"></div>
+                    <% 
+                    let progressWidth = '0%';
+                    if (order.orderStatus === 'Pending') progressWidth = '0%';
+                    else if (order.orderStatus === 'Shipped') progressWidth = '50%';
+                    else if (order.orderStatus === 'Delivered') progressWidth = '100%';
+                    else if (order.orderStatus === 'Cancelled') progressWidth = '0%';
+                    else progressWidth = '25%';
+                    %>
+                    <div class="progress-line-fill" style="width: <%= progressWidth %>;"></div>
                 </div>
                 <div class="progress-step">
                     <div class="progress-circle <%= order.orderStatus !== 'Cancelled' ? 'active' : '' %>">1</div>
@@ -795,6 +826,9 @@
                                 <div class="product-details">
                                     <h4><%= item.productId ? item.productId.productName : 'Product not found' %></h4>
                                     <p class="product-size">Size: <%= item.size %></p>
+                                    <p class="product-status" style="font-size: 11px; color: #6c757d; margin-top: 2px;">
+                                        Status: <span style="font-weight: 500; color: #495057;"><%= item.productStatus %></span>
+                                    </p>
                                 </div>
                             </div>
                         </td>
@@ -835,8 +869,13 @@
                 <div></div> <!-- Empty div for spacing -->
                 <div class="summary-details">
                     <% 
-                    let subtotal = order.orderedItem.reduce((sum, item) => sum + item.totalProductPrice, 0);
+                    // Calculate subtotal excluding cancelled/returned items
+                    let activeItems = order.orderedItem.filter(item => 
+                        !['Cancelled', 'Returned'].includes(item.productStatus)
+                    );
+                    let subtotal = activeItems.reduce((sum, item) => sum + item.totalProductPrice, 0);
                     let discount = order.couponDiscount || 0;
+                    let grandTotal = subtotal - discount;
                     %>
                     <div class="summary-row">
                         <span class="summary-label">Subtotal:</span>
@@ -850,13 +889,13 @@
                     <% } %> 
 
                     <div class="summary-row">
-                        <span class = "summary-label">Shipping </span>
-                        <span class = "summary-value" style="color: #28a745;">Free</span>"
+                        <span class="summary-label">Shipping:</span>
+                        <span class="summary-value" style="color: #28a745;">Free</span>
                     </div>
                     
                     <div class="summary-row total">
                         <span class="summary-label">Grand Total:</span>
-                        <span class="summary-value total">₹<%= order.orderAmount.toFixed(2) %></span>
+                        <span class="summary-value total">₹<%= grandTotal.toFixed(2) %></span>
                     </div>
                 </div>
             </div>
@@ -1022,11 +1061,23 @@
             const data = await response.json();
 
             if (data.success) {
+                let title = 'Item Cancelled';
+                let message = 'The item has been cancelled successfully';
+                let icon = 'success';
+                
+                if (data.refundedToWallet && data.refundAmount > 0) {
+                    title = 'Item Cancelled & Refunded!';
+                    message = `The item has been cancelled successfully.\n\n💰 Refund Amount: ₹${data.refundAmount.toFixed(2)} has been added to your wallet.`;
+                    icon = 'success';
+                }
+                
                 Swal.fire({
-                    icon: 'success',
-                    title: 'Item Cancelled',
-                    text: 'The item has been cancelled successfully',
-                    confirmButtonColor: '#e74c3c'
+                    icon: icon,
+                    title: title,
+                    text: message,
+                    confirmButtonColor: '#e74c3c',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
                 }).then(() => {
                     // Update UI
                     const statusElement = document.getElementById(`item-status-${itemIndex}`);
@@ -1039,6 +1090,9 @@
                     }
                     if (returnBtn) returnBtn.disabled = true;
                     if (cancelBtn) cancelBtn.disabled = true;
+                    
+                    // Reload page to update totals
+                    location.reload();
                 });
             } else {
                 Swal.fire({
@@ -1095,14 +1149,26 @@
             const data = await response.json();
 
             if (data.success) {
+                let title = 'Order Cancelled!';
+                let message = 'Your order has been cancelled successfully';
+                let icon = 'success';
+                
+                if (data.refundedToWallet && data.refundAmount > 0) {
+                    title = 'Order Cancelled & Refunded!';
+                    message = `Your order has been cancelled successfully.\n\n💰 Refund Amount: ₹${data.refundAmount.toFixed(2)} has been added to your wallet.`;
+                    icon = 'success';
+                }
+                
                 Swal.fire({
-                    icon: 'success',
-                    title: 'Order Cancelled!',
-                    text: 'Your order has been cancelled successfully',
+                    icon: icon,
+                    title: title,
+                    text: message,
                     confirmButtonColor: '#28a745',
                     showDenyButton: true,
                     confirmButtonText: 'Continue Shopping',
-                    denyButtonText: 'View Order Details'
+                    denyButtonText: 'View Order Details',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
                 }).then((result) => {
                     if (result.isDenied) {
                         // Stay on the order details page but reload

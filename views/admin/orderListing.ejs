@@ -1,9 +1,6 @@
- <%- include("../partials/admin/header") %>
+<%- include("../partials/admin/header") %>
 
 <body>
-    <!-- Debug: Check if data is being passed -->
-    <!-- <pre><%# JSON.stringify({totalOrders, currentPage, totalPages, ordersCount: orders?.length}, null, 2) %></pre> -->
-    
     <!-- Main Content Area -->
     <div class="main-content">
         <div class="page-header">
@@ -57,9 +54,9 @@
                         <tr>
                             <th>SL NO.</th>
                             <th>ORDER ID</th>
-                            <th>CUSTOMER </th>
+                            <th>CUSTOMER</th>
                             <th>DATE</th>
-                            <th>AMOUNT</th>
+                            <th>AMOUNT</th> 
                             <th>ORDER STATUS</th>
                             <th>PAYMENT STATUS</th>
                             <th>RETURN STATUS</th>
@@ -168,7 +165,7 @@
             if (searchValue) url += `search=${encodeURIComponent(searchValue)}&`;
             if (currentStatus) url += `status=${encodeURIComponent(currentStatus)}&`;
             
-            window.location.href = url.slice(0, -1); // Remove trailing &
+            window.location.href = url.slice(0, -1);
         });
 
         // Clear functionality
@@ -187,7 +184,7 @@
             if (currentSearch) url += `search=${encodeURIComponent(currentSearch)}&`;
             if (statusValue) url += `status=${encodeURIComponent(statusValue)}&`;
             
-            window.location.href = url.slice(0, -1); // Remove trailing &
+            window.location.href = url.slice(0, -1);
         });
 
         // View order details
@@ -199,11 +196,6 @@
         document.getElementById('statusFilter').addEventListener('change', function() {
             document.getElementById('filterForm').dispatchEvent(new Event('submit'));
         });
-
-        // Debug: Log table dimensions
-        console.log('Table container width:', document.querySelector('.table-container').offsetWidth);
-        console.log('Table width:', document.querySelector('.orders-table').offsetWidth);
-        console.log('Number of columns:', document.querySelectorAll('.orders-table th').length);
     </script>
 </body>
 </html>

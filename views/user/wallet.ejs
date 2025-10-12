@@ -1,0 +1,320 @@
+
+
+<body>
+    <%- include("../partials/user/header") %>
+  <!-- Start Wallet Page Heading -->
+ 
+
+  <!-- Start Wallet Content -->
+  <div class="container">
+    <div class="wallet-page-wrapper">
+      <!-- Sidebar -->
+      <div class="profile-sidebar">
+        <div class="sidebar-menu">
+          <a href="/profile" class="sidebar-item">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+          </a>
+          <a href="/orders" class="sidebar-item">
+            <i class="fas fa-shopping-bag"></i>
+            <span>Orders</span>
+          </a>
+          <a href="/addresses" class="sidebar-item">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>Addresses</span>
+          </a>
+          <a href="/wallet" class="sidebar-item active">
+            <i class="fas fa-wallet"></i>
+            <span>Wallet</span>
+          </a>
+          <a href="/change-password" class="sidebar-item">
+            <i class="fas fa-key"></i>
+            <span>Change Password</span>
+          </a>
+        </div>
+        <button class="logout-btn" onclick="logout()">
+          <i class="fas fa-sign-out-alt"></i>
+          Logout
+        </button>
+      </div>
+
+      <!-- Main Content -->
+      <div class="wallet-main-content">
+        <div class="wallet-header">
+          <h2>My Wallet</h2>
+        </div>
+
+        <!-- Wallet Card -->
+        <div class="wallet-card">
+          <div class="wallet-card-content">
+            <div class="wallet-icon-wrapper">
+              <i class="fas fa-wallet"></i>
+            </div>
+            <div class="wallet-info">
+              <p class="wallet-user-name"><%= user.name || user.username %></p>
+              <div class="wallet-balance-wrapper">
+                <span class="balance-label">Wallet Balance</span>
+                <h1 class="wallet-balance">₹<%= wallet.balance.toFixed(2) %></h1>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="transactions-section">
+          <div class="transactions-header">
+            <h3>Recent Transactions</h3>
+          </div>
+
+          <div class="transactions-list">
+            <% if (transactions && transactions.length > 0) { %>
+              <% transactions.forEach((transaction) => { %>
+                <div class="transaction-item">
+                  <div class="transaction-icon <%= transaction.transactionsMethod === 'Payment' ? 'debit' : 'credit' %>">
+                    <% if (transaction.transactionsMethod === 'Payment') { %>
+                      <i class="fas fa-arrow-up"></i>
+                    <% } else { %>
+                      <i class="fas fa-arrow-down"></i>
+                    <% } %>
+                  </div>
+                  
+                  <div class="transaction-details">
+                    <h4 class="transaction-method">
+                      <%= transaction.description || transaction.transactionsMethod %>
+                      <% if (transaction.orderDetails) { %>
+                        <span class="order-link" onclick="viewOrder('<%= transaction.orderId %>')">
+                          #<%= transaction.orderDetails.orderNumber %>
+                        </span>
+                      <% } else if (transaction.orderId) { %>
+                        <span class="order-link" onclick="viewOrder('<%= transaction.orderId %>')">
+                          #<%= transaction.orderId.toString().slice(-6).toUpperCase() %>
+                        </span>
+                      <% } %>
+                    </h4>
+                    
+                    <% if (transaction.orderDetails && transaction.orderDetails.productNames) { %>
+                      <p class="transaction-products">
+                        <i class="fas fa-shopping-bag"></i>
+                        <%= transaction.orderDetails.productNames.length > 50 ? 
+                            transaction.orderDetails.productNames.substring(0, 50) + '...' : 
+                            transaction.orderDetails.productNames %>
+                        <% if (transaction.orderDetails.totalItems > 1) { %>
+                          <span class="item-count">(<%= transaction.orderDetails.totalItems %> items)</span>
+                        <% } %>
+                      </p>
+                    <% } %>
+                    
+                    <% if (transaction.orderDetails && transaction.orderDetails.paymentMethod) { %>
+                      <p class="transaction-payment-method">
+                        <i class="fas fa-credit-card"></i>
+                        <%= transaction.orderDetails.paymentMethod.toUpperCase() %>
+                        <% if (transaction.orderDetails.orderStatus) { %>
+                          • <%= transaction.orderDetails.orderStatus %>
+                        <% } %>
+                      </p>
+                    <% } %>
+                    
+                    <p class="transaction-date">
+                      <%= new Date(transaction.date).toLocaleDateString('en-IN', { 
+                        day: '2-digit', 
+                        month: 'short', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) %>
+                    </p>
+                  </div>
+
+                  <div class="transaction-amount <%= transaction.transactionsMethod === 'Payment' ? 'debit' : 'credit' %>">
+                    <% if (transaction.transactionsMethod === 'Payment') { %>
+                      - ₹<%= transaction.amount.toFixed(2) %>
+                    <% } else { %>
+                      + ₹<%= transaction.amount.toFixed(2) %>
+                    <% } %>
+                  </div>
+                </div>
+              <% }); %>
+            <% } else { %>
+              <div class="no-transactions">
+                <i class="fas fa-receipt"></i>
+                <p>No transactions yet</p>
+                <span>Your transaction history will appear here</span>
+              </div>
+            <% } %>
+          </div>
+
+          <!-- Pagination -->
+          <% if (totalPages > 1) { %>
+            <div class="pagination-wrapper">
+              <div class="pagination-info">
+                Showing <%= (currentPage - 1) * limit + 1 %> to 
+                <%= Math.min(currentPage * limit, totalTransactions) %> of 
+                <%= totalTransactions %> transactions
+              </div>
+              <div class="pagination">
+                <% if (currentPage > 1) { %>
+                  <a href="?page=<%= currentPage - 1 %>" class="page-link">
+                    <i class="fas fa-chevron-left"></i>
+                  </a>
+                <% } else { %>
+                  <span class="page-link disabled">
+                    <i class="fas fa-chevron-left"></i>
+                  </span>
+                <% } %>
+
+                <% 
+                  let startPage = Math.max(1, currentPage - 2);
+                  let endPage = Math.min(totalPages, currentPage + 2);
+                  
+                  if (currentPage <= 3) {
+                    endPage = Math.min(5, totalPages);
+                  }
+                  if (currentPage > totalPages - 3) {
+                    startPage = Math.max(1, totalPages - 4);
+                  }
+                %>
+
+                <% if (startPage > 1) { %>
+                  <a href="?page=1" class="page-link">1</a>
+                  <% if (startPage > 2) { %>
+                    <span class="page-dots">...</span>
+                  <% } %>
+                <% } %>
+
+                <% for (let i = startPage; i <= endPage; i++) { %>
+                  <a 
+                    href="?page=<%= i %>" 
+                    class="page-link <%= i === currentPage ? 'active' : '' %>"
+                  >
+                    <%= i %>
+                  </a>
+                <% } %>
+
+                <% if (endPage < totalPages) { %>
+                  <% if (endPage < totalPages - 1) { %>
+                    <span class="page-dots">...</span>
+                  <% } %>
+                  <a href="?page=<%= totalPages %>" class="page-link"><%= totalPages %></a>
+                <% } %>
+
+                <% if (currentPage < totalPages) { %>
+                  <a href="?page=<%= currentPage + 1 %>" class="page-link">
+                    <i class="fas fa-chevron-right"></i>
+                  </a>
+                <% } else { %>
+                  <span class="page-link disabled">
+                    <i class="fas fa-chevron-right"></i>
+                  </span>
+                <% } %>
+              </div>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End Wallet Content -->
+
+  <div class="cs_height_140 cs_height_lg_80"></div>
+
+ 
+  <script>
+
+    document.addEventListener('DOMContentLoaded', function() {
+    const filterBtn = document.getElementById('filterBtn');
+    const filterOptions = document.getElementById('filterOptions');
+    const transactionFilter = document.getElementById('transactionFilter');
+
+    // Toggle filter options
+    if (filterBtn) {
+        filterBtn.addEventListener('click', function() {
+            if (filterOptions.style.display === 'none') {
+                filterOptions.style.display = 'block';
+            } else {
+                filterOptions.style.display = 'none';
+            }
+        });
+    }
+
+    // Filter transactions
+    if (transactionFilter) {
+        transactionFilter.addEventListener('change', function() {
+            const filterValue = this.value;
+            const transactions = document.querySelectorAll('.transaction-item');
+
+            transactions.forEach(transaction => {
+                const method = transaction.querySelector('.transaction-method').textContent.trim().split('\n')[0].trim();
+                
+                if (filterValue === 'all') {
+                    transaction.style.display = 'flex';
+                } else {
+                    if (method === filterValue) {
+                        transaction.style.display = 'flex';
+                    } else {
+                        transaction.style.display = 'none';
+                    }
+                }
+            });
+
+            // Check if no transactions are visible
+            const visibleTransactions = Array.from(transactions).filter(
+                t => t.style.display !== 'none'
+            );
+
+            if (visibleTransactions.length === 0) {
+                showNoTransactionsMessage();
+            } else {
+                hideNoTransactionsMessage();
+            }
+        });
+    }
+
+    function showNoTransactionsMessage() {
+        const existingMessage = document.querySelector('.no-transactions-filter');
+        if (!existingMessage) {
+            const message = document.createElement('div');
+            message.className = 'no-transactions no-transactions-filter';
+            message.innerHTML = `
+                <i class="fas fa-filter"></i>
+                <p>No transactions found</p>
+                <span>Try selecting a different filter</span>
+            `;
+            document.querySelector('.transactions-list').appendChild(message);
+        }
+    }
+
+    function hideNoTransactionsMessage() {
+        const message = document.querySelector('.no-transactions-filter');
+        if (message) {
+            message.remove();
+        }
+    }
+});
+
+// View order details
+function viewOrder(orderId) {
+    window.location.href = `/orders/${orderId}`;
+}
+
+// Logout function
+function logout() {
+    Swal.fire({
+        title: 'Logout?',
+        text: 'Are you sure you want to logout?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#ff4757',
+        cancelButtonColor: '#95a5a6',
+        confirmButtonText: 'Yes, logout',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = '/logout';
+        }
+    });
+}
+
+  </script>
+</body>
+
+<%- include("../partials/user/footer") %>

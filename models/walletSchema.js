@@ -29,6 +29,10 @@ const walletSchema = new Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'orders',
             required: false
+        },
+        description: {
+            type: String,
+            required: false
         }
     }]
 }, { timestamps: true });
