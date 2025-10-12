@@ -1,9 +1,7 @@
 <%- include("../partials/user/header") %>
 
 <div class="edit-profile-body">
-    <!-- Main Container -->
     <div class="edit-profile-container">
-        <!-- Sidebar -->
         <aside class="edit-profile-sidebar">
             <ul class="edit-profile-sidebar-menu">
                 <li><a href="/profile" class="edit-profile-active">Profile</a></li>
@@ -17,7 +15,6 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
         <main class="edit-profile-main-content">
             <a href="/profile" class="edit-profile-back-link">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -28,12 +25,11 @@
 
             <h1 class="edit-profile-page-title">Edit Profile</h1>
 
-            <!-- Avatar Section -->
             <div class="edit-profile-avatar-section">
                 <div class="edit-profile-avatar-container">
                     <div class="edit-profile-avatar" id="avatarDisplay">
                         <% if (user.profileImage && user.profileImage.length > 0) { %>
-                            <img src=" <%= user.profileImage[0] %>" alt="Profile Picture" id="currentAvatar">
+                            <img src="<%= user.profileImage[0].replace(/\\/g, '/') %>" alt="Profile Picture" id="currentAvatar">
                         <% } else { %>
                             <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" id="defaultAvatar">
                                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
@@ -58,383 +54,393 @@
                 </div>
             </div>
 
-            <!-- Form -->
-           <form id="editProfileForm" class="edit-profile-form" method="POST" action="/editProfile" enctype="multipart/form-data">
-    <!-- Rest of the form content remains the same -->
-    <h3 class="edit-profile-section-title">Personal Information</h3>
-    <div class="edit-profile-form-group">
-        <label for="fullName" class="edit-profile-form-label">Full Name</label>
-        <input 
-            type="text" 
-            id="fullName" 
-            name="name" 
-            class="edit-profile-form-input"
-            value="<%= user.name || '' %>"
-            placeholder="Enter your full name"
-        >
-    </div>
-    <div class="edit-profile-form-group">
-        <label for="email" class="edit-profile-form-label">Email</label>
-        <input 
-            type="email" 
-            id="email" 
-            name="email" 
-            class="edit-profile-form-input"
-            value="<%= user.email || '' %>"
-           
-        >
-        
-    </div>
-    <div class="edit-profile-form-group">
-        <label for="phone" class="edit-profile-form-label">Phone</label>
-        <input 
-            type="tel" 
-            id="phone" 
-            name="phone" 
-            class="edit-profile-form-input"
-            value="<%= user.phone || '' %>"
-            placeholder="Enter your phone number"
-            maxlength="10"
-        >
-    </div>
-    <div class="edit-profile-form-group">
-        <label for="dob" class="edit-profile-form-label">Date of Birth</label>
-        <div class="edit-profile-date-container">
-            <% 
-   let dobValue = '';
-   if (user.dob) {
-      try { dobValue = new Date(user.dob).toISOString().split('T')[0]; } 
-      catch(e) { dobValue = ''; }
-   }
-%>
-<input 
-    type="date" 
-    id="dob" 
-    name="dob" 
-    class="edit-profile-form-input edit-profile-date-input"
-    value="<%= dobValue %>"
->
-
-            <svg class="edit-profile-calendar-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
-            </svg>
-        </div>
-    </div>
-    <div class="edit-profile-form-actions">
-        <button type="button" class="edit-profile-btn edit-profile-btn-cancel" onclick="clearForm()">
-            Clear
-        </button>
-        <button type="submit" class="edit-profile-btn edit-profile-btn-save">
-            Save Changes
-        </button>
-    </div>
-</form>
+            <form id="editProfileForm" class="edit-profile-form" method="POST" action="/editProfile" enctype="multipart/form-data">
+                <h3 class="edit-profile-section-title">Personal Information</h3>
+                <div class="edit-profile-form-group">
+                    <label for="fullName" class="edit-profile-form-label">Full Name</label>
+                    <input 
+                        type="text" 
+                        id="fullName" 
+                        name="name" 
+                        class="edit-profile-form-input"
+                        value="<%= user.name || '' %>"
+                        placeholder="Enter your full name"
+                    >
+                </div>
+                <div class="edit-profile-form-group">
+                    <label for="email" class="edit-profile-form-label">Email</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        class="edit-profile-form-input"
+                        value="<%= user.email || '' %>"
+                    >
+                </div>
+                <div class="edit-profile-form-group">
+                    <label for="phone" class="edit-profile-form-label">Phone</label>
+                    <input 
+                        type="tel" 
+                        id="phone" 
+                        name="phone" 
+                        class="edit-profile-form-input"
+                        value="<%= user.phone || '' %>"
+                        placeholder="Enter your phone number"
+                        maxlength="10"
+                    >
+                </div>
+                <div class="edit-profile-form-group">
+                    <label for="dob" class="edit-profile-form-label">Date of Birth</label>
+                    <div class="edit-profile-date-container">
+                        <% 
+                        let dobValue = '';
+                        if (user.dob) {
+                            try { dobValue = new Date(user.dob).toISOString().split('T')[0]; } 
+                            catch(e) { dobValue = ''; }
+                        }
+                        %>
+                        <input 
+                            type="date" 
+                            id="dob" 
+                            name="dob" 
+                            class="edit-profile-form-input edit-profile-date-input"
+                            value="<%= dobValue %>"
+                        >
+                        <svg class="edit-profile-calendar-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="edit-profile-form-actions">
+                    <button type="button" class="edit-profile-btn edit-profile-btn-cancel" onclick="clearForm()">
+                        Clear
+                    </button>
+                    <button type="submit" class="edit-profile-btn edit-profile-btn-save">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
         </main>
     </div>
-   
+
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-    // Verify form exists
-    const form = document.getElementById('editProfileForm');
-    if (!form) {
-        console.error('Form with ID editProfileForm not found');
-        return;
-    }
+        const form = document.getElementById('editProfileForm');
+        if (!form) {
+            console.error('Form with ID editProfileForm not found');
+            return;
+        }
 
-    // Form submission handler
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        console.log('Form submission intercepted');
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            console.log('Form submission intercepted');
 
-        try {
-            const formData = new FormData(this);
-            const name = formData.get('name').trim();
-            const email = formData.get('email').trim();
-            const phone = formData.get('phone').trim();
-            const dob = formData.get('dob');
+            try {
+                const formData = new FormData(this);
+                const name = formData.get('name').trim();
+                const email = formData.get('email').trim();
+                const phone = formData.get('phone').trim();
+                const dob = formData.get('dob');
 
-            // Clear previous error styles
-            document.querySelectorAll('.edit-profile-form-input').forEach(input => {
-                input.classList.remove('edit-profile-error');
-            });
-
-            let hasErrors = false;
-
-            // Name validation
-            if (!name) {
-                document.getElementById('fullName').classList.add('edit-profile-error');
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Validation Error',
-                    text: 'Full name is required!'
+                document.querySelectorAll('.edit-profile-form-input').forEach(input => {
+                    input.classList.remove('edit-profile-error');
                 });
-                hasErrors = true;
-                return;
-            }
 
-            if (!/^[a-zA-Z\s]+$/.test(name)) {
-                document.getElementById('fullName').classList.add('edit-profile-error');
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Validation Error',
-                    text: 'Name should contain only letters and spaces!'
-                });
-                hasErrors = true;
-                return;
-            }
+                let hasErrors = false;
 
-            // Phone validation
-            if (phone && !/^[6-9]\d{9}$/.test(phone)) {
-                document.getElementById('phone').classList.add('edit-profile-error');
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Validation Error',
-                    text: 'Phone number should be 10 digits starting with 6, 7, 8, or 9!'
-                });
-                hasErrors = true;
-                return;
-            }
-
-            // DOB validation
-            if (dob) {
-                const dobDate = new Date(dob);
-                const currentDate = new Date();
-                currentDate.setHours(0, 0, 0, 0);
-                if (dobDate >= currentDate) {
-                    document.getElementById('dob').classList.add('edit-profile-error');
+                if (!name) {
+                    document.getElementById('fullName').classList.add('edit-profile-error');
                     Swal.fire({
                         icon: 'error',
                         title: 'Validation Error',
-                        text: 'Date of birth must be in the past!'
+                        text: 'Full name is required!'
                     });
                     hasErrors = true;
                     return;
                 }
-            }
 
-            if (!hasErrors) {
-                // Add profile image to form data if selected
-                const fileInput = document.getElementById('fileInput');
-                if (fileInput && fileInput.files[0]) {
-                    formData.append('profileImage', fileInput.files[0]);
+                if (!/^[a-zA-Z\s]+$/.test(name)) {
+                    document.getElementById('fullName').classList.add('edit-profile-error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Validation Error',
+                        text: 'Name should contain only letters and spaces!'
+                    });
+                    hasErrors = true;
+                    return;
                 }
 
-                // Send POST request
-                const response = await fetch('/editProfile', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                console.log('Server response:', data);
+                if (phone && !/^[6-9]\d{9}$/.test(phone)) {
+                    document.getElementById('phone').classList.add('edit-profile-error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Validation Error',
+                        text: 'Phone number should be 10 digits starting with 6, 7, 8, or 9!'
+                    });
+                    hasErrors = true;
+                    return;
+                }
 
-                if (data.success) {
-                    if (data.requiresOtp) {
-                        // Redirect to OTP page
-                        window.location.href = `/otp?email=${data.email}`;
+                if (dob) {
+                    const dobDate = new Date(dob);
+                    const currentDate = new Date();
+                    currentDate.setHours(0, 0, 0, 0);
+                    if (dobDate >= currentDate) {
+                        document.getElementById('dob').classList.add('edit-profile-error');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Validation Error',
+                            text: 'Date of birth must be in the past!'
+                        });
+                        hasErrors = true;
+                        return;
+                    }
+                }
+
+                if (!hasErrors) {
+                    const fileInput = document.getElementById('fileInput');
+                    if (fileInput && fileInput.files[0]) {
+                        formData.append('profileImage', fileInput.files[0]);
+                    }
+
+                    const response = await fetch('/editProfile', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                    console.log('Server response:', data);
+
+                    if (data.success) {
+                        if (data.requiresOtp) {
+                            window.location.href = `/emailOtp?email=${data.email}`;
+                        } else {
+                            await Swal.fire({
+                                icon: 'success',
+                                title: 'Profile Updated!',
+                                text: data.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                            window.location.href = '/profile';
+                        }
                     } else {
-                        // Show SweetAlert and then go to profile
-                        await Swal.fire({
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.error || 'Failed to update profile'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error during form submission:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Network Error',
+                    text: 'Something went wrong. Please try again.'
+                });
+            }
+        });
+
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) {
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    console.log('File selected:', file.name);
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const avatarDisplay = document.getElementById('avatarDisplay');
+                        const currentAvatar = document.getElementById('currentAvatar');
+                        const defaultAvatar = document.getElementById('defaultAvatar');
+
+                        if (currentAvatar) {
+                            currentAvatar.src = e.target.result;
+                        } else {
+                            if (defaultAvatar) {
+                                defaultAvatar.style.display = 'none';
+                            }
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            img.alt = 'Profile Picture';
+                            img.id = 'currentAvatar';
+                            img.style.width = '100%';
+                            img.style.height = '100%';
+                            img.style.objectFit = 'cover';
+                            img.style.borderRadius = '50%';
+                            avatarDisplay.appendChild(img);
+                        }
+                        let deleteButton = document.querySelector('.edit-profile-btn-delete');
+                        if (!deleteButton) {
+                            deleteButton = document.createElement('button');
+                            deleteButton.type = 'button';
+                            deleteButton.className = 'edit-profile-btn edit-profile-btn-delete';
+                            deleteButton.textContent = 'Delete Image';
+                            deleteButton.onclick = deleteProfileImage;
+                            document.querySelector('.edit-profile-avatar-actions').appendChild(deleteButton);
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        } else {
+            console.error('File input with ID fileInput not found');
+        }
+
+        const phoneInput = document.getElementById('phone');
+        if (phoneInput) {
+            phoneInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 10) {
+                    value = value.slice(0, 10);
+                }
+                e.target.value = value;
+            });
+        } else {
+            console.error('Phone input with ID phone not found');
+        }
+    });
+
+    async function deleteProfileImage() {
+        Swal.fire({
+            title: 'Delete Profile Image?',
+            text: 'This will remove your profile image and revert to the default icon.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, delete it!'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch('/updateImage', {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const data = await response.json();
+                    console.log('Delete image response:', data);
+
+                    if (data.success) {
+                        const avatarDisplay = document.getElementById('avatarDisplay');
+                        const currentAvatar = document.getElementById('currentAvatar');
+                        const defaultAvatar = document.getElementById('defaultAvatar');
+                        const fileInput = document.getElementById('fileInput');
+
+                        if (currentAvatar) {
+                            currentAvatar.remove();
+                        }
+                        if (defaultAvatar) {
+                            defaultAvatar.style.display = 'block';
+                        } else {
+                            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                            svg.setAttribute('width', '48');
+                            svg.setAttribute('height', '48');
+                            svg.setAttribute('viewBox', '0 0 24 24');
+                            svg.setAttribute('fill', 'currentColor');
+                            svg.setAttribute('id', 'defaultAvatar');
+                            svg.innerHTML = '<path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>';
+                            avatarDisplay.appendChild(svg);
+                        }
+
+                        const deleteButton = document.querySelector('.edit-profile-btn-delete');
+                        if (deleteButton) {
+                            deleteButton.remove();
+                        }
+
+                        if (fileInput) {
+                            fileInput.value = '';
+                        }
+
+                        Swal.fire({
                             icon: 'success',
-                            title: 'Profile Updated!',
+                            title: 'Image Deleted!',
                             text: data.message,
                             timer: 1500,
                             showConfirmButton: false
                         });
-                        window.location.href = '/profile';
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.error || 'Failed to delete profile image'
+                        });
                     }
-                } else {
+                } catch (error) {
+                    console.error('Error deleting profile image:', error);
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: data.error || 'Failed to update profile'
+                        text: 'Failed to delete profile image'
                     });
                 }
             }
-        } catch (error) {
-            console.error('Error during form submission:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Network Error',
-                text: 'Something went wrong. Please try again.'
-            });
-        }
-    });
+        });
+    }
 
-    // File input handler for image preview
-    const fileInput = document.getElementById('fileInput');
-    if (fileInput) {
-        fileInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                console.log('File selected:', file.name);
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const avatarDisplay = document.getElementById('avatarDisplay');
+    function clearForm() {
+        Swal.fire({
+            title: 'Clear Form?',
+            text: 'This will clear all unsaved changes.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, clear it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.getElementById('editProfileForm');
+                form.reset();
+                document.getElementById('fileInput').value = '';
+
+                <% if (user.profileImage && user.profileImage.length > 0) { %>
                     const currentAvatar = document.getElementById('currentAvatar');
                     const defaultAvatar = document.getElementById('defaultAvatar');
-                    
                     if (currentAvatar) {
-                        currentAvatar.src = e.target.result;
-                    } else {
-                        if (defaultAvatar) {
-                            defaultAvatar.style.display = 'none';
-                        }
-                        const img = document.createElement('img');
-                        img.src = e.target.result;
-                        img.alt = 'Profile Picture';
-                        img.id = 'currentAvatar';
-                        img.style.width = '100%';
-                        img.style.height = '100%';
-                        img.style.objectFit = 'cover';
-                        img.style.borderRadius = '50%';
-                        avatarDisplay.appendChild(img);
+                        currentAvatar.src = '<%= user.profileImage[0].replace(/\\/g, '/') %>'; // Handle backslashes
                     }
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    } else {
-        console.error('File input with ID fileInput not found');
-    }
-
-    // Phone number input formatting
-    const phoneInput = document.getElementById('phone');
-    if (phoneInput) {
-        phoneInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length > 10) {
-                value = value.slice(0, 10);
-            }
-            e.target.value = value;
-        });
-    } else {
-        console.error('Phone input with ID phone not found');
-    }
-});
-
-// Delete profile image function
-async function deleteProfileImage() {
-    Swal.fire({
-        title: 'Delete Profile Image?',
-        text: 'This will remove your profile image and revert to the default icon.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Yes, delete it!'
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            try {
-                const response = await fetch('/updateImage', {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json'
+                    if (defaultAvatar) {
+                        defaultAvatar.style.display = 'none';
                     }
-                });
-                const data = await response.json();
-                console.log('Delete image response:', data);
-
-                if (data.success) {
-                    const avatarDisplay = document.getElementById('avatarDisplay');
+                    let deleteButton = document.querySelector('.edit-profile-btn-delete');
+                    if (!deleteButton) {
+                        deleteButton = document.createElement('button');
+                        deleteButton.type = 'button';
+                        deleteButton.className = 'edit-profile-btn edit-profile-btn-delete';
+                        deleteButton.textContent = 'Delete Image';
+                        deleteButton.onclick = deleteProfileImage;
+                        document.querySelector('.edit-profile-avatar-actions').appendChild(deleteButton);
+                    }
+                <% } else { %>
                     const currentAvatar = document.getElementById('currentAvatar');
                     const defaultAvatar = document.getElementById('defaultAvatar');
-                    
                     if (currentAvatar) {
                         currentAvatar.remove();
                     }
                     if (defaultAvatar) {
                         defaultAvatar.style.display = 'block';
-                    } else {
-                        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                        svg.setAttribute('width', '48');
-                        svg.setAttribute('height', '48');
-                        svg.setAttribute('viewBox', '0 0 24 24');
-                        svg.setAttribute('fill', 'currentColor');
-                        svg.setAttribute('id', 'defaultAvatar');
-                        svg.innerHTML = '<path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>';
-                        avatarDisplay.appendChild(svg);
                     }
-                    
                     const deleteButton = document.querySelector('.edit-profile-btn-delete');
                     if (deleteButton) {
                         deleteButton.remove();
                     }
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Image Deleted!',
-                        text: data.message,
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.error || 'Failed to delete profile image'
-                    });
-                }
-            } catch (error) {
-                console.error('Error deleting profile image:', error);
+                <% } %>
+
+                document.querySelectorAll('.edit-profile-form-input').forEach(input => {
+                    input.classList.remove('edit-profile-error');
+                });
+
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to delete profile image'
+                    icon: 'success',
+                    title: 'Form Cleared!',
+                    text: 'All changes have been cleared.',
+                    timer: 1500,
+                    showConfirmButton: false
                 });
             }
-        }
-    });
-}
-
-// Clear form function
-function clearForm() {
-    Swal.fire({
-        title: 'Clear Form?',
-        text: 'This will clear all unsaved changes.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Yes, clear it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const form = document.getElementById('editProfileForm');
-            form.reset();
-            document.getElementById('fileInput').value = '';
-            
-            <% if (user.profileImage && user.profileImage.length > 0) { %>
-                const currentAvatar = document.getElementById('currentAvatar');
-                if (currentAvatar) {
-                    currentAvatar.src = '<%= user.profileImage[0] %>';
-                }
-            <% } else { %>
-                const currentAvatar = document.getElementById('currentAvatar');
-                const defaultAvatar = document.getElementById('defaultAvatar');
-                if (currentAvatar) {
-                    currentAvatar.remove();
-                }
-                if (defaultAvatar) {
-                    defaultAvatar.style.display = 'block';
-                }
-            <% } %>
-            
-            document.querySelectorAll('.edit-profile-form-input').forEach(input => {
-                input.classList.remove('edit-profile-error');
-            });
-            
-            Swal.fire({
-                icon: 'success',
-                title: 'Form Cleared!',
-                text: 'All changes have been cleared.',
-                timer: 1500,
-                showConfirmButton: false
-            });
-        }
-    });
-}
-
-
-
-</script>
+        });
+    }
+    </script>
+</div>
 <%- include("../partials/user/footer") %>
