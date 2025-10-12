@@ -88,7 +88,8 @@ router.post("/addAddress" , productController.addAddress)
 router.get('/getAddress/:addressId', profileController.getAddressForModal);
 
 
-
+router.post('/applyCoupon',orderController.applyCoupon)
+router.post('/removeCoupon',orderController.removeCoupon)
 router.post("/placeOrder" , orderController.placeOrder)
 router.get("/orderSuccess/:orderId", orderController.orderSuccessPage)
 router.post('/create-razorpay-order', orderController.createRazorpayOrder);

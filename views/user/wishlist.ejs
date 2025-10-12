@@ -52,7 +52,7 @@
       <% } %>
                   </div>
                 </td>
-                <td>₹<%= product.regularPrice.toLocaleString() %></td>
+                <td>₹<%= (product.regularPrice || product.price || 0).toLocaleString() %></td>
                 <td>
                   <% if (product.totalStock > 0 && product.status === "Available") { %>
                     In stock
@@ -156,9 +156,11 @@
             const res = await fetch(`/wishlist/addToCart/${productId}`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ size: "M", quantity: 1 }) // default values
+  body: JSON.stringify({ 
+    size: "M", 
+    quantity: 1,
+  })
 });
-
 
             const data = await res.json();
 

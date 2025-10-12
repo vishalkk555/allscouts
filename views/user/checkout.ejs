@@ -202,6 +202,41 @@
         margin-left: 10px;
     }
 
+    /* Coupon Styles */
+    .coupon-section {
+        margin: 15px 0;
+        padding: 10px;
+        border: 1px dashed #ddd;
+        border-radius: 4px;
+    }
+
+    .coupon-section a {
+        color: #f4f5f7;
+        cursor: pointer;
+    }
+
+    .coupon-section select {
+        width: 70%;
+        margin-right: 10px;
+    }
+
+    .applied-coupon {
+        background: #d4edda;
+        padding: 8px;
+        border-radius: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .applied-coupon button {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
     
 
 </style>
@@ -312,7 +347,7 @@
                                             <% } %>
                                         </div>
                                         <div class="item-price">
-                                            ₹<%= (item.productId.regularPrice * item.quantity).toLocaleString() %>
+                                            ₹<%= (item.itemTotal || (item.price * item.quantity)).toLocaleString() %>
                                         </div>
     <% if (!isAvailable) { %>
     <button 
@@ -328,25 +363,49 @@
                             <% } %>
                         </div>
 
+                        <!-- Coupon Section -->
+                        <div class="coupon-section">
+                            <% if (appliedCoupon) { %>
+                                <div class="applied-coupon">
+                                    Applied Coupon: <%= appliedCoupon.code %> (Discount: ₹<%= discount.toLocaleString() %>)
+                                    <button onclick="removeCoupon()">Remove</button>
+                                </div>
+                            <% } else if (coupons && coupons.length > 0) { %>
+                                <a href="#" onclick="toggleCouponDropdown(event)">Apply Coupon</a>
+                                <div id="coupon-dropdown" style="display: none; margin-top: 10px;">
+                                    <select id="coupon-select">
+                                        <option value="">Select a coupon</option>
+                                        <% coupons.forEach(coupon => { %>
+                                            <option value="<%= coupon.couponCode %>">
+                                                <%= coupon.couponCode %> - 
+                                                <% if (coupon.type === 'percentageDiscount') { %>
+                                                    <%= coupon.discount %>% off (Min ₹<%= coupon.minPurchase %>)
+                                                <% } else { %>
+                                                    ₹<%= coupon.discount %> off (Min ₹<%= coupon.minPurchase %>)
+                                                <% } %> - <%= coupon.description || '' %>
+                                            </option>
+                                        <% }) %>
+                                    </select>
+                                    <button onclick="applyCoupon()">Apply</button>
+                                </div>
+                            <% } else { %>
+                                <p>No available coupons</p>
+                            <% } %>
+                        </div>
+
                         <!-- Price Breakdown -->
                         <div class="price-breakdown">
                             <div class="price-row">
                                 <span>Subtotal (<%= totalItems %> items)</span>
                                 <span>₹<%= subtotal.toLocaleString() %></span>
                             </div>
-                            <div class="price-row">
-                                <span>Shipping Charges</span>
-                                <span class="<%= shippingCharge === 0 ? 'free' : '' %>">
-                                    <% if (shippingCharge === 0) { %>
-                                        FREE
-                                    <% } else { %>
-                                        ₹<%= shippingCharge.toLocaleString() %>
-                                    <% } %>
-                                </span>
-                            </div>
+                           <div class="price-row">
+    <span>Shipping Charges</span>
+    <span class="free">FREE</span>
+</div>
                             <% if (discount > 0) { %>
                                 <div class="price-row discount">
-                                    <span>Discount</span>
+                                    <span>Coupon Discount</span>
                                     <span>-₹<%= discount.toLocaleString() %></span>
                                 </div>
                             <% } %>
@@ -1048,6 +1107,62 @@ function verifyRazorpayPayment(paymentResponse, orderId) {
             title: 'Payment Failed',
             text: 'Payment verification failed. Please contact support if amount was deducted.'
         });
+    });
+}
+
+// Coupon Functions
+function toggleCouponDropdown(event) {
+    event.preventDefault();
+    const dropdown = document.getElementById('coupon-dropdown');
+    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+}
+
+function applyCoupon() {
+    const code = document.getElementById('coupon-select').value;
+    if (!code) {
+        Swal.fire('Error', 'Please select a coupon', 'error');
+        return;
+    }
+
+    fetch('/applyCoupon', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            Swal.fire('Error', data.message || 'Failed to apply coupon', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error applying coupon:', error);
+        Swal.fire('Error', 'Failed to apply coupon', 'error');
+    });
+}
+
+function removeCoupon() {
+    fetch('/removeCoupon', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            Swal.fire('Error', 'Failed to remove coupon', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error removing coupon:', error);
+        Swal.fire('Error', 'Failed to remove coupon', 'error');
     });
 }
 
