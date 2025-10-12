@@ -102,12 +102,12 @@
                                     <td class="compact-product-cell">
                                         <div class="compact-product-info">
                                             <% if (item.productId && item.productId.productImage && item.productId.productImage.length > 0) { %>
-                                                <img src="/uploads/products/<%= item.productId.productImage[0] %>" alt="<%= item.productId.name %>" class="compact-product-image">
+                                                <img src="/Uploads/products/<%= item.productId.productImage[0] %>" alt="<%= item.productId.productName %>" class="compact-product-image">
                                             <% } else { %>
                                                 <div class="compact-no-image"><i class="fas fa-image"></i></div>
                                             <% } %>
                                             <div class="compact-product-name">
-                                                <%= item.productId?.name || 'Product not found' %>
+                                                <%= item.productId?.productName || 'Product not found' %>
                                             </div>
                                         </div>
                                     </td>
@@ -139,10 +139,10 @@
                                                 </span>
                                                 <% if (item.productStatus === 'Return Requested') { %>
                                                     <div class="compact-return-actions">
-                                                        <button type="button" class="compact-approve-btn" onclick="handleReturnRequest('<%= order._id %>', '<%= item._id %>', 'approve')" title="Approve Return">
+                                                        <button type="button" class="compact-approve-btn" data-order-id="<%= order._id %>" data-item-id="<%= item._id %>" data-action="approve" data-return-reason="<%= item.returnReason || '' %>" onclick="handleReturnRequestFromButton(this)" title="Approve Return">
                                                             <i class="fas fa-check"></i>
                                                         </button>
-                                                        <button type="button" class="compact-reject-btn" onclick="handleReturnRequest('<%= order._id %>', '<%= item._id %>', 'reject')" title="Reject Return">
+                                                        <button type="button" class="compact-reject-btn" data-order-id="<%= order._id %>" data-item-id="<%= item._id %>" data-action="reject" data-return-reason="<%= item.returnReason || '' %>" onclick="handleReturnRequestFromButton(this)" title="Reject Return">
                                                             <i class="fas fa-times"></i>
                                                         </button>
                                                     </div>
@@ -197,34 +197,39 @@
                 </div>
             </div>
         </form>
-    </div>
 
-    <!-- Return Request Modal -->
-    <div id="returnModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Return Request Action</h3>
-                <button class="close-modal" onclick="closeModal()">&times;</button>
-            </div>
-            <form id="returnActionForm">
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="returnNotes">Admin Notes (Optional)</label>
-                        <textarea id="returnNotes" name="notes" rows="4" class="form-textarea" placeholder="Add any notes for this return request..."></textarea>
+        <!-- Return Request Modal -->
+        <div id="returnModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Return Request Action</h3>
+                    <button class="close-modal" onclick="closeModal()">&times;</button>
+                </div>
+                <form id="returnActionForm">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="returnReasonDisplay">Return Reason</label>
+                            <div id="returnReasonDisplay" class="return-reason-display"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="returnNotes">Admin Notes (Optional)</label>
+                            <textarea id="returnNotes" name="notes" rows="4" class="form-textarea" placeholder="Add any notes for this return request..."></textarea>
+                        </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="cancel-btn" onclick="closeModal()">Cancel</button>
-                    <button type="submit" class="confirm-btn" id="confirmActionBtn">Confirm</button>
-                </div>
-            </form>
+                    <div class="modal-footer">
+                        <button type="button" class="cancel-btn" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="confirm-btn" id="confirmActionBtn">Confirm</button>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         let currentReturnAction = null;
         let currentOrderId = null;
         let currentItemId = null;
+        let currentReturnReason = null;
 
         function goBack() {
             window.location.href = '/admin/orders';
@@ -266,17 +271,51 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showNotification('Order updated successfully!', 'success');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Order Updated',
+                        text: data.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        // Check for refund info and show popup if present
+                        if (data.refundedItems && data.refundedItems.length > 0) {
+                            let refundText = 'Refund processed:\n\n';
+                            data.refundedItems.forEach(item => {
+                                refundText += `• ${item.productName}: ₹${item.refundedAmount.toLocaleString('en-IN')}\n`;
+                            });
+                            setTimeout(() => {
+                                Swal.fire({
+                                    icon: 'info',
+                                    title: 'Refund Processed',
+                                    text: refundText,
+                                    confirmButtonText: 'OK',
+                                    confirmButtonColor: '#28a745'
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            }, 2000); // Delay to avoid overlap with success alert
+                        } else {
+                            window.location.reload();
+                        }
+                    });
                 } else {
-                    showNotification(data.message || 'Failed to update order', 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Failed to update order',
+                        confirmButtonColor: '#d33'
+                    });
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                showNotification('An error occurred while updating the order', 'error');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while updating the order',
+                    confirmButtonColor: '#d33'
+                });
             })
             .finally(() => {
                 saveBtn.innerHTML = originalText;
@@ -284,10 +323,33 @@
             });
         }
 
-        function handleReturnRequest(orderId, itemId, action) {
+        function handleReturnRequestFromButton(button) {
+            const orderId = button.getAttribute('data-order-id');
+            const itemId = button.getAttribute('data-item-id');
+            const action = button.getAttribute('data-action');
+            const returnReason = button.getAttribute('data-return-reason');
+            handleReturnRequest(orderId, itemId, action, returnReason);
+        }
+
+        function handleReturnRequest(orderId, itemId, action, returnReason) {
             currentOrderId = orderId;
             currentItemId = itemId;
             currentReturnAction = action;
+            currentReturnReason = returnReason;
+            
+            // Display the return reason in the modal
+            const reasonDisplay = document.getElementById('returnReasonDisplay');
+            if (returnReason && returnReason.trim() !== '') {
+                // Escape HTML characters to prevent XSS
+                const escapedReason = returnReason.replace(/&/g, '&amp;')
+                                                 .replace(/</g, '&lt;')
+                                                 .replace(/>/g, '&gt;')
+                                                 .replace(/"/g, '&quot;')
+                                                 .replace(/'/g, '&#39;');
+                reasonDisplay.innerHTML = `<div class="reason-text">${escapedReason}</div>`;
+            } else {
+                reasonDisplay.innerHTML = '<div class="reason-text no-reason">No reason provided</div>';
+            }
             
             document.getElementById('returnModal').style.display = 'block';
             document.getElementById('confirmActionBtn').textContent = 
@@ -299,16 +361,23 @@
         function closeModal() {
             document.getElementById('returnModal').style.display = 'none';
             document.getElementById('returnNotes').value = '';
+            document.getElementById('returnReasonDisplay').innerHTML = '';
             currentReturnAction = null;
             currentOrderId = null;
             currentItemId = null;
+            currentReturnReason = null;
         }
 
         document.getElementById('returnActionForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
             if (!currentReturnAction || !currentOrderId || !currentItemId) {
-                showNotification('Invalid request parameters', 'error');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Invalid request parameters',
+                    confirmButtonColor: '#d33'
+                });
                 return;
             }
 
@@ -327,41 +396,53 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showNotification(data.message, 'success');
-                    closeModal();
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
+                    Swal.fire({
+                        icon: 'success',
+                        title: `Return ${currentReturnAction === 'approve' ? 'Approved' : 'Rejected'}`,
+                        text: data.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        // Check for refund info and show popup if present
+                        if (data.refundedItems && data.refundedItems.length > 0) {
+                            let refundText = 'Refund processed:\n\n';
+                            data.refundedItems.forEach(item => {
+                                refundText += `• ${item.productName}: ₹${item.refundedAmount.toLocaleString('en-IN')}\n`;
+                            });
+                            setTimeout(() => {
+                                Swal.fire({
+                                    icon: 'info',
+                                    title: 'Refund Processed',
+                                    text: refundText,
+                                    confirmButtonText: 'OK',
+                                    confirmButtonColor: '#28a745'
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            }, 2000); // Delay to avoid overlap with success alert
+                        } else {
+                            window.location.reload();
+                        }
+                    });
                 } else {
-                    showNotification(data.message || 'Failed to process return request', 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Failed to process return request',
+                        confirmButtonColor: '#d33'
+                    });
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                showNotification('An error occurred while processing the request', 'error');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while processing the request',
+                    confirmButtonColor: '#d33'
+                });
             });
         });
-
-        function showNotification(message, type) {
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.innerHTML = `
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
-                ${message}
-            `;
-            document.body.appendChild(notification);
-
-            setTimeout(() => {
-                notification.classList.add('show');
-            }, 100);
-
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => {
-                    document.body.removeChild(notification);
-                }, 300);
-            }, 3000);
-        }
 
         // Close modal when clicking outside
         window.onclick = function(event) {

@@ -7,6 +7,7 @@ const productController  = require("../controllers/user/productController");
 const profileController = require("../controllers/user/profileController");
 const cartController = require("../controllers/user/cartController");
 const orderController = require("../controllers/user/orderController")
+const walletController = require("../controllers/user/walletController")
 const { redirectIfLoggedIn, guestAuth, userAuth } = require("../middlewares/auth");
 
 
@@ -94,6 +95,9 @@ router.post("/placeOrder" , orderController.placeOrder)
 router.get("/orderSuccess/:orderId", orderController.orderSuccessPage)
 router.post('/create-razorpay-order', orderController.createRazorpayOrder);
 router.post('/verify-payment', orderController.verifyPayment);
+
+
+router.get('/wallet', walletController.getWalletPage)
 
 
 

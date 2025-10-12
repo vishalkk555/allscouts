@@ -5,6 +5,7 @@ const Cart = require("../../models/cartSchema")
 const Address = require("../../models/addressSchema");
 const Offer = require("../../models/offerSchema")
 const Coupon = require("../../models/couponSchema")
+const Wallet = require("../../models/walletSchema")
 const mongoose = require('mongoose');
 
 
@@ -641,42 +642,33 @@ const addToWishlist = async (req, res) => {
 const getCheckoutPage = async (req, res, next) => {
   try {
     const userId = req.session.user;
-
-    // Fetch user addresses
     const userAddresses = await Address.findOne({ userId });
     const addresses = userAddresses ? userAddresses.address : [];
-
-    // Fetch cart items
     const cart = await Cart.findOne({ userId }).populate({
       path: 'item.productId',
       select: 'productName regularPrice productImage stock isBlocked'
     });
-
-    // If cart empty, redirect to cart page
-    if (!cart || !cart.item || cart.item.length === 0) {
-      return res.redirect('/cart');
-    }
-
-    // Fetch active coupons
+    const wallet = await Wallet.findOne({ userId }); // Fetch wallet balance
     const coupons = await Coupon.find({
       status: true,
       expiry: { $gte: new Date() },
       maxRedeem: { $gt: 0 }
     });
 
-    // Calculate totals and stock status
+    if (!cart || !cart.item || cart.item.length === 0) {
+      return res.redirect('/cart');
+    }
+
     let subtotal = 0;
     let totalItems = 0;
     let hasUnavailableItems = false;
 
     const cartItems = cart.item.map(cartItem => {
-      // Use the stored price from cart (which includes offer price if applicable)
       const itemPrice = cartItem.price || cartItem.productId.regularPrice;
       const itemTotal = itemPrice * cartItem.quantity;
       subtotal += itemTotal;
       totalItems += cartItem.quantity;
       
-      // Calculate stock status for each item
       let stockStatus = 'in-stock';
       let isAvailable = true;
       
@@ -706,7 +698,6 @@ const getCheckoutPage = async (req, res, next) => {
       };
     });
 
-    // Coupon discount
     let discount = 0;
     let appliedCoupon = null;
     if (req.session.appliedCoupon) {
@@ -751,9 +742,10 @@ const getCheckoutPage = async (req, res, next) => {
       coupons,
       appliedCoupon,
       razorpayKeyId: process.env.RAZORPAY_KEY_ID,
-      hasUnavailableItems
+      hasUnavailableItems,
+      walletBalance: wallet ? wallet.balance : 0, // Pass wallet balance
+      paymentMethod: 'cod' // Default payment method
     });
-
   } catch (error) {
     console.error('Error loading checkout page:', error);
     next(error);

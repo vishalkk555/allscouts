@@ -4,6 +4,7 @@ const Cart = require("../../models/cartSchema")
 const Address = require("../../models/addressSchema")
 const Orders = require("../../models/orderSchema")
 const Coupon = require("../../models/couponSchema")
+const Wallet = require("../../models/walletSchema")
 const PDFDocument = require('pdfkit'); 
 const mongoose = require('mongoose');
 const crypto = require('crypto');
@@ -246,8 +247,31 @@ const placeOrder = async (req, res) => {
     // Generate order number
     const orderNumber = "ORD" + Math.floor(Math.random() * 1000000);
 
-    // Set payment status
-    const paymentStatus = paymentMethod === 'cod' ? 'Pending' : 'pending';
+    // Set payment status based on payment method
+    let paymentStatus;
+    if (paymentMethod === 'cod') {
+      paymentStatus = 'Pending';
+    } else if (paymentMethod === 'razorpay' || paymentMethod === 'wallet') {
+      paymentStatus = 'pending'; // Will be updated to 'Paid' after verification
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid payment method"
+      });
+    }
+
+    // For wallet payment, check balance
+    if (paymentMethod === 'wallet') {
+      const wallet = await Wallet.findOne({ userId });
+      if (!wallet || wallet.balance < totalAmount) {
+        return res.status(400).json({
+          success: false,
+          error: "Insufficient wallet balance",
+          required: totalAmount,
+          available: wallet ? wallet.balance : 0
+        });
+      }
+    }
 
     // Create new order
     const newOrder = new Orders({
@@ -258,7 +282,7 @@ const placeOrder = async (req, res) => {
       orderAmount: totalAmount,
       deliveryDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
       shippingDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
-      paymentMethod: paymentMethod || "cod",
+      paymentMethod,
       paymentStatus,
       orderNumber,
       orderStatus: "Pending",
@@ -268,7 +292,7 @@ const placeOrder = async (req, res) => {
 
     await newOrder.save();
 
-    // Handle COD and Razorpay differently
+    // Handle different payment methods
     if (paymentMethod === 'cod') {
       // Update stock and clear cart for COD
       for (const item of orderedItem) {
@@ -310,10 +334,59 @@ const placeOrder = async (req, res) => {
         paymentMethod: 'razorpay',
         message: "Order created. Please complete payment."
       });
-    } else {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid payment method"
+    } else if (paymentMethod === 'wallet') {
+      // Update stock
+      for (const item of orderedItem) {
+        await Product.updateOne(
+          { _id: item.productId, "stock.size": item.size },
+          {
+            $inc: {
+              "stock.$.quantity": -item.quantity,
+              totalstock: -item.quantity,
+            },
+          }
+        );
+      }
+
+      // Deduct wallet balance and add transaction
+      await Wallet.updateOne(
+        { userId },
+        {
+          $inc: { balance: -totalAmount },
+          $push: {
+            transaction: {
+              amount: -totalAmount, // Negative for debit
+              transactionsMethod: 'Payment',
+              orderId: newOrder._id,
+              date: new Date(),
+              description: `Payment for order #${newOrder.orderNumber || newOrder._id.toString().slice(-8).toUpperCase()}`
+            }
+          }
+        }
+      );
+
+      // Update payment status to Paid
+      await Orders.updateOne(
+        { _id: newOrder._id },
+        { $set: { paymentStatus: 'Paid' } }
+      );
+
+      // Clear coupon from session
+      if (req.session.appliedCoupon) {
+        delete req.session.appliedCoupon;
+      }
+
+      // Clear cart
+      await Cart.deleteOne({ userId });
+      req.session.cartItem = 0;
+
+      return res.json({
+        success: true,
+        orderId: newOrder._id,
+        orderNumber: newOrder.orderNumber,
+        orderAmount: newOrder.orderAmount,
+        message: "Order placed successfully with wallet payment!",
+        remainingBalance: (await Wallet.findOne({ userId })).balance
       });
     }
 
@@ -523,10 +596,19 @@ const getUserOrders = async (req, res) => {
 
         // If deliveryAddress is an ObjectId, populate it separately
         if (order.deliveryAddress && mongoose.Types.ObjectId.isValid(order.deliveryAddress)) {
-            
             const address = await Address.findById(order.deliveryAddress).lean();
             order.deliveryAddress = address;
             console.log('Populated address:', address);
+            console.log('Address structure:', {
+                hasAddress: !!address?.address,
+                addressLength: address?.address?.length,
+                firstAddress: address?.address?.[0],
+                directFields: {
+                    name: address?.name,
+                    houseName: address?.houseName,
+                    street: address?.street
+                }
+            });
         }
 
         // Populate product data
@@ -624,14 +706,62 @@ const cancelOrder = async (req, res) => {
             }
         }
 
+        // Calculate total refund amount
+        let totalRefundAmount = 0;
+        const activeItems = order.orderedItem.filter(item => 
+            !['Cancelled', 'Returned'].includes(item.productStatus)
+        );
+
+        activeItems.forEach(item => {
+            let itemRefund = item.totalProductPrice;
+            if (order.couponDiscount > 0) {
+                const originalSubtotal = order.orderedItem.reduce((sum, orderItem) => sum + orderItem.totalProductPrice, 0);
+                const proportionalDiscount = Math.round((item.totalProductPrice / originalSubtotal) * order.couponDiscount);
+                itemRefund = item.totalProductPrice - proportionalDiscount;
+            }
+            totalRefundAmount += itemRefund;
+        });
+
+        // Process refund to wallet if payment was made
+        if (order.paymentStatus === 'Paid' && ['razorpay', 'wallet', 'cod'].includes(order.paymentMethod) && totalRefundAmount > 0) {
+            // Find or create wallet
+            let wallet = await Wallet.findOne({ userId: userId });
+            if (!wallet) {
+                wallet = new Wallet({
+                    userId: userId,
+                    balance: 0,
+                    transaction: []
+                });
+            }
+
+            // Add refund to wallet
+            await Wallet.updateOne(
+                { userId: userId },
+                {
+                    $inc: { balance: totalRefundAmount },
+                    $push: {
+                        transaction: {
+                            amount: totalRefundAmount,
+                            transactionsMethod: 'Refund',
+                            orderId: order._id,
+                            date: new Date(),
+                            description: `Refund for cancelled order: ${order.orderNumber || order._id}`
+                        }
+                    }
+                }
+            );
+        }
+
         // Update order status to cancelled
         order.orderStatus = 'Cancelled';
         order.cancelledAt = new Date();
+        order.totalRefundAmount = totalRefundAmount;
         
         // Update all item statuses to cancelled
         order.orderedItem.forEach(item => {
             if (item.productStatus !== 'Cancelled') {
                 item.productStatus = 'Cancelled';
+                item.cancelledAt = new Date();
             }
         });
 
@@ -639,9 +769,21 @@ const cancelOrder = async (req, res) => {
 
         console.log(`Order ${orderId} cancelled successfully`);
 
+        const refundedToWallet = order.paymentStatus === 'Paid' && ['razorpay', 'wallet', 'cod'].includes(order.paymentMethod) && totalRefundAmount > 0;
+        
+        console.log('Order cancellation response:', {
+            success: true,
+            refundAmount: totalRefundAmount,
+            refundedToWallet: refundedToWallet,
+            paymentStatus: order.paymentStatus,
+            paymentMethod: order.paymentMethod
+        });
+
         res.json({
             success: true,
             message: 'Order cancelled successfully',
+            refundAmount: totalRefundAmount,
+            refundedToWallet: refundedToWallet,
             data: {
                 orderId: order._id,
                 cancelledAt: order.cancelledAt
@@ -753,9 +895,48 @@ const cancelItem = async (req, res) => {
 
         console.log('Stock update successful. New totalStock:', updateResult.totalStock);
 
+        // Calculate refund amount with proportional coupon discount
+        let refundAmount = item.totalProductPrice;
+        if (order.couponDiscount > 0) {
+            const originalSubtotal = order.orderedItem.reduce((sum, orderItem) => sum + orderItem.totalProductPrice, 0);
+            const proportionalDiscount = Math.round((item.totalProductPrice / originalSubtotal) * order.couponDiscount);
+            refundAmount = item.totalProductPrice - proportionalDiscount;
+        }
+
+        // Process refund to wallet if payment was made
+        if (order.paymentStatus === 'Paid' && ['razorpay', 'wallet', 'cod'].includes(order.paymentMethod)) {
+            // Find or create wallet
+            let wallet = await Wallet.findOne({ userId: userId });
+            if (!wallet) {
+                wallet = new Wallet({
+                    userId: userId,
+                    balance: 0,
+                    transaction: []
+                });
+            }
+
+            // Add refund to wallet
+            await Wallet.updateOne(
+                { userId: userId },
+                {
+                    $inc: { balance: refundAmount },
+                    $push: {
+                        transaction: {
+                            amount: refundAmount,
+                            transactionsMethod: 'Refund',
+                            orderId: order._id,
+                            date: new Date(),
+                            description: `Refund for cancelled item: ${item.productId.productName}`
+                        }
+                    }
+                }
+            );
+        }
+
         // Update item status in the order
         order.orderedItem[index].productStatus = 'Cancelled';
         order.orderedItem[index].cancelledAt = new Date();
+        order.orderedItem[index].refundAmount = refundAmount;
 
         // Update overall order status based on all items
         const activeItems = order.orderedItem.filter(item => 
@@ -786,9 +967,21 @@ const cancelItem = async (req, res) => {
         // Populate the updated order for response if needed
         await order.populate('orderedItem.productId', 'productName productImage');
 
+        const refundedToWallet = order.paymentStatus === 'Paid' && ['razorpay', 'wallet', 'cod'].includes(order.paymentMethod);
+        
+        console.log('Item cancellation response:', {
+            success: true,
+            refundAmount: refundAmount,
+            refundedToWallet: refundedToWallet,
+            paymentStatus: order.paymentStatus,
+            paymentMethod: order.paymentMethod
+        });
+
         res.json({
             success: true,
             message: 'Item cancelled successfully',
+            refundAmount: refundAmount,
+            refundedToWallet: refundedToWallet,
             data: {
                 updatedOrder: {
                     orderStatus: order.orderStatus,
@@ -895,17 +1088,30 @@ const generateInvoice = async (req, res) => {
                 select: 'productName productImage regularPrice'
             })
             .populate({
-                path: 'deliveryAddress'
-            })
-            .populate({
                 path: 'userId',
                 select: 'name email'
             })
             .lean();
 
+        // Manually populate the delivery address if it's an ObjectId
+        if (order.deliveryAddress && mongoose.Types.ObjectId.isValid(order.deliveryAddress)) {
+            const address = await Address.findById(order.deliveryAddress).lean();
+            order.deliveryAddress = address;
+        }
+
         // Debug: Check the address structure
-        console.log('Delivery Address:', order.deliveryAddress);
-        console.log('Address Array:', order.deliveryAddress?.address);
+        console.log('Invoice - Delivery Address:', order.deliveryAddress);
+        console.log('Invoice - Address Array:', order.deliveryAddress?.address);
+        console.log('Invoice - Address Structure:', {
+            hasAddress: !!order.deliveryAddress?.address,
+            addressLength: order.deliveryAddress?.address?.length,
+            firstAddress: order.deliveryAddress?.address?.[0],
+            directFields: {
+                name: order.deliveryAddress?.name,
+                houseName: order.deliveryAddress?.houseName,
+                street: order.deliveryAddress?.street
+            }
+        });
 
         if (!order) {
             return res.status(404).json({
@@ -965,14 +1171,23 @@ const addInvoiceContent = (doc, order) => {
        .text(`Payment Method: ${order.paymentMethod || 'N/A'}`, 50, 220)
        .text(`Payment Status: ${order.paymentStatus || 'N/A'}`, 50, 235);
     
-    // Shipping Information - FIXED: Handle nested address array
+    // Shipping Information - FIXED: Handle different address structures
     doc.fontSize(12).font('Helvetica-Bold')
        .text('Shipping Information:', 300, 170);
     
-    // Check if deliveryAddress exists and has address array with at least one item
-    if (order.deliveryAddress && order.deliveryAddress.address && order.deliveryAddress.address.length > 0) {
-        const shippingAddress = order.deliveryAddress.address[0]; // Get first address from array
-        
+    // Handle different address structures
+    let shippingAddress = null;
+    if (order.deliveryAddress) {
+        if (order.deliveryAddress.address && order.deliveryAddress.address.length > 0) {
+            // If address is an array, get the first one
+            shippingAddress = order.deliveryAddress.address[0];
+        } else if (order.deliveryAddress.name || order.deliveryAddress.houseName) {
+            // If address is directly in the object
+            shippingAddress = order.deliveryAddress;
+        }
+    }
+    
+    if (shippingAddress) {
         doc.fontSize(10).font('Helvetica')
            .text(`Name: ${shippingAddress.name || 'N/A'}`, 300, 190)
            .text(`Email: ${shippingAddress.email || 'N/A'}`, 300, 205)
@@ -998,6 +1213,11 @@ const addInvoiceContent = (doc, order) => {
     let yPosition = 330;
     doc.fillColor('#000000');
     
+    // Filter active items (exclude cancelled/returned)
+    const activeItems = order.orderedItem.filter(item => 
+        !['Cancelled', 'Returned'].includes(item.productStatus)
+    );
+    
     order.orderedItem.forEach((item, index) => {
         if (yPosition > 700) {
             doc.addPage();
@@ -1011,16 +1231,25 @@ const addInvoiceContent = (doc, order) => {
            .text(`₹${(item.productPrice || 0).toFixed(2)}`, 320, yPosition)
            .text(`₹${(item.totalProductPrice || 0).toFixed(2)}`, 400, yPosition);
         
+        // Add product status below product name
+        yPosition += 15;
+        doc.fontSize(8).font('Helvetica').fillColor('#666666')
+           .text(`Status: ${item.productStatus}`, 60, yPosition);
+        
         yPosition += 20;
     });
     
     // Adjust yPosition for totals based on address height
     const totalsY = order.deliveryAddress && order.deliveryAddress.address && order.deliveryAddress.address.length > 0 ? yPosition + 40 : yPosition + 20;
     
+    // Calculate totals based on active items only
+    const activeSubtotal = activeItems.reduce((sum, item) => sum + (item.totalProductPrice || 0), 0);
+    const finalTotal = activeSubtotal - discount;
+    
     // Totals
     doc.fontSize(11).font('Helvetica-Bold')
        .text('Subtotal:', 350, totalsY)
-       .text(`₹${subtotal.toFixed(2)}`, 450, totalsY);
+       .text(`₹${activeSubtotal.toFixed(2)}`, 450, totalsY);
     
     if (discount > 0) {
         doc.text('Discount:', 350, totalsY + 20)
@@ -1028,11 +1257,11 @@ const addInvoiceContent = (doc, order) => {
     }
     
     doc.text('Shipping:', 350, totalsY + 40)
-       .text('100', 450, totalsY + 40);
+       .text('Free', 450, totalsY + 40);
     
     doc.fontSize(14)
        .text('Grand Total:', 350, totalsY + 70)
-       .text(`₹${(order.orderAmount || 0).toFixed(2)}`, 450, totalsY + 70);
+       .text(`₹${finalTotal.toFixed(2)}`, 450, totalsY + 70);
     
     // Footer
     doc.fontSize(8).font('Helvetica')
@@ -1174,20 +1403,46 @@ const generateInvoiceHTML = (order) => {
 
             <div class="info-section">
                 <h3>Shipping Information</h3>
-                ${order.deliveryAddress ? `
-                <div class="info-row">
-                    <span class="info-label">Name:</span>
-                    <span>${order.deliveryAddress.firstName} ${order.deliveryAddress.lastName}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Phone:</span>
-                    <span>${order.deliveryAddress.phone || 'N/A'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Address:</span>
-                    <span>${order.deliveryAddress.street}, ${order.deliveryAddress.city}, ${order.deliveryAddress.state} - ${order.deliveryAddress.zipCode}</span>
-                </div>
-                ` : '<p>No shipping address available</p>'}
+                ${(() => {
+                    // Handle different address structures
+                    let shippingAddress = null;
+                    if (order.deliveryAddress) {
+                        if (order.deliveryAddress.address && order.deliveryAddress.address.length > 0) {
+                            // If address is an array, get the first one
+                            shippingAddress = order.deliveryAddress.address[0];
+                        } else if (order.deliveryAddress.name || order.deliveryAddress.houseName) {
+                            // If address is directly in the object
+                            shippingAddress = order.deliveryAddress;
+                        }
+                    }
+                    
+                    if (shippingAddress) {
+                        return `
+                        <div class="info-row">
+                            <span class="info-label">Name:</span>
+                            <span>${shippingAddress.name || 'N/A'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Email:</span>
+                            <span>${shippingAddress.email || 'N/A'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Phone:</span>
+                            <span>${shippingAddress.number || 'N/A'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Address:</span>
+                            <span>${shippingAddress.houseName || ''} ${shippingAddress.street || ''}, ${shippingAddress.city || ''}, ${shippingAddress.state || ''} - ${shippingAddress.pincode || ''}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Country:</span>
+                            <span>${shippingAddress.country || 'India'}</span>
+                        </div>
+                        `;
+                    } else {
+                        return '<p>No shipping address available</p>';
+                    }
+                })()}
             </div>
         </div>
 
@@ -1204,7 +1459,10 @@ const generateInvoiceHTML = (order) => {
             <tbody>
                 ${order.orderedItem.map(item => `
                 <tr>
-                    <td>${item.productId ? item.productId.productName : 'Product not found'}</td>
+                    <td>
+                        ${item.productId ? item.productId.productName : 'Product not found'}
+                        <br><small style="color: #666;">Status: ${item.productStatus}</small>
+                    </td>
                     <td>${item.size}</td>
                     <td>${item.quantity}</td>
                     <td>₹${item.productPrice.toFixed(2)}</td>
@@ -1226,12 +1484,12 @@ const generateInvoiceHTML = (order) => {
             </div>
             ` : ''}
             <div class="total-row">
-                <span>Shipping: 100</span>
+                <span>Shipping:</span>
                 <span>Free</span>
             </div>
             <div class="total-row grand-total">
                 <span>Grand Total:</span>
-                <span>₹${order.orderAmount.toFixed(2)}</span>
+                <span>₹${(subtotal - discount).toFixed(2)}</span>
             </div>
         </div>
 
@@ -1309,6 +1567,7 @@ const createRazorpayOrder = async (req, res) => {
 const verifyPayment = async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId } = req.body;
+    const userId = req.session.user;
 
     console.log('Verifying payment for order:', orderId);
 
@@ -1320,12 +1579,12 @@ const verifyPayment = async (req, res) => {
     }
 
     // Verify payment signature
-    const generated_signature = crypto
+    const generatedSignature = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-      .update(razorpay_order_id + "|" + razorpay_payment_id)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest('hex');
 
-    if (generated_signature !== razorpay_signature) {
+    if (generatedSignature !== razorpay_signature) {
       console.log('Payment verification failed: signature mismatch');
       return res.status(400).json({
         success: false,
@@ -1333,6 +1592,7 @@ const verifyPayment = async (req, res) => {
       });
     }
 
+    // Fetch order
     const order = await Orders.findById(orderId);
     if (!order) {
       return res.status(404).json({
@@ -1342,11 +1602,10 @@ const verifyPayment = async (req, res) => {
     }
 
     // Update order with payment success
-    order.paymentStatus = "paid";
+    order.paymentStatus = 'Paid'; // Capitalized to match "Pending" from placeOrder
     order.paymentId = razorpay_payment_id;
     order.razorpayOrderId = razorpay_order_id;
     order.paymentDate = new Date();
-
     await order.save();
 
     // Update stock for successful payment
@@ -1363,7 +1622,30 @@ const verifyPayment = async (req, res) => {
     }
 
     // Clear user's cart
-    await Cart.deleteOne({ userId: order.userId });
+    await Cart.deleteOne({ userId });
+
+    // Clear coupon from session
+    if (req.session.appliedCoupon) {
+      delete req.session.appliedCoupon;
+    }
+
+    // Optional: Log Razorpay payment as a wallet transaction
+    // Uncomment the following block if you want to record Razorpay payments in the wallet transaction history
+    /*
+    await Wallet.updateOne(
+      { userId },
+      {
+        $push: {
+          transaction: {
+            amount: order.orderAmount, // Positive amount for tracking payment
+            transactionsMethod: 'Razorpay',
+            orderId: order._id,
+            date: new Date()
+          }
+        }
+      }
+    );
+    */
 
     console.log('Payment verified successfully for order:', orderId);
 
@@ -1373,7 +1655,6 @@ const verifyPayment = async (req, res) => {
       orderId: order._id,
       paymentId: razorpay_payment_id
     });
-
   } catch (error) {
     console.error('Payment verification error:', error);
     res.status(500).json({
@@ -1383,7 +1664,6 @@ const verifyPayment = async (req, res) => {
     });
   }
 };
-
    
 
 module.exports = {
