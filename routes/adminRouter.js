@@ -8,6 +8,7 @@ const customerController = require("../controllers/admin/customerController")
 const orderController = require("../controllers/admin/orderController")
 const couponController = require("../controllers/admin/couponController")
 const offerController = require("../controllers/admin/offerController")
+const salesreportController = require("../controllers/admin/salesreportController")
 const {userAuth,adminAuth} = require("../middlewares/auth")
 
 
@@ -76,6 +77,13 @@ router.get("/offers/addOffer",offerController.getAddOfferPage)
 router.post("/offers/addOffer", offerController.createOffer)
 router.get('/offers/editOffer/:id',offerController.getEditOfferPage)
 router.put('/offers/editOffer/:id',offerController.updateOffer)
+
+
+// Admin Dashboard
+router.get('/dashboard',  salesreportController.getDashboard);
+// API routes
+router.get('/api/dashboard-data',  salesreportController.getDashboardData);
+router.get('/api/generate-report',  salesreportController.generateSalesReport);
 
 
 
