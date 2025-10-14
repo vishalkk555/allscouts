@@ -1666,6 +1666,120 @@ const verifyPayment = async (req, res) => {
 };
    
 
+const orderFailure = async (req, res) => {
+    try {
+        const orderId = req.params.orderId;
+        const errorMessage = req.query.error || null;
+        
+        // Fetch order details
+        const order = await Orders.findById(orderId);
+        
+        if (!order) {
+            return res.redirect('/orders');
+        }
+
+        res.render('user/orderFailure', {
+            orderId: order._id,
+            orderAmount: order.orderAmount,
+            email: req.session.user.email,
+            userName: req.session.user.name || 'Customer',
+            userPhone: req.session.user.phone || '',
+            razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+            errorMessage: errorMessage
+        });
+    } catch (error) {
+        console.error('Error rendering payment failure page:', error);
+        res.redirect('/orders');
+    }
+}
+
+const renderPaymentFailure = async (req, res) => {
+    try {
+        const orderId = req.params.orderId;
+        const errorMessage = req.query.error || null;
+        
+        // Fetch order details
+        const order = await Orders.findById(orderId);
+        
+        if (!order) {
+            req.flash('error', 'Order not found');
+            return res.redirect('/orders');
+        }
+
+        // Check if order belongs to logged-in user
+        if (order.userId.toString() !== req.session.user._id.toString()) {
+            req.flash('error', 'Unauthorized access');
+            return res.redirect('/orders');
+        }
+
+        // Get user details
+        const user = await User.findById(req.session.user._id);
+
+        res.render('user/orderFailure', {
+            orderId: order._id,
+            orderAmount: order.orderAmount,
+            email: user.email,
+            userName: user.name || 'Customer',
+            userPhone: user.phone || '',
+            razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+            errorMessage: errorMessage,
+            user: user
+        });
+    } catch (error) {
+        console.error('Error rendering payment failure page:', error);
+        req.flash('error', 'Something went wrong');
+        res.redirect('/orders');
+    }
+};
+
+// ============================================
+// UPDATE PAYMENT FAILED STATUS
+// ============================================
+const updatePaymentFailed = async (req, res) => {
+    try {
+        const { orderId, error } = req.body;
+        
+        if (!orderId) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Order ID is required' 
+            });
+        }
+
+        // Update order payment status to Failed
+        const order = await Orders.findByIdAndUpdate(
+            orderId,
+            {
+                paymentStatus: 'Failed',
+                orderStatus: 'Pending'
+            },
+            { new: true }
+        );
+
+        if (!order) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Order not found' 
+            });
+        }
+
+        console.log(`Payment failed for order: ${orderId}`);
+        console.log(`Error: ${error}`);
+
+        res.json({ 
+            success: true,
+            message: 'Payment status updated to failed'
+        });
+    } catch (error) {
+        console.error('Error updating payment failed status:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+};
+
+
 module.exports = {
     applyCoupon,
     removeCoupon,
@@ -1679,7 +1793,12 @@ module.exports = {
     returnItem,
     generateInvoice,
     createRazorpayOrder,
-    verifyPayment
+    verifyPayment,
+    orderFailure,
+    renderPaymentFailure,
+    updatePaymentFailed
+
+    
     
 
 

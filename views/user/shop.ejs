@@ -2,7 +2,7 @@
 
 <!-- Start shop -->
 <section>
-  <div class="cs_height_140nav cs_height_lg_80"></div>
+  <div class="cs_height_140shop cs_height_lg_80"></div>
   <div class="container-fluid">
     <div class="row cs_gap_y_70">
       <div class="col-lg-3">
@@ -82,15 +82,49 @@
       </li>
     </ul>
   </div>
+<a href="/shop" class="small-btn">Clear All</a>
 </form>
 
         </div>
       </div><!-- .col -->
       <div class="col-lg-9">
+        <h2 class="cs_section_title">Shop All</h2>
         <div class="cs_sort_section">
           <div class="cs_sort_number">
   <p class="cs_medium mb-0">Showing <%= (page - 1) * 9 + 1 %>–<%= Math.min(page * 9, total) %> of <%= total %> results</p>
 </div>
+          <div class="cs_sort_search">
+            <form method="GET" action="/shop" id="searchForm">
+              <% if (selectedCategories.length > 0) { %>
+                <% selectedCategories.forEach(category => { %>
+                  <input type="hidden" name="categories" value="<%= category %>">
+                <% }) %>
+              <% } %>
+              <% if (selectedSize) { %>
+                <input type="hidden" name="size" value="<%= selectedSize %>">
+              <% } %>
+              <% if (selectedMinPrice) { %>
+                <input type="hidden" name="minPrice" value="<%= selectedMinPrice %>">
+              <% } %>
+              <% if (selectedMaxPrice) { %>
+                <input type="hidden" name="maxPrice" value="<%= selectedMaxPrice %>">
+              <% } %>
+              <% if (sort) { %>
+                <input type="hidden" name="sort" value="<%= sort %>">
+              <% } %>
+              <div class="cs_search_input_wrapper">
+                <input type="text" name="search" id="searchInput" value="<%= search || '' %>" placeholder="Search...">
+                <button type="submit" class="cs_search_btn">
+                  <i class="fa fa-search"></i>
+                </button>
+                <% if (search) { %>
+                  <button type="button" class="cs_clear_btn" id="clearSearchBtn">
+                    <i class="fa fa-times"></i>
+                  </button>
+                <% } %>
+              </div>
+            </form>
+          </div>
           <div class="cs_sort_wrap">
             <div class="cs_sort">
               <select name="sort" id="sortSelect">
@@ -118,34 +152,11 @@
 
         <!-- Products Starts -->
         <div class="container">
-          <h2 class="cs_section_title">Shop All</h2>
-         <div class="cs_search_wrap">
-  <form method="GET" action="/shop">
-    <!-- Preserve existing filters -->
-    <% if (selectedCategories.length > 0) { %>
-      <% selectedCategories.forEach(category => { %>
-        <input type="hidden" name="categories" value="<%= category %>">
-      <% }) %>
-    <% } %>
-    <% if (selectedSize) { %>
-      <input type="hidden" name="size" value="<%= selectedSize %>">
-    <% } %>
-    <% if (selectedMinPrice) { %>
-      <input type="hidden" name="minPrice" value="<%= selectedMinPrice %>">
-    <% } %>
-    <% if (selectedMaxPrice) { %>
-      <input type="hidden" name="maxPrice" value="<%= selectedMaxPrice %>">
-    <% } %>
-    <% if (sort) { %>
-      <input type="hidden" name="sort" value="<%= sort %>">
-    <% } %>
-    <input type="text" name="search" value="<%= search || '' %>" placeholder="Search products...">
-    <button type="submit"><i class="fa fa-search"></i></button>
-  </form>
-  <% if (search || selectedCategories.length > 0 || selectedSize || selectedMinPrice || selectedMaxPrice || sort !== 'latest') { %>
-    <a href="/shop">Clear All</a>
-  <% } %>
-</div>
+          <% if (!products || products.length === 0) { %>
+            <div class="cs_no_products">
+              <p class="mb-0">No products found.</p>
+            </div>
+          <% } %>
           <div class="cs_product_grid cs_product_grid_3">
             <% products.forEach(product => { %>
               <div class="cs_product">
@@ -280,6 +291,55 @@
       content.classList.toggle('active');
       btn.textContent = content.classList.contains('active') ? '-' : '+';
     });
+  });
+
+  // Search functionality
+  document.addEventListener("DOMContentLoaded", () => {
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    const searchForm = document.getElementById('searchForm');
+
+    // Show/hide clear button based on input
+    if (searchInput) {
+      searchInput.addEventListener('input', function() {
+        const wrapper = this.parentElement;
+        const clearBtn = wrapper.querySelector('.cs_clear_btn');
+        
+        if (this.value.trim() !== '') {
+          if (!clearBtn) {
+            const newClearBtn = document.createElement('button');
+            newClearBtn.type = 'button';
+            newClearBtn.className = 'cs_clear_btn';
+            newClearBtn.innerHTML = '<i class="fa fa-times"></i>';
+            newClearBtn.addEventListener('click', clearSearch);
+            wrapper.appendChild(newClearBtn);
+          }
+        } else {
+          if (clearBtn) {
+            clearBtn.remove();
+          }
+        }
+      });
+    }
+
+    // Clear search functionality
+    function clearSearch() {
+      if (searchInput) {
+        searchInput.value = '';
+        const wrapper = searchInput.parentElement;
+        const clearBtn = wrapper.querySelector('.cs_clear_btn');
+        if (clearBtn) {
+          clearBtn.remove();
+        }
+        // Submit form to clear search
+        searchForm.submit();
+      }
+    }
+
+    // Add event listener to existing clear button if it exists
+    if (clearSearchBtn) {
+      clearSearchBtn.addEventListener('click', clearSearch);
+    }
   });
 
   //Add to cart
