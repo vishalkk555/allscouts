@@ -97,6 +97,7 @@ router.post('/create-razorpay-order', orderController.createRazorpayOrder);
 router.post('/verify-payment', orderController.verifyPayment);
 router.get('/orderFailure/:orderId',orderController.renderPaymentFailure)
 router.post('/payment-failed',orderController.updatePaymentFailed)
+router.post('/verify-retry-payment',orderController.verifyRetryPayment)
 
 
 router.get('/wallet', walletController.getWalletPage)

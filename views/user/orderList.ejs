@@ -1,7 +1,5 @@
 <%- include("../partials/user/header") %>
 
-
-
 <div class="profile-container">
     <!-- Sidebar -->
     <aside class="change-password-sidebar">
@@ -74,6 +72,9 @@
     </div>
 </div>
 
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
     let currentPage = 1;
     let totalPages = 1;
@@ -123,11 +124,19 @@
                 currentPage = data.currentPage;
                 totalPages = data.totalPages;
             } else {
-                showError(data.message || 'Failed to load orders');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message || 'Failed to load orders'
+                });
             }
         } catch (error) {
             console.error('Error loading orders:', error);
-            showError('Error loading orders. Please try again.');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error loading orders. Please try again.'
+            });
         } finally {
             showLoading(false);
         }
@@ -149,7 +158,15 @@
         tableContent.style.display = 'block';
         noOrdersDiv.style.display = 'none';
 
-        tbody.innerHTML = orders.map(order => `
+        tbody.innerHTML = orders.map(order => {
+            let actionHTML = `<a href="/orders/view/${order._id}" class="action-view">View</a>`;
+            
+            // Add Retry Payment button only if paymentMethod === 'razorpay' and paymentStatus === 'Failed'
+            if (order.paymentMethod === 'razorpay' && order.paymentStatus === 'Failed') {
+                actionHTML = `<button onclick="retryRazorpayPayment('${order._id}', ${order.orderAmount})" class="action-retry">Retry Payment</button>`;
+            }
+            
+            return `
             <tr>
                 <td>
                     <span class="order-number">${order.orderNumber || 'N/A'}</span>
@@ -174,10 +191,11 @@
                     </span>
                 </td>
                 <td>
-                    <a href="/orders/view/${order._id}" class="action-view">View</a>
+                    ${actionHTML}
                 </td>
             </tr>
-        `).join('');
+            `;
+        }).join('');
     }
 
     // Update pagination
@@ -221,10 +239,6 @@
         controlsContainer.innerHTML = controlsHTML;
     }
 
-     
-    
-
-
     // Change page function
     function changePage(page) {
         if (page !== currentPage && page >= 1 && page <= totalPages) {
@@ -232,23 +246,42 @@
         }
     }
 
-    
-       document.getElementById('logoutBtn').addEventListener('click', async () => {
-    try {
-        // Send logout request
-        const res = await fetch('/logout', { method: 'POST' });
+    // Logout with Swal confirm
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: 'You will be logged out.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, logout',
+            cancelButtonText: 'Cancel'
+        });
 
-        if (res.ok) {
-            // Redirect to home page instead of login
-            window.location.href = '/';
-        } else {
-            console.error('Logout failed');
+        if (result.isConfirmed) {
+            try {
+                // Send logout request
+                const res = await fetch('/logout', { method: 'POST' });
+
+                if (res.ok) {
+                    // Redirect to home page instead of login
+                    window.location.href = '/';
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Logout failed'
+                    });
+                }
+            } catch (error) {
+                console.error('Error during logout:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred during logout'
+                });
+            }
         }
-    } catch (error) {
-        console.error('Error during logout:', error);
-    }
-});
-
+    });
 
     // Utility functions
     function formatDate(dateString) {
@@ -265,22 +298,223 @@
         document.getElementById('tableContent').style.display = show ? 'none' : 'block';
     }
 
-    function showError(message) {
-        alert(message);
-    }
-
-    function logout() {
-        if (confirm('Are you sure you want to logout?')) {
-            window.location.href = '/logout';
-        }
-    }
-
     // Enter key search functionality
     document.getElementById('orderNumberSearch').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             searchOrders();
         }
     });
+
+    // Retry Razorpay Payment Function
+    async function retryRazorpayPayment(orderId, amount) {
+        console.log("Retrying Razorpay payment for order:", orderId);
+
+        const confirmResult = await Swal.fire({
+            title: 'Retry Payment?',
+            text: 'Do you want to retry the payment for this order?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Retry',
+            cancelButtonText: 'Cancel'
+        });
+
+        if (!confirmResult.isConfirmed) return;
+
+        Swal.fire({
+            title: 'Reconnecting Payment',
+            text: 'Please wait while we process your payment...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        // Step 1: Create new Razorpay order for retry
+        fetch('/create-razorpay-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: amount, orderId: orderId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            Swal.close();
+
+            if (data.success) {
+                openRazorpayCheckout(data.order, orderId);
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error Creating Order',
+                    text: data.error || 'Could not initiate payment. Please try again.'
+                });
+            }
+        })
+        .catch(err => {
+            Swal.close();
+            console.error('Order creation failed:', err);
+            Swal.fire({
+                icon: 'error',
+                title: 'Network Error',
+                text: 'Something went wrong while creating the payment order.'
+            });
+        });
+    }
+
+    function openRazorpayCheckout(razorpayOrder, orderId) {
+        console.log("Opening Razorpay checkout...");
+
+        const options = {
+            key: '<%= razorpayKeyId %>',
+            amount: razorpayOrder.amount,
+            currency: razorpayOrder.currency,
+            name: 'A L L S C O U T S',
+            description: 'Order Payment',
+            order_id: razorpayOrder.id,
+            handler: function(response) {
+                verifyRazorpayPayment(response, orderId);
+            },
+            prefill: {
+                name: '<%= user.name %>',
+                email: '<%= user.email %>',
+                contact: '<%= user.phone %>'
+            },
+            theme: {
+                color: '#c89666'
+            },
+            modal: {
+                ondismiss: function() {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Payment Cancelled',
+                        text: 'You cancelled the payment.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.href = `/orderFailure/${orderId}?error=Payment cancelled by user`;
+                    });
+                }
+            }
+        };
+
+        const rzp = new Razorpay(options);
+
+        // Handle payment failure
+        rzp.on('payment.failed', function(response) {
+            console.error('Payment failed:', response.error);
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Payment Failed',
+                text: response.error.description || 'Your payment could not be processed.',
+                timer: 2500,
+                showConfirmButton: false
+            });
+
+            fetch('/payment-failed', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId: orderId, error: response.error })
+            }).then(() => {
+                setTimeout(() => {
+                    window.location.href = `/orderFailure/${orderId}?error=${encodeURIComponent(response.error.description)}`;
+                }, 2000);
+            });
+        });
+
+        rzp.open();
+    }
+
+    // Step 3: Verify payment success (FIXED: Send flat fields)
+   // REPLACE YOUR verifyRazorpayPayment FUNCTION WITH THIS:
+
+function verifyRazorpayPayment(response, orderId) {
+    console.log("Verifying Razorpay RETRY payment...");
+
+    Swal.fire({
+        title: 'Verifying Payment',
+        text: 'Please wait...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    // Use the NEW retry-specific endpoint
+    fetch('/verify-retry-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            orderId: orderId
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        Swal.close();
+
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Payment Successful 🎉',
+                text: 'Your payment has been confirmed!',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                window.location.href = `/orderSuccess/${orderId}`;
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Verification Failed',
+                text: data.message || 'Payment verification failed.',
+                timer: 2500,
+                showConfirmButton: false
+            }).then(() => {
+                window.location.href = `/orderFailure/${orderId}`;
+            });
+        }
+    })
+    .catch(err => {
+        Swal.close();
+        console.error('Verification error:', err);
+        Swal.fire({
+            icon: 'error',
+            title: 'Server Error',
+            text: 'Unable to verify payment. Redirecting...',
+            timer: 2500,
+            showConfirmButton: false
+        }).then(() => {
+            window.location.href = `/orderFailure/${orderId}`;
+        });
+    });
+}
 </script>
+
+<style>
+    /* Maintain existing styles - add only for new button */
+    .action-retry {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    .action-retry:hover {
+        background-color: #218838;
+    }
+    /* Ensure consistency with .action-view if it has styles */
+    .action-view {
+        /* Assuming existing style - add if needed */
+        background-color: #007bff;
+        color: white;
+        padding: 5px 10px;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    .action-view:hover {
+        background-color: #0056b3;
+    }
+</style>
 
 <%- include("../partials/user/footer") %>
