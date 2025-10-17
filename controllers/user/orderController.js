@@ -244,22 +244,22 @@ const placeOrder = async (req, res) => {
 
     const totalAmount = subtotal - discount;
 
-    // Generate order number
+   
     const orderNumber = "ORD" + Math.floor(Math.random() * 1000000);
 
+   
     // Set payment status based on payment method
-    let paymentStatus;
-    if (paymentMethod === 'cod') {
-      paymentStatus = 'Pending';
-    } else if (paymentMethod === 'razorpay' || paymentMethod === 'wallet') {
-      paymentStatus = 'pending'; // Will be updated to 'Paid' after verification
-    } else {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid payment method"
-      });
-    }
-
+let paymentStatus;
+if (paymentMethod === 'cod') {
+  paymentStatus = 'Pending';
+} else if (paymentMethod === 'razorpay' || paymentMethod === 'wallet') {
+  paymentStatus = 'pending'; 
+} else {
+  return res.status(400).json({
+    success: false,
+    error: "Invalid payment method"
+  });
+}
     // For wallet payment, check balance
     if (paymentMethod === 'wallet') {
       const wallet = await Wallet.findOne({ userId });
@@ -474,18 +474,22 @@ const orderSuccessPage = async (req,res,next) => {
 
 
 // Render user orders page
-const loadOrdersPage = async (req, res) => {
+const loadOrdersPage = async (req, res, next) => {
     try {
+        const userId = req.session.user;
+        if (!userId) return res.redirect('/login');
+
+        // Fetch full user for Razorpay prefill (adjust fields to your schema)
+        const userDetails = await User.findById(userId).select('name email phone').lean();
+        if (!userDetails) return res.redirect('/login');
+
         res.render('orderList', { 
-            user: req.session.user,
-            title: 'My Orders'
+            user: userDetails, // Now object with name/email/phone
+            title: 'My Orders',
+            razorpayKeyId: process.env.RAZORPAY_KEY_ID
         });
     } catch (error) {
-        console.error('Error rendering user orders page:', error);
-        res.status(500).render('error', { 
-            message: 'Failed to load orders page',
-            user: req.session.user 
-        });
+       next(error)
     }
 };
 
@@ -1707,15 +1711,15 @@ const renderPaymentFailure = async (req, res) => {
         }
 
         // Check if order belongs to logged-in user
-        if (order.userId.toString() !== req.session.user._id.toString()) {
+        if (order.userId.toString() !== req.session.user) {
             req.flash('error', 'Unauthorized access');
             return res.redirect('/orders');
         }
 
         // Get user details
-        const user = await User.findById(req.session.user._id);
+        const user = await User.findById(req.session.user);
 
-        res.render('user/orderFailure', {
+        res.render('orderFailure', {
             orderId: order._id,
             orderAmount: order.orderAmount,
             email: user.email,
@@ -1731,6 +1735,80 @@ const renderPaymentFailure = async (req, res) => {
         res.redirect('/orders');
     }
 };
+
+//   Verify retry payment
+
+const verifyRetryPayment = async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId } = req.body;
+    const userId = req.session.user;
+
+    console.log('Verifying RETRY payment for order:', orderId);
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !orderId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required payment details'
+      });
+    }
+
+    // Verify payment signature
+    const generatedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest('hex');
+
+    if (generatedSignature !== razorpay_signature) {
+      console.log('Retry payment verification failed: signature mismatch');
+      return res.status(400).json({
+        success: false,
+        message: 'Payment verification failed'
+      });
+    }
+
+    // Fetch order
+    const order = await Orders.findById(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    // Verify this is actually a retry (payment was previously failed)
+    if (order.paymentStatus !== 'Failed') {
+      return res.status(400).json({
+        success: false,
+        message: 'This order does not require payment retry'
+      });
+    }
+
+    // Update ONLY payment-related fields (no stock updates, no cart clearing)
+    order.paymentStatus = 'Paid';
+    order.paymentId = razorpay_payment_id;
+    order.razorpayOrderId = razorpay_order_id;
+    order.paymentDate = new Date();
+    await order.save();
+
+    console.log('Retry payment verified successfully for order:', orderId);
+
+    res.json({
+      success: true,
+      message: 'Payment verified successfully',
+      orderId: order._id,
+      paymentId: razorpay_payment_id
+    });
+  } catch (error) {
+    console.error('Retry payment verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Payment verification failed',
+      error: error.message
+    });
+  }
+};
+
+
 
 // ============================================
 // UPDATE PAYMENT FAILED STATUS
@@ -1796,7 +1874,8 @@ module.exports = {
     verifyPayment,
     orderFailure,
     renderPaymentFailure,
-    updatePaymentFailed
+    updatePaymentFailed,
+    verifyRetryPayment
 
     
     

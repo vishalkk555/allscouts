@@ -370,40 +370,66 @@
             };
 
             function openRazorpayCheckout(razorpayOrder, orderId) {
-                console.log("🔓 Opening Razorpay checkout...");
-                
-                const options = {
-                    key: razorpayKeyId,
-                    amount: razorpayOrder.amount,
-                    currency: razorpayOrder.currency,
-                    name: 'A L L S C O U T S',
-                    description: 'Retry Order Payment',
-                    order_id: razorpayOrder.id,
-                    handler: function(response) {
-                        verifyRazorpayPayment(response, orderId);
-                    },
-                    prefill: {
-                        name: userName,
-                        email: userEmail,
-                        contact: userPhone
-                    },
-                    theme: {
-                        color: '#c89666'
-                    },
-                    modal: {
-                        ondismiss: function() {
-                            Swal.fire({
-                                icon: 'info',
-                                title: 'Payment Cancelled',
-                                text: 'You cancelled the payment process. You can retry again.'
-                            });
-                        }
-                    }
-                };
-
-                const rzp = new Razorpay(options);
-                rzp.open();
+    console.log("🔓 Opening Razorpay checkout...");
+    
+    const options = {
+        key: '<%= razorpayKeyId %>',
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        name: 'A L L S C O U T S',
+        description: 'Order Payment',
+        order_id: razorpayOrder.id,
+        handler: function(response) {
+            verifyRazorpayPayment(response, orderId);
+        },
+        prefill: {
+            name: '<%= user.name %>',
+            email: '<%= user.email %>',
+            contact: '<%= user.phone %>'
+        },
+        theme: {
+            color: '#c89666'
+        },
+        modal: {
+            ondismiss: function() {
+                // Payment dismissed/cancelled - redirect to failure page
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Payment Cancelled',
+                    text: 'You cancelled the payment. Redirecting to order details...',
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    window.location.href = `/orderFailure/${orderId}?error=Payment cancelled by user`;
+                });
             }
+        }
+    };
+
+    const rzp = new Razorpay(options);
+    
+    // Handle payment failure
+    rzp.on('payment.failed', function(response) {
+        console.error('Payment failed:', response.error);
+        
+        // Update order status to failed
+        fetch('/payment-failed', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                orderId: orderId,
+                error: response.error
+            })
+        }).then(() => {
+            window.location.href = `/orderFailure/${orderId}?error=${encodeURIComponent(response.error.description)}`;
+        });
+    });
+    
+    rzp.open();
+}
+
 
             function verifyRazorpayPayment(paymentResponse, orderId) {
                 console.log("✅ Verifying Razorpay payment...");
