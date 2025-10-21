@@ -53,10 +53,8 @@ router.patch('/api/customers/:id/unblock', adminAuth, customerController.unblock
 router.get('/orders' , orderController.ordersListPage)
 // GET /admin/orders/:id - Order details page
 router.get('/orders/:id',  orderController.orderDetailsPage);
-
 // POST /admin/orders/:id/update - Update order details
 router.post('/orders/:id/update',  orderController.updateOrderDetails);
-
 // POST /admin/orders/:id/return-request/:itemId - Handle return request
 router.post('/orders/:id/return-request/:itemId', orderController.handleReturnRequest);
 
