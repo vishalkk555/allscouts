@@ -5548,23 +5548,15 @@ main-content {
 }
 
 .report-table th:nth-child(1) {
-    width: 15%;
+    width: 50%;
 }
 
 .report-table th:nth-child(2) {
-    width: 15%;
+    width: 25%;
 }
 
 .report-table th:nth-child(3) {
-    width: 35%;
-}
-
-.report-table th:nth-child(4) {
-    width: 20%;
-}
-
-.report-table th:nth-child(5) {
-    width: 15%;
+    width: 25%;
 }
 
 .report-table td {
@@ -5908,9 +5900,7 @@ main-content {
 
     .report-table th:nth-child(1),
     .report-table th:nth-child(2),
-    .report-table th:nth-child(3),
-    .report-table th:nth-child(4),
-    .report-table th:nth-child(5) {
+    .report-table th:nth-child(3) {
         width: auto;
         min-width: 100px;
     }

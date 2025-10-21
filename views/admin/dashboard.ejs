@@ -92,26 +92,48 @@
         <div class="chart-x-label">Time Period</div>
     </div>
 
-    <!-- Sales Report Table -->
+    <!-- Top 10 Best Selling Products -->
     <div class="report-section">
         <div class="report-header">
-            <h2>Recent Orders</h2>
-            <button class="view-all-btn" onclick="window.location.href='/admin/orders'">View All</button>
+            <h2>Top 10 Best Selling Products</h2>
+            <button class="view-all-btn" onclick="window.location.href='/admin/products'">View All Products</button>
         </div>
         <div class="table-wrapper">
             <table class="report-table">
                 <thead>
                     <tr>
-                        <th>Order ID</th>
-                        <th>Date</th>
-                        <th>Customer Name</th>
-                        <th>Amount</th>
-                        <th>Status</th>
+                        <th>Product</th>
+                        <th>Units Sold</th>
+                        <th>Revenue</th>
                     </tr>
                 </thead>
-                <tbody id="recentOrdersBody">
+                <tbody id="topProductsBody">
                     <tr>
-                        <td colspan="5" class="loading-row">Loading...</td>
+                        <td colspan="3" class="loading-row">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Top 10 Best Selling Categories -->
+    <div class="report-section">
+        <div class="report-header">
+            <h2>Top 10 Best Selling Categories</h2>
+            <button class="view-all-btn" onclick="window.location.href='/admin/categories'">View All Categories</button>
+        </div>
+        <div class="table-wrapper">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Units Sold</th>
+                        <th>Revenue</th>
+                    </tr>
+                </thead>
+                <tbody id="topCategoriesBody">
+                    <tr>
+                        <td colspan="3" class="loading-row">Loading...</td>
                     </tr>
                 </tbody>
             </table>
@@ -160,8 +182,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-
-   // Dashboard JavaScript
+// Dashboard JavaScript
 let ordersChart;
 let currentFilter = 'daily';
 let customDateRange = null;
@@ -288,7 +309,8 @@ async function loadDashboardData(filter, dateRange = null) {
         if (data.success) {
             updateStats(data.stats);
             updateChart(data.chartData, filter, dateRange);
-            updateRecentOrders(data.recentOrders);
+            updateTopProducts(data.topProducts);
+            updateTopCategories(data.topCategories);
         }
     } catch (error) {
         console.error('Error loading dashboard data:', error);
@@ -410,22 +432,38 @@ function updateChart(chartData, filter, dateRange = null) {
     ordersChart.update();
 }
 
-// Update Recent Orders Table
-function updateRecentOrders(orders) {
-    const tbody = document.getElementById('recentOrdersBody');
+// Update Top Products Table
+function updateTopProducts(products) {
+    const tbody = document.getElementById('topProductsBody');
     
-    if (!orders || orders.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="loading-row">No orders found</td></tr>';
+    if (!products || products.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="loading-row">No products found</td></tr>';
         return;
     }
 
-    tbody.innerHTML = orders.map(order => `
+    tbody.innerHTML = products.map(product => `
         <tr>
-            <td><strong>#${order.orderNumber || order._id.substring(0, 8)}</strong></td>
-            <td>${formatDate(order.createdAt)}</td>
-            <td>${order.userName || 'Guest User'}</td>
-            <td><strong>₹${formatNumber(order.orderAmount)}</strong></td>
-            <td><span class="status-badge status-${order.orderStatus.toLowerCase()}">${order.orderStatus}</span></td>
+            <td>${product.name || 'Unknown Product'}</td>
+            <td>${formatNumber(product.unitsSold)}</td>
+            <td>₹${formatNumber(product.revenue)}</td>
+        </tr>
+    `).join('');
+}
+
+// Update Top Categories Table
+function updateTopCategories(categories) {
+    const tbody = document.getElementById('topCategoriesBody');
+    
+    if (!categories || categories.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="loading-row">No categories found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = categories.map(category => `
+        <tr>
+            <td>${category.name || 'Unknown Category'}</td>
+            <td>${formatNumber(category.unitsSold)}</td>
+            <td>₹${formatNumber(category.revenue)}</td>
         </tr>
     `).join('');
 }
@@ -547,6 +585,4 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
-
 </script>
-

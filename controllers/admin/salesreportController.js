@@ -1,7 +1,9 @@
 const Order = require('../../models/orderSchema');
+const Category = require("../../models/categorySchema")
 const Product = require('../../models/productSchema');
 const User = require('../../models/userSchema');
 const Coupon = require('../../models/couponSchema');
+
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
 
@@ -63,18 +65,11 @@ const getDashboardData = async (req, res) => {
         // Get chart data
         const chartData = await getChartData(filter, dateRanges.current, startDate, endDate);
 
-        // Get recent orders
-        const recentOrders = await Order.find()
-            .sort({ createdAt: -1 })
-            .limit(10)
-            .populate('userId', 'name')
-            .lean();
+        // Get top 10 best selling products
+        const topProducts = await getTopProducts(dateRanges.current);
 
-        // Add user name to orders
-        const ordersWithUserNames = recentOrders.map(order => ({
-            ...order,
-            userName: order.userId?.name || 'Guest'
-        }));
+        // Get top 10 best selling categories
+        const topCategories = await getTopCategories(dateRanges.current);
 
         res.json({
             success: true,
@@ -84,7 +79,8 @@ const getDashboardData = async (req, res) => {
                 ordersChange: Math.round(ordersChange * 100) / 100
             },
             chartData,
-            recentOrders: ordersWithUserNames
+            topProducts,
+            topCategories
         });
     } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -125,6 +121,99 @@ const calculateStats = async (dateRange) => {
     } catch (error) {
         console.error('Error calculating stats:', error);
         throw error;
+    }
+};
+
+// Get Top 10 Best Selling Products
+const getTopProducts = async (dateRange) => {
+    try {
+        const orders = await Order.find({
+            createdAt: { $gte: dateRange.start, $lte: dateRange.end },
+            orderStatus: { $nin: ['Cancelled', 'Returned'] }
+        }).populate({
+            path: 'orderedItem.productId',
+            match: {
+                isBlocked: false,
+                status: { $in: ['Available', 'out of stock'] }
+            }
+        });
+
+        const productStats = {};
+
+        orders.forEach(order => {
+            order.orderedItem.forEach(item => {
+                if (item.productId && item.productStatus !== 'Cancelled' && item.productStatus !== 'Returned') {
+                    const productId = item.productId._id.toString();
+                    if (!productStats[productId]) {
+                        productStats[productId] = {
+                            name: item.productId.productName,
+                            unitsSold: 0,
+                            revenue: 0
+                        };
+                    }
+                    productStats[productId].unitsSold += item.quantity;
+                    productStats[productId].revenue += item.totalProductPrice;
+                }
+            });
+        });
+
+        const topProducts = Object.values(productStats)
+            .sort((a, b) => b.unitsSold - a.unitsSold)
+            .slice(0, 10);
+
+        return topProducts;
+    } catch (error) {
+        console.error('Error getting top products:', error);
+        return [];
+    }
+};
+
+// Get Top 10 Best Selling Categories
+const getTopCategories = async (dateRange) => {
+    try {
+        const orders = await Order.find({
+            createdAt: { $gte: dateRange.start, $lte: dateRange.end },
+            orderStatus: { $nin: ['Cancelled', 'Returned'] }
+        }).populate({
+            path: 'orderedItem.productId',
+            match: {
+                isBlocked: false,
+                status: { $in: ['Available', 'out of stock'] }
+            },
+            populate: { 
+                path: 'category', 
+                model: 'Category',
+                match: { isActive: true }
+            }
+        });
+
+        const categoryStats = {};
+
+        orders.forEach(order => {
+            order.orderedItem.forEach(item => {
+                if (item.productId && item.productId.category && item.productStatus !== 'Cancelled' && item.productStatus !== 'Returned') {
+                    const categoryId = item.productId.category._id.toString();
+                    if (!categoryStats[categoryId]) {
+                        categoryStats[categoryId] = {
+                            name: item.productId.category.name,
+                            unitsSold: 0,
+                            revenue: 0
+                        };
+                    }
+                    categoryStats[categoryId].unitsSold += item.quantity;
+                    categoryStats[categoryId].revenue += item.totalProductPrice;
+                }
+            });
+        });
+
+        const topCategories = Object.values(categoryStats)
+            .sort((a, b) => b.unitsSold - a.unitsSold)
+            .slice(0, 10);
+
+        return topCategories;
+    } catch (error) {
+        console.error('Error getting top categories:', error);
+        return [];
     }
 };
 
@@ -179,7 +268,7 @@ function getDateRange(filter) {
         default:
             currentStart = new Date(now);
             currentStart.setDate(now.getDate() - 6);
-            currentEnd = now;
+            currentEnd = new Date(now);
             previousStart = new Date(currentStart);
             previousStart.setDate(previousStart.getDate() - 7);
             previousEnd = new Date(currentEnd);
