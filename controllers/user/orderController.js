@@ -598,21 +598,24 @@ const getUserOrders = async (req, res) => {
         console.log('Raw order deliveryAddress:', order.deliveryAddress);
         console.log('Order data:', JSON.stringify(order, null, 2));
 
-        // If deliveryAddress is an ObjectId, populate it separately
+        // If deliveryAddress is an ObjectId, populate it (supports both parent Address _id and sub-address _id)
         if (order.deliveryAddress && mongoose.Types.ObjectId.isValid(order.deliveryAddress)) {
-            const address = await Address.findById(order.deliveryAddress).lean();
-            order.deliveryAddress = address;
-            console.log('Populated address:', address);
-            console.log('Address structure:', {
-                hasAddress: !!address?.address,
-                addressLength: address?.address?.length,
-                firstAddress: address?.address?.[0],
-                directFields: {
-                    name: address?.name,
-                    houseName: address?.houseName,
-                    street: address?.street
+            let address = await Address.findById(order.deliveryAddress).lean();
+
+            if (!address) {
+                // Might be a sub-address _id; search within address array
+                const parentDoc = await Address.findOne({ 'address._id': order.deliveryAddress }).lean();
+                if (parentDoc) {
+                    const sub = parentDoc.address.find(a => a._id.toString() === order.deliveryAddress.toString());
+                    if (sub) {
+                        // Normalize to the structure expected by the view
+                        address = { address: [sub] };
+                    }
                 }
-            });
+            }
+
+            order.deliveryAddress = address || null;
+            console.log('Resolved deliveryAddress:', order.deliveryAddress);
         }
 
         // Populate product data
@@ -1099,8 +1102,18 @@ const generateInvoice = async (req, res) => {
 
         // Manually populate the delivery address if it's an ObjectId
         if (order.deliveryAddress && mongoose.Types.ObjectId.isValid(order.deliveryAddress)) {
-            const address = await Address.findById(order.deliveryAddress).lean();
-            order.deliveryAddress = address;
+            let address = await Address.findById(order.deliveryAddress).lean();
+            if (!address) {
+                // Try resolving as sub-address id
+                const parentDoc = await Address.findOne({ 'address._id': order.deliveryAddress }).lean();
+                if (parentDoc) {
+                    const sub = parentDoc.address.find(a => a._id.toString() === order.deliveryAddress.toString());
+                    if (sub) {
+                        address = { address: [sub] };
+                    }
+                }
+            }
+            order.deliveryAddress = address || null;
         }
 
         // Debug: Check the address structure

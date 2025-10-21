@@ -7759,6 +7759,22 @@ body {
   gap: 10px;
 }
 
+.cs_price_inputs .cs_price_apply_btn {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #333;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  height: 32px;
+}
+
+.cs_price_inputs .cs_price_apply_btn:hover {
+  background: #f3f3f3;
+}
+
 .cs_price_inputs input {
   width: 100%;
   padding: 8px;

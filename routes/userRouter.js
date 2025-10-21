@@ -26,24 +26,24 @@ router.post('/logout',userController.logout)
 
 // User Profile Routes
 router.get('/profile',userAuth ,profileController.userProfile)
-router.get('/editProfile',profileController.editProfile)
+router.get('/editProfile',userAuth ,profileController.editProfile)
 router.post('/editProfile', upload.single('profileImage'),profileController.updateProfile)
 
 
-router.get('/emailOtp', profileController.loadEmailOtp); // New: Load OTP page
-router.post('/verifyEmailOtp', profileController.verifyProfileOtp); // New: Verify OTP
-router.post('/resendProfileOtp', profileController.resendProfileOtp);
+router.get('/emailOtp',userAuth , profileController.loadEmailOtp); // New: Load OTP page
+router.post('/verifyEmailOtp',userAuth , profileController.verifyProfileOtp); // New: Verify OTP
+router.post('/resendProfileOtp', userAuth ,profileController.resendProfileOtp);
 
-router.delete('/updateImage', profileController.deleteProfileImage);
-router.get('/changePassword', profileController.changePassword)
-router.post('/changePassword',profileController.updatePassword)
-router.get('/addresses',profileController.getAddresses)
-router.get('/addAddress',profileController.addAddress)
-router.post('/addAddress',profileController.addNewAddress)
-router.get('/editAddress/:addressId',profileController.getEditAddress)
-router.put('/updateAddress',profileController.updateAddress)
-router.post('/setDefaultAddress', profileController.setDefaultAddress);
-router.delete('/deleteAddress', profileController.deleteAddress);
+router.delete('/updateImage',userAuth , profileController.deleteProfileImage);
+router.get('/changePassword',userAuth , profileController.changePassword)
+router.post('/changePassword',userAuth ,profileController.updatePassword)
+router.get('/addresses',userAuth ,profileController.getAddresses)
+router.get('/addAddress',userAuth ,profileController.addAddress)
+router.post('/addAddress',userAuth ,profileController.addNewAddress)
+router.get('/editAddress/:addressId',userAuth ,profileController.getEditAddress)
+router.put('/updateAddress',userAuth ,profileController.updateAddress)
+router.post('/setDefaultAddress', userAuth ,profileController.setDefaultAddress);
+router.delete('/deleteAddress', userAuth ,profileController.deleteAddress);
 
 
 

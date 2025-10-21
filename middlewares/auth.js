@@ -33,26 +33,17 @@ const userAuth = (req, res, next) => {
 };
 
 const adminAuth = (req, res, next) => {
-    User.findOne({ isAdmin: true })
-        .then(data => {
-            if (data) {
-                next(); // Admin found, proceed to the route
-            } else if (req.query.format === 'json') {
-                res.status(401).json({ message: 'Please log in as admin' });
-            } else {
-                res.redirect('/admin/login');
-            }
-        })
-        .catch(error => {
-            console.error('Error in adminAuth middleware:', error);
-            if (req.query.format === 'json') {
-                res.status(500).json({ message: 'Server error' });
-            } else {
-                res.status(500).send('Server error');
-            }
-        });
-};
+    // Check if admin is logged in
+    if (!req.session.admin) {
+        if (req.path.startsWith('/admin/api/') || req.query.format === 'json') {
+            return res.status(401).json({ success: false, message: 'Please log in as admin' });
+        }
+        return res.redirect('/admin/login');
+    }
 
+    // Admin is authenticated, proceed
+    next();
+};
 
 
 

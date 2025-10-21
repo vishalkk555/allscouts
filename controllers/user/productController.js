@@ -180,21 +180,9 @@ const getShop = async (req, res) => {
       query.productName = { $regex: new RegExp(search, 'i') };
     }
 
-    // Compute min/max price without price filter
-    const priceQuery = { ...query };
-    const minPriceAgg = await Product.aggregate([{ $match: priceQuery }, { $sort: { regularPrice: 1 } }, { $limit: 1 }]);
-    const maxPriceAgg = await Product.aggregate([{ $match: priceQuery }, { $sort: { regularPrice: -1 } }, { $limit: 1 }]);
-    const minPrice = minPriceAgg[0]?.regularPrice || 0;
-    const maxPrice = maxPriceAgg[0]?.regularPrice || 10000;
-
-    // Price filter
+    // Price filter inputs (we will apply on effective price after computing offers)
     let selectedMinPrice = req.query.minPrice !== undefined && req.query.minPrice !== '' ? Number(req.query.minPrice) : '';
     let selectedMaxPrice = req.query.maxPrice !== undefined && req.query.maxPrice !== '' ? Number(req.query.maxPrice) : '';
-    if (selectedMinPrice !== '' || selectedMaxPrice !== '') {
-      query.regularPrice = {};
-      if (selectedMinPrice !== '') query.regularPrice.$gte = Math.max(0, Number(selectedMinPrice));
-      if (selectedMaxPrice !== '') query.regularPrice.$lte = Math.min(maxPrice, Number(selectedMaxPrice));
-    }
 
     // Sort
     let sortOption = req.query.sort || 'latest';
@@ -207,19 +195,54 @@ const getShop = async (req, res) => {
       default: sort.createdAt = -1;
     }
 
-    // Pagination
+    // Fetch products first (without price filtering or pagination); we'll compute effective prices and then filter/sort/paginate
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = 9;
     const skip = (page - 1) * limit;
-    const total = await Product.countDocuments(query);
-    const rawProducts = await Product.find(query).sort(sort).skip(skip).limit(limit).populate('category');
+    const rawProducts = await Product.find(query).populate('category');
 
     // Calculate offers for all products
-    const products = await Promise.all(
+    let products = await Promise.all(
       rawProducts.map(async (product) => {
         return await calculateProductOffer(product);
       })
     );
+
+    // Compute effective price for each product (offer.finalPrice if available, else regularPrice)
+    products = products.map(p => ({
+      ...p,
+      effectivePrice: (p.offer && p.offer.hasOffer) ? p.offer.finalPrice : p.regularPrice
+    }));
+
+    // Compute min/max based on effective price
+    const minPrice = products.length ? Math.min(...products.map(p => p.effectivePrice)) : 0;
+    const maxPrice = products.length ? Math.max(...products.map(p => p.effectivePrice)) : 10000;
+
+    // Apply price filtering on effective price
+    if (selectedMinPrice !== '' || selectedMaxPrice !== '') {
+      products = products.filter(p => {
+        const price = p.effectivePrice;
+        if (selectedMinPrice !== '' && price < selectedMinPrice) return false;
+        if (selectedMaxPrice !== '' && price > selectedMaxPrice) return false;
+        return true;
+      });
+    }
+
+    // Apply sorting
+    if (sortOption === 'low' || sortOption === 'high') {
+      const direction = sortOption === 'low' ? 1 : -1;
+      products.sort((a, b) => (a.effectivePrice - b.effectivePrice) * direction);
+    } else if (sortOption === 'az' || sortOption === 'za') {
+      const direction = sortOption === 'az' ? 1 : -1;
+      products.sort((a, b) => a.productName.localeCompare(b.productName) * direction);
+    } else {
+      // latest: createdAt desc
+      products.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+
+    // Pagination after filtering/sorting
+    const total = products.length;
+    const productsPage = products.slice(skip, skip + limit);
 
     // Categories
     const categories = await Category.find({ isActive: true });
@@ -253,7 +276,7 @@ const getShop = async (req, res) => {
 
 
     res.render('shop', {
-      products,
+      products: productsPage,
       categories,
       total,
       page,
