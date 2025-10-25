@@ -40,6 +40,25 @@ const login = async (req, res) => {
 };
 
 
+const logout = async(req,res) => {
+      try {
+        // Destroy the admin session
+        req.session.destroy((err) => {
+            if (err) {
+                console.error('Session destruction error:', err);
+                return res.status(500).json({ success: false, message: 'Logout failed' });
+            }
+            // Clear the session cookie
+            res.clearCookie('connect.sid', { path: '/admin' }); // Adjust cookie name if different
+            return res.json({ success: true, message: 'Logged out successfully' });
+        });
+    } catch (error) {
+        console.error('Logout error:', error);
+        return res.status(500).json({ success: false, message: 'Logout failed' });
+    }
+}
+
+
 
 const loadDashboard = async (req,res) => {
     if(req.session.admin){
@@ -55,6 +74,7 @@ const loadDashboard = async (req,res) => {
 module.exports = {
     loadLogin,
     login,
+    logout,
     loadDashboard,
     pageerror,
    

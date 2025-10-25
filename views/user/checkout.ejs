@@ -123,52 +123,92 @@
                         <!-- Coupon Section -->
                         <div class="coupon-section">
                             <% if (appliedCoupon) { %>
-                                <div class="applied-coupon">
-                                    Applied Coupon: <%= appliedCoupon.code %> (Discount: ₹<%= discount.toLocaleString() %>)
-                                    <button onclick="removeCoupon()">Remove</button>
+                                <div class="applied-coupon-card">
+                                    <div class="coupon-success-icon">🎟️</div>
+                                    <div class="coupon-info">
+                                        <div class="coupon-code-display"><%= appliedCoupon.code %></div>
+                                        <div class="coupon-savings">Saved ₹<%= discount.toLocaleString() %></div>
+                                    </div>
+                                    <button class="remove-coupon-btn" onclick="removeCoupon()" title="Remove coupon">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                                        </svg>
+                                    </button>
                                 </div>
                             <% } else if (coupons && coupons.length > 0) { %>
-                                <a href="#" onclick="toggleCouponDropdown(event)">Apply Coupon</a>
-                                <div id="coupon-dropdown" style="display: none; margin-top: 10px;">
-                                    <select id="coupon-select">
-                                        <option value="">Select a coupon</option>
-                                        <% coupons.forEach(coupon => { %>
-                                            <option value="<%= coupon.couponCode %>">
-                                                <%= coupon.couponCode %> - 
-                                                <% if (coupon.type === 'percentageDiscount') { %>
-                                                    <%= coupon.discount %>% off (Min ₹<%= coupon.minPurchase %>)
-                                                <% } else { %>
-                                                    ₹<%= coupon.discount %> off (Min ₹<%= coupon.minPurchase %>)
-                                                <% } %> - <%= coupon.description || '' %>
-                                            </option>
-                                        <% }) %>
-                                    </select>
-                                    <button onclick="applyCoupon()">Apply</button>
+                                <div class="coupon-toggle-wrapper">
+                                    <button class="coupon-toggle-btn" onclick="toggleCouponDropdown(event)">
+                                        <span class="coupon-icon">🎟️</span>
+                                        <span>Apply Coupon Code</span>
+                                        <span class="arrow-icon">▼</span>
+                                    </button>
+                                    <div id="coupon-dropdown" class="coupon-dropdown">
+                                        <div class="dropdown-header">
+                                            <h4>Enter Coupon Code</h4>
+                                        </div>
+                                        <div class="coupon-input-wrapper">
+                                            <input 
+                                                type="text" 
+                                                id="coupon-input" 
+                                                placeholder="Enter coupon code"
+                                                class="coupon-input-field"
+                                                autocomplete="off"
+                                            >
+                                            <button onclick="applyCoupon()" class="apply-btn" id="apply-btn">
+                                                Apply
+                                            </button>
+                                        </div>
+                                        <div class="available-coupons">
+                                            <h5>Available Coupons:</h5>
+                                            <div class="coupons-grid">
+                                                <% coupons.forEach(coupon => { %>
+                                                    <div class="coupon-card" onclick="selectCoupon('<%= coupon.couponCode %>')">
+                                                        <div class="coupon-card-header">
+                                                            <span class="coupon-code"><%= coupon.couponCode %></span>
+                                                            <% if (coupon.type === 'percentageDiscount') { %>
+                                                                <span class="discount-badge percent"><%= coupon.discount %>% OFF</span>
+                                                            <% } else { %>
+                                                                <span class="discount-badge fixed">₹<%= coupon.discount %> OFF</span>
+                                                            <% } %>
+                                                        </div>
+                                                        <div class="coupon-details">
+                                                            <div class="min-purchase">Min: ₹<%= coupon.minPurchase %></div>
+                                                            <% if (coupon.description) { %>
+                                                                <div class="coupon-desc"><%= coupon.description %></div>
+                                                            <% } %>
+                                                        </div>
+                                                    </div>
+                                                <% }) %>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             <% } else { %>
-                                <p>No available coupons</p>
+                                <div class="no-coupons">
+                                    <p>No coupons available at this time</p>
+                                </div>
                             <% } %>
                         </div>
 
                         <!-- Price Breakdown -->
                         <div class="price-breakdown">
                             <div class="price-row">
-                                <span>Subtotal (<%= totalItems %> items)</span>
-                                <span>₹<%= subtotal.toLocaleString() %></span>
+                                <span class="label">Subtotal (<%= totalItems %> items)</span>
+                                <span class="value">₹<%= subtotal.toLocaleString() %></span>
                             </div>
-                            <div class="price-row">
-                                <span>Shipping Charges</span>
-                                <span class="free">FREE</span>
+                            <div class="price-row shipping">
+                                <span class="label">Shipping</span>
+                                <span class="value free">FREE</span>
                             </div>
                             <% if (discount > 0) { %>
-                                <div class="price-row discount">
-                                    <span>Coupon Discount</span>
-                                    <span>-₹<%= discount.toLocaleString() %></span>
+                                <div class="price-row discount-row">
+                                    <span class="label">Coupon Discount</span>
+                                    <span class="value discount-value">-₹<%= discount.toLocaleString() %></span>
                                 </div>
                             <% } %>
-                            <div class="price-row total">
-                                <span>Total Amount</span>
-                                <span>₹<%= totalAmount.toLocaleString() %></span>
+                            <div class="price-row total-row">
+                                <span class="label bold">Total Amount</span>
+                                <span class="value total-value bold">₹<%= totalAmount.toLocaleString() %></span>
                             </div>
                         </div>
 
@@ -335,6 +375,8 @@
             initializeCheckout();
             checkOrderAvailability();
             initializeCODRestriction();
+            // Ensure coupon dropdown is hidden on page load
+            document.getElementById('coupon-dropdown').style.display = 'none';
         });
 
         // NEW: Initialize COD restriction
@@ -1195,13 +1237,33 @@
         function toggleCouponDropdown(event) {
             event.preventDefault();
             const dropdown = document.getElementById('coupon-dropdown');
-            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            const button = event.target.closest('.coupon-toggle-btn');
+            
+            if (dropdown.style.display === 'block') {
+                dropdown.style.display = 'none';
+                button.classList.remove('active');
+            } else {
+                dropdown.style.display = 'block';
+                button.classList.add('active');
+                document.getElementById('coupon-input').focus();
+            }
+        }
+
+        function selectCoupon(code) {
+            document.getElementById('coupon-input').value = code;
+            // Automatically trigger applyCoupon when a coupon is selected
+            applyCoupon();
         }
 
         function applyCoupon() {
-            const code = document.getElementById('coupon-select').value;
+            const code = document.getElementById('coupon-input').value.trim();
             if (!code) {
-                Swal.fire('Error', 'Please select a coupon', 'error');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Coupon',
+                    text: 'Please enter a valid coupon code',
+                    confirmButtonColor: '#d33'
+                });
                 return;
             }
 
@@ -1215,37 +1277,390 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    window.location.reload();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Coupon Applied',
+                        text: data.message || 'Coupon applied successfully!',
+                        timer: 2000
+                    }).then(() => {
+                        window.location.reload();
+                    });
                 } else {
-                    Swal.fire('Error', data.message || 'Failed to apply coupon', 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Failed to apply coupon',
+                        confirmButtonColor: '#d33'
+                    });
                 }
             })
             .catch(error => {
                 console.error('Error applying coupon:', error);
-                Swal.fire('Error', 'Failed to apply coupon', 'error');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to apply coupon',
+                    confirmButtonColor: '#d33'
+                });
             });
         }
 
         function removeCoupon() {
-            fetch('/removeCoupon', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+            Swal.fire({
+                title: 'Remove Coupon?',
+                text: 'Do you want to remove the applied coupon?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, remove it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/removeCoupon', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Coupon Removed',
+                                text: 'Coupon has been removed successfully',
+                                timer: 2000
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Failed to remove coupon',
+                                confirmButtonColor: '#d33'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error removing coupon:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to remove coupon',
+                            confirmButtonColor: '#d33'
+                        });
+                    });
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    Swal.fire('Error', 'Failed to remove coupon', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error removing coupon:', error);
-                Swal.fire('Error', 'Failed to remove coupon', 'error');
             });
         }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const couponWrapper = document.querySelector('.coupon-toggle-wrapper');
+            if (couponWrapper && !couponWrapper.contains(event.target)) {
+                const dropdown = document.getElementById('coupon-dropdown');
+                if (dropdown) {
+                    dropdown.style.display = 'none';
+                    document.querySelector('.coupon-toggle-btn')?.classList.remove('active');
+                }
+            }
+        });
     </script>
+
+    <style>
+        /* Coupon Section */
+        .coupon-section {
+            margin-bottom: 25px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* Applied Coupon Styles */
+        .applied-coupon-card {
+            display: flex;
+            align-items: center;
+            background: linear-gradient(135deg, #28a745, #218838);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            gap: 12px;
+        }
+
+        .coupon-success-icon {
+            font-size: 20px;
+            font-weight: bold;
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .coupon-info {
+            flex: 1;
+        }
+
+        .coupon-code-display {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .coupon-savings {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .remove-coupon-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .remove-coupon-btn:hover {
+            background: rgba(231, 76, 60, 0.8);
+            transform: scale(1.05);
+        }
+
+        /* Coupon Toggle */
+        .coupon-toggle-wrapper {
+            position: relative;
+        }
+
+        .coupon-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgb(255, 255, 255);
+            border: 2px solid #e9ecef;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .coupon-toggle-btn:hover {
+            border-color: #e74c3c;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .coupon-icon {
+            font-size: 16px;
+        }
+
+        .arrow-icon {
+            margin-left: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .coupon-toggle-btn.active .arrow-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Dropdown */
+        .coupon-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgb(255, 255, 255);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            padding: 20px;
+            margin-top: 8px;
+            z-index: 1000;
+            border: 1px solid #e9ecef;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-header h4 {
+            margin: 0 0 16px 0;
+            color: #1a1a1a;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .coupon-input-wrapper {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .coupon-input-field {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+        }
+
+        .coupon-input-field:focus {
+            outline: none;
+            border-color: #e74c3c;
+            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+        }
+
+        .apply-btn {
+            background: linear-gradient(135deg, #28a745, #218838);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .apply-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
+
+        .apply-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Available Coupons */
+        .available-coupons h5 {
+            margin: 0 0 12px 0;
+            color: #6c757d;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .coupons-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .coupon-card {
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .coupon-card:hover {
+            border-color: #e74c3c;
+            background: #fff5f5;
+            transform: translateY(-1px);
+        }
+
+        .coupon-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .coupon-code {
+            font-weight: 600;
+            color: #1a1a1a;
+            font-size: 14px;
+        }
+
+        .discount-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .discount-badge.percent {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        .discount-badge.fixed {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .coupon-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .min-purchase {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .coupon-desc {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+
+        /* No Coupons */
+        .no-coupons {
+            padding: 20px;
+            text-align: center;
+            color: #6c757d;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .coupon-dropdown {
+                position: relative;
+                box-shadow: none;
+                border: none;
+                border-radius: 0;
+                margin-top: 0;
+            }
+            
+            .coupon-input-wrapper {
+                flex-direction: column;
+            }
+            
+            .apply-btn {
+                width: 100%;
+            }
+            
+            .coupons-grid {
+                max-height: 250px;
+            }
+        }
+    </style>
 </body>
 </html>
+

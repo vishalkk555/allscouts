@@ -16,6 +16,7 @@ const {userAuth,adminAuth} = require("../middlewares/auth")
 router.get('/pageerror',adminController.pageerror)
 router.get("/login",adminController.loadLogin)
 router.post("/login",adminController.login)
+router.post("/logout", adminController.logout)
 router.get("/",adminAuth,adminController.loadDashboard);
 
 // Category Management

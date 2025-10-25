@@ -564,7 +564,7 @@ th {
 
 /* FIXED: Set specific column widths for category table */
 th:nth-child(1) { width: 15%; text-align: center; }  /* Sl No - centered */
-th:nth-child(2) { width: 45%; }  /* Category */
+th:nth-child(2) { width: 15%; }  /* Category */
 th:nth-child(3) { width: 20%; text-align: center; }  /* Status - centered */
 th:nth-child(4) { width: 20%; text-align: center; }  /* Actions - centered */
 
@@ -612,6 +612,7 @@ tr:hover {
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    color: white;
 }
 
 .bg-success {

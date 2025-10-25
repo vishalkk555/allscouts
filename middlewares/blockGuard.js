@@ -15,6 +15,6 @@ module.exports = async function blockGuard(req, res, next) {
       next();
     }
   } catch (e) {
-    next(e);
+    next(e);  
   }
 };
