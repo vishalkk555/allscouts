@@ -60,12 +60,15 @@ const createCoupon = async(req,res,next) => {
             });
         }
 
-        if (type === 'percentageDiscount' && discountValue > 100) {
-            return res.status(400).json({
-                success: false,
-                message: 'Percentage discount cannot exceed 100%'
-            });
-        }
+     if (type === 'percentageDiscount') {
+    if (discountValue <= 0 || discountValue >= 100) {
+        return res.status(400).json({
+            success: false,
+            message: 'Percentage discount must be greater than 0% and less than 100%'
+        });
+    }
+}
+
 
         const minPurchaseValue = parseFloat(minPurchase);
         if (minPurchaseValue < 0) {
@@ -238,138 +241,148 @@ const toggleCouponStatus = async (req, res) => {
 
 // Update coupon
 const updateCoupon = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const {
-            couponCode,
-            type,
-            discount,
-            status,
-            minPurchase,
-            maxRedeem,
-            expiry,
-            description
-        } = req.body;
+  try {
+    const { id } = req.params;
+    const {
+      couponCode,
+      type,
+      discount,
+      status,
+      minPurchase,
+      maxRedeem,
+      expiry,
+      description
+    } = req.body;
 
-        const existingCoupon = await Coupon.findById(id);
-
-        if (!existingCoupon) {
-            return res.status(404).json({
-                success: false,
-                message: 'Coupon not found'
-            });
-        }
-
-        if (!couponCode || !type || !discount || !minPurchase || !maxRedeem || !expiry) {
-            return res.status(400).json({
-                success: false,
-                message: 'All required fields must be provided'
-            });
-        }
-
-        if (!/^[A-Z0-9]+$/.test(couponCode)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Coupon code must contain only letters and numbers'
-            });
-        }
-
-        const duplicateCoupon = await Coupon.findOne({ 
-            couponCode: couponCode.toUpperCase(),
-            _id: { $ne: id }
-        });
-
-        if (duplicateCoupon) {
-            return res.status(400).json({
-                success: false,
-                message: 'Coupon code already exists'
-            });
-        }
-
-        const discountValue = parseFloat(discount);
-        if (discountValue <= 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Discount must be greater than 0'
-            });
-        }
-
-        if (type === 'percentageDiscount' && discountValue > 100) {
-            return res.status(400).json({
-                success: false,
-                message: 'Percentage discount cannot exceed 100%'
-            });
-        }
-
-        const minPurchaseValue = parseFloat(minPurchase);
-        if (minPurchaseValue < 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Minimum purchase amount cannot be negative'
-            });
-        }
-
-        if (type === 'flatDiscount' && discountValue > minPurchaseValue) {
-            return res.status(400).json({
-                success: false,
-                message: 'Fixed discount cannot be greater than minimum purchase amount'
-            });
-        }
-        const maxRedeemValue = parseInt(maxRedeem);
-        if (maxRedeemValue <= 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Maximum redemption must be greater than 0'
-            });
-        }
-
-        // Validate expiry date
-        const expiryDate = new Date(expiry);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (expiryDate < today) {
-            return res.status(400).json({
-                success: false,
-                message: 'Expiry date must be today or in the future'
-            });
-        }
-
-        // Update coupon
-        existingCoupon.couponCode = couponCode.toUpperCase();
-        existingCoupon.type = type;
-        existingCoupon.discount = discountValue;
-        existingCoupon.status = status === true || status === 'true';
-        existingCoupon.minPurchase = minPurchaseValue;
-        existingCoupon.maxRedeem = maxRedeemValue;
-        existingCoupon.expiry = expiryDate;
-        existingCoupon.description = description || '';
-
-        await existingCoupon.save();
-
-        res.status(200).json({
-            success: true,
-            message: 'Coupon updated successfully',
-            coupon: existingCoupon
-        });
-
-    } catch (error) {
-        console.error('Error updating coupon:', error);
-
-        // Handle mongoose validation errors
-        if (error.name === 'ValidationError') {
-            const messages = Object.values(error.errors).map(err => err.message);
-            return res.status(400).json({
-                success: false,
-                message: messages.join(', ')
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            message: 'Server error while updating coupon'
-        });
+    // Check if coupon exists
+    const existingCoupon = await Coupon.findById(id);
+    if (!existingCoupon) {
+      return res.status(404).json({
+        success: false,
+        message: 'Coupon not found'
+      });
     }
+
+    // Validate required fields
+    if (!couponCode || !type || !discount || !minPurchase || !maxRedeem || !expiry) {
+      return res.status(400).json({
+        success: false,
+        message: 'All required fields must be provided'
+      });
+    }
+
+    // Validate coupon code format
+    if (!/^[A-Z0-9]+$/.test(couponCode)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Coupon code must contain only uppercase letters and numbers'
+      });
+    }
+
+    // Check for duplicate coupon code (excluding current one)
+    const duplicateCoupon = await Coupon.findOne({
+      couponCode: couponCode.toUpperCase(),
+      _id: { $ne: id }
+    });
+
+    if (duplicateCoupon) {
+      return res.status(400).json({
+        success: false,
+        message: 'Coupon code already exists'
+      });
+    }
+
+    // Validate discount value
+    const discountValue = parseFloat(discount);
+    if (isNaN(discountValue) || discountValue <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Discount must be a number greater than 0'
+      });
+    }
+
+    // ✅ FIX: Prevent 100% discount
+    if (type === 'percentageDiscount') {
+      if (discountValue >= 100) {
+        return res.status(400).json({
+          success: false,
+          message: 'Percentage discount must be greater than 0% and less than 100%'
+        });
+      }
+    }
+
+    // Validate minimum purchase
+    const minPurchaseValue = parseFloat(minPurchase);
+    if (isNaN(minPurchaseValue) || minPurchaseValue < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Minimum purchase amount cannot be negative'
+      });
+    }
+
+    // For flat discount, ensure discount isn't more than min purchase
+    if (type === 'flatDiscount' && discountValue > minPurchaseValue) {
+      return res.status(400).json({
+        success: false,
+        message: 'Flat discount cannot exceed minimum purchase amount'
+      });
+    }
+
+    // Validate max redeem
+    const maxRedeemValue = parseInt(maxRedeem);
+    if (isNaN(maxRedeemValue) || maxRedeemValue <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Maximum redemption must be greater than 0'
+      });
+    }
+
+    // Validate expiry date
+    const expiryDate = new Date(expiry);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (expiryDate < today) {
+      return res.status(400).json({
+        success: false,
+        message: 'Expiry date must be today or in the future'
+      });
+    }
+
+    // Update coupon fields
+    existingCoupon.couponCode = couponCode.toUpperCase();
+    existingCoupon.type = type;
+    existingCoupon.discount = discountValue;
+    existingCoupon.status = status === true || status === 'true';
+    existingCoupon.minPurchase = minPurchaseValue;
+    existingCoupon.maxRedeem = maxRedeemValue;
+    existingCoupon.expiry = expiryDate;
+    existingCoupon.description = description || '';
+
+    await existingCoupon.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Coupon updated successfully',
+      coupon: existingCoupon
+    });
+
+  } catch (error) {
+    console.error('Error updating coupon:', error);
+
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: messages.join(', ')
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating coupon'
+    });
+  }
 };
 
 

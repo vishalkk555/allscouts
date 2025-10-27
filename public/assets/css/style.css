@@ -8521,7 +8521,7 @@ input.error-border {
    ===============================================  */
 
    /* Reset */
-/* * {
+/* /* * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -8678,7 +8678,7 @@ body {
 
 .profile-btn-primary:hover {
     background-color: #333;
-}
+} */
     /* Referral Section Styles */
 .referral-section {
     margin-top: 2rem;
@@ -13209,6 +13209,7 @@ body {
     align-items: flex-start;
         min-height: 100vh;
         background-color: #f8f9fa;
+        margin-top: 45px;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 

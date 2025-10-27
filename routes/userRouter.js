@@ -108,19 +108,16 @@ router.get('/wallet', walletController.getWalletPage)
 router.get('/orders', orderController.loadOrdersPage);
 // API route to get user's orders with filters and pagination
 router.get('/orders/my-orders',  orderController.getUserOrders);
-
 // Order details page route
 router.get('/orders/view/:orderId',  orderController.getUserOrderDetails);
-
 // Cancel entire order route
 router.patch('/orders/:orderId/cancel',  orderController.cancelOrder);
-
 // Cancel individual item route
 router.post('/orders/cancel-item',  orderController.cancelItem);
-
+// Add this route in your routes file
+router.post('/orders/check-return-coupon-impact', orderController.checkReturnCouponImpact);
 // Return individual item route
 router.post('/orders/return-item', orderController.returnItem);
-
 router.get('/orders/:orderId/invoice', orderController.generateInvoice);
 
 

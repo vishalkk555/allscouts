@@ -68,140 +68,148 @@ const addOffer =  async(req,res,next) => {
 
 
 // Create new offer
-const createOffer = async (req, res) => {
-    try {
-        const {
-            offerName,
-            discount,
-            offerType,
-            categoryId,
-            productId,
-            startDate,
-            endDate
-        } = req.body;
+const createOffer = async (req, res, next) => {
+  try {
+    const {
+      offerName,
+      discount,
+      offerType,
+      categoryId,
+      productId,
+      startDate,
+      endDate
+    } = req.body;
 
-        if (!offerName || !discount || !offerType || !startDate || !endDate) {
-            return res.status(400).json({
-                success: false,
-                message: 'All required fields must be provided'
-            });
-        }
-
-        if (offerName.length < 3) {
-            return res.status(400).json({
-                success: false,
-                message: 'Offer name must be at least 3 characters'
-            });
-        }
-
-        const discountValue = parseFloat(discount);
-        if (isNaN(discountValue) || discountValue < 1 || discountValue > 100) {
-            return res.status(400).json({
-                success: false,
-                message: 'Discount must be between 1% and 100%'
-            });
-        }
-
-        if (!['category', 'product'].includes(offerType)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid offer type'
-            });
-        }
-
-        if (offerType === 'category') {
-            if (!categoryId || !Array.isArray(categoryId) || categoryId.length === 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Please select at least one category'
-                });
-            }
-        } else if (offerType === 'product') {
-            if (!productId || !Array.isArray(productId) || productId.length === 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Please select at least one product'
-                });
-            }
-        }
-
-        const existingOffer = await Offer.findOne({ offerName: offerName.trim() });
-             if (existingOffer) {
-             return res.status(400).json({
-              success: false,
-               message: 'An offer with this name already exists'
-         });
-      }
-
-        const startDateObj = new Date(startDate);
-        const endDateObj = new Date(endDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (startDateObj < today) {
-            return res.status(400).json({
-                success: false,
-                message: 'Start date must be today or in the future'
-            });
-        }
-
-        if (endDateObj <= startDateObj) {
-            return res.status(400).json({
-                success: false,
-                message: 'End date must be after start date'
-            });
-        }
-
-        const overlappingQuery = {
-            offerType: offerType,
-            status: true,
-            $or: [
-                {
-                    startDate: { $lte: endDateObj },
-                    endDate: { $gte: startDateObj }
-                }
-            ]
-        };
-
-        if (offerType === 'category') {
-            overlappingQuery.categoryId = { $in: categoryId };
-        } else {
-            overlappingQuery.productId = { $in: productId };
-        }
-
-        const overlappingOffer = await Offer.findOne(overlappingQuery);
-
-        if (overlappingOffer) {
-            return res.status(400).json({
-                success: false,
-                message: `An active offer already exists for the selected ${offerType}(s) during this time period`
-            });
-        }
-
-        const newOffer = new Offer({
-            offerName,
-            discount: discountValue,
-            offerType,
-            startDate: startDateObj,
-            endDate: endDateObj,
-            categoryId: offerType === 'category' ? categoryId : [],
-            productId: offerType === 'product' ? productId : [],
-            status: true
-        });
-
-        await newOffer.save();
-
-        res.status(201).json({
-            success: true,
-            message: 'Offer created successfully',
-            offer: newOffer
-        });
-
-    } catch (error) {
-        next(error)
+    // Required fields check
+    if (!offerName || !discount || !offerType || !startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'All required fields must be provided'
+      });
     }
-};
 
+    if (offerName.trim().length < 3) {
+      return res.status(400).json({
+        success: false,
+        message: 'Offer name must be at least 3 characters'
+      });
+    }
+
+    //  Discount validation — must be > 0 and < 100
+    const discountValue = parseFloat(discount);
+    if (isNaN(discountValue) || discountValue <= 0 || discountValue >= 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Discount must be greater than 0% and less than 100%'
+      });
+    }
+
+    // Offer type validation
+    if (!['category', 'product'].includes(offerType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid offer type'
+      });
+    }
+
+    // Validate category or product selection
+    if (offerType === 'category') {
+      if (!categoryId || !Array.isArray(categoryId) || categoryId.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please select at least one category'
+        });
+      }
+    } else if (offerType === 'product') {
+      if (!productId || !Array.isArray(productId) || productId.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please select at least one product'
+        });
+      }
+    }
+
+    // Duplicate offer name check
+    const existingOffer = await Offer.findOne({ offerName: offerName.trim() });
+    if (existingOffer) {
+      return res.status(400).json({
+        success: false,
+        message: 'An offer with this name already exists'
+      });
+    }
+
+    // Date validation
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (startDateObj < today) {
+      return res.status(400).json({
+        success: false,
+        message: 'Start date must be today or in the future'
+      });
+    }
+
+    if (endDateObj <= startDateObj) {
+      return res.status(400).json({
+        success: false,
+        message: 'End date must be after start date'
+      });
+    }
+
+    // Check overlapping offers for same category/product
+    const overlappingQuery = {
+      offerType,
+      status: true,
+      $or: [
+        {
+          startDate: { $lte: endDateObj },
+          endDate: { $gte: startDateObj }
+        }
+      ]
+    };
+
+    if (offerType === 'category') {
+      overlappingQuery.categoryId = { $in: categoryId };
+    } else {
+      overlappingQuery.productId = { $in: productId };
+    }
+
+    const overlappingOffer = await Offer.findOne(overlappingQuery);
+
+    if (overlappingOffer) {
+      return res.status(400).json({
+        success: false,
+        message: `An active offer already exists for the selected ${offerType}(s) during this time period`
+      });
+    }
+
+    // Create and save new offer
+    const newOffer = new Offer({
+      offerName: offerName.trim(),
+      discount: discountValue,
+      offerType,
+      startDate: startDateObj,
+      endDate: endDateObj,
+      categoryId: offerType === 'category' ? categoryId : [],
+      productId: offerType === 'product' ? productId : [],
+      status: true
+    });
+
+    await newOffer.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Offer created successfully',
+      offer: newOffer
+    });
+
+  } catch (error) {
+    console.error('Error creating offer:', error);
+    next(error);
+  }
+};
 
 const getOffersPage = async (req, res ,next) => {
     try {
@@ -322,161 +330,159 @@ const getEditOfferPage = async (req, res) => {
 
 // Update offer
 const updateOffer = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const {
-            offerName,
-            discount,
-            offerType,
-            categoryId,
-            productId,
-            startDate,
-            endDate
-        } = req.body;
+  try {
+    const { id } = req.params;
+    const {
+      offerName,
+      discount,
+      offerType,
+      categoryId,
+      productId,
+      startDate,
+      endDate
+    } = req.body;
 
-        // Find existing offer
-        const existingOffer = await Offer.findById(id);
-
-        if (!existingOffer) {
-            return res.status(404).json({
-                success: false,
-                message: 'Offer not found'
-            });
-        }
-
-        // Server-side validation
-        if (!offerName || !discount || !offerType || !startDate || !endDate) {
-            return res.status(400).json({
-                success: false,
-                message: 'All required fields must be provided'
-            });
-        }
-
-        // Validate offer name
-        if (offerName.length < 3) {
-            return res.status(400).json({
-                success: false,
-                message: 'Offer name must be at least 3 characters'
-            });
-        }
-
-        // Validate discount
-        const discountValue = parseFloat(discount);
-        if (isNaN(discountValue) || discountValue < 1 || discountValue > 100) {
-            return res.status(400).json({
-                success: false,
-                message: 'Discount must be between 1% and 100%'
-            });
-        }
-
-        // Validate offer type
-        if (!['category', 'product'].includes(offerType)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid offer type'
-            });
-        }
-
-        // Validate category or product selection
-        if (offerType === 'category') {
-            if (!categoryId || !Array.isArray(categoryId) || categoryId.length === 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Please select at least one category'
-                });
-            }
-        } else if (offerType === 'product') {
-            if (!productId || !Array.isArray(productId) || productId.length === 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Please select at least one product'
-                });
-            }
-        }
-
-        // Validate dates
-        const startDateObj = new Date(startDate);
-        const endDateObj = new Date(endDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (startDateObj < today) {
-            return res.status(400).json({
-                success: false,
-                message: 'Start date must be today or in the future'
-            });
-        }
-
-        if (endDateObj <= startDateObj) {
-            return res.status(400).json({
-                success: false,
-                message: 'End date must be after start date'
-            });
-        }
-
-        // Check for overlapping offers (excluding current offer)
-        const overlappingQuery = {
-            _id: { $ne: id },
-            offerType: offerType,
-            status: true,
-            $or: [
-                {
-                    startDate: { $lte: endDateObj },
-                    endDate: { $gte: startDateObj }
-                }
-            ]
-        };
-
-        if (offerType === 'category') {
-            overlappingQuery.categoryId = { $in: categoryId };
-        } else {
-            overlappingQuery.productId = { $in: productId };
-        }
-
-        const overlappingOffer = await Offer.findOne(overlappingQuery);
-
-        if (overlappingOffer) {
-            return res.status(400).json({
-                success: false,
-                message: `An active offer already exists for the selected ${offerType}(s) during this time period`
-            });
-        }
-
-        // Update offer
-        existingOffer.offerName = offerName;
-        existingOffer.discount = discountValue;
-        existingOffer.offerType = offerType;
-        existingOffer.startDate = startDateObj;
-        existingOffer.endDate = endDateObj;
-        existingOffer.categoryId = offerType === 'category' ? categoryId : [];
-        existingOffer.productId = offerType === 'product' ? productId : [];
-
-        await existingOffer.save();
-
-        res.status(200).json({
-            success: true,
-            message: 'Offer updated successfully',
-            offer: existingOffer
-        });
-
-    } catch (error) {
-        console.error('Error updating offer:', error);
-
-        // Handle mongoose validation errors
-        if (error.name === 'ValidationError') {
-            const messages = Object.values(error.errors).map(err => err.message);
-            return res.status(400).json({
-                success: false,
-                message: messages.join(', ')
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            message: 'Server error while updating offer'
-        });
+    // Find existing offer
+    const existingOffer = await Offer.findById(id);
+    if (!existingOffer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Offer not found'
+      });
     }
+
+    // Validate required fields
+    if (!offerName || !discount || !offerType || !startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'All required fields must be provided'
+      });
+    }
+
+    // Validate offer name
+    if (offerName.trim().length < 3) {
+      return res.status(400).json({
+        success: false,
+        message: 'Offer name must be at least 3 characters long'
+      });
+    }
+
+    // ✅ Validate discount — must be between 0 and 100 (exclusive)
+    const discountValue = parseFloat(discount);
+    if (isNaN(discountValue) || discountValue <= 0 || discountValue >= 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Discount must be greater than 0% and less than 100%'
+      });
+    }
+
+    // Validate offer type
+    if (!['category', 'product'].includes(offerType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid offer type'
+      });
+    }
+
+    // Validate category or product selection
+    if (offerType === 'category') {
+      if (!categoryId || !Array.isArray(categoryId) || categoryId.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please select at least one category'
+        });
+      }
+    } else if (offerType === 'product') {
+      if (!productId || !Array.isArray(productId) || productId.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please select at least one product'
+        });
+      }
+    }
+
+    // Validate dates
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (startDateObj < today) {
+      return res.status(400).json({
+        success: false,
+        message: 'Start date must be today or in the future'
+      });
+    }
+
+    if (endDateObj <= startDateObj) {
+      return res.status(400).json({
+        success: false,
+        message: 'End date must be after start date'
+      });
+    }
+
+    // Check overlapping offers (excluding current offer)
+    const overlappingQuery = {
+      _id: { $ne: id },
+      offerType,
+      status: true,
+      $or: [
+        {
+          startDate: { $lte: endDateObj },
+          endDate: { $gte: startDateObj }
+        }
+      ]
+    };
+
+    if (offerType === 'category') {
+      overlappingQuery.categoryId = { $in: categoryId };
+    } else {
+      overlappingQuery.productId = { $in: productId };
+    }
+
+    const overlappingOffer = await Offer.findOne(overlappingQuery);
+    if (overlappingOffer) {
+      return res.status(400).json({
+        success: false,
+        message: `An active offer already exists for the selected ${offerType}(s) during this time period`
+      });
+    }
+
+    // Update offer
+    existingOffer.offerName = offerName.trim();
+    existingOffer.discount = discountValue;
+    existingOffer.offerType = offerType;
+    existingOffer.startDate = startDateObj;
+    existingOffer.endDate = endDateObj;
+    existingOffer.categoryId = offerType === 'category' ? categoryId : [];
+    existingOffer.productId = offerType === 'product' ? productId : [];
+
+    await existingOffer.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Offer updated successfully',
+      offer: existingOffer
+    });
+
+  } catch (error) {
+    console.error('Error updating offer:', error);
+
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: messages.join(', ')
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating offer'
+    });
+  }
 };
+
 
 
 

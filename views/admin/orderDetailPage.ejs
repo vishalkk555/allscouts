@@ -27,7 +27,7 @@
                     <h3><i class="fas fa-clipboard-list"></i> Order Status</h3>
                     <div class="form-group">
                         <label for="orderStatus">Order Status</label>
-                        <select id="orderStatus" name="orderStatus" class="form-select">
+                        <select id="orderStatus" name="orderStatus" class="form-select" <%= ['Delivered', 'Cancelled', 'Returned'].includes(order.orderStatus) ? 'disabled' : '' %>>
                             <option value="Pending" <%= order.orderStatus === 'Pending' ? 'selected' : '' %>>Pending</option>
                             <option value="Confirmed" <%= order.orderStatus === 'Confirmed' ? 'selected' : '' %>>Confirmed</option>
                             <option value="Processing" <%= order.orderStatus === 'Processing' ? 'selected' : '' %>>Processing</option>
@@ -114,7 +114,7 @@
                                     <td><%= item.size %></td>
                                     <td><%= item.quantity %></td>
                                     <td>
-                                        <select name="productStatus_<%= item._id %>" class="compact-status-select" data-item-id="<%= item._id %>">
+                                        <select name="productStatus_<%= item._id %>" class="compact-status-select" data-item-id="<%= item._id %>" <%= ['Delivered', 'Returned', 'Cancelled', 'Return Rejected'].includes(item.productStatus) ? 'disabled' : '' %>>
                                             <option value="Pending" <%= item.productStatus === 'Pending' ? 'selected' : '' %>>Pending</option>
                                             <option value="Confirmed" <%= item.productStatus === 'Confirmed' ? 'selected' : '' %>>Confirmed</option>
                                             <option value="Processing" <%= item.productStatus === 'Processing' ? 'selected' : '' %>>Processing</option>
@@ -122,6 +122,9 @@
                                             <option value="Delivered" <%= item.productStatus === 'Delivered' ? 'selected' : '' %>>Delivered</option>
                                             <option value="Cancelled" <%= item.productStatus === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
                                             <option value="Returned" <%= item.productStatus === 'Returned' ? 'selected' : '' %>>Returned</option>
+                                            <option value="Return Requested" <%= item.productStatus === 'Return Requested' ? 'selected' : '' %>>Return Requested</option>
+                                            <option value="Return Approved" <%= item.productStatus === 'Return Approved' ? 'selected' : '' %>>Return Approved</option>
+                                            <option value="Return Rejected" <%= item.productStatus === 'Return Rejected' ? 'selected' : '' %>>Return Rejected</option>
                                         </select>
                                     </td>
                                     <td class="compact-return-cell">
@@ -451,6 +454,16 @@
                 closeModal();
             }
         }
+
+        // Sync order status change to all item statuses
+        const orderStatusSelect = document.getElementById('orderStatus');
+        orderStatusSelect.addEventListener('change', function() {
+            const newStatus = this.value;
+            const productSelects = document.querySelectorAll('.compact-status-select:not([disabled])');
+            productSelects.forEach(select => {
+                select.value = newStatus;
+            });
+        });
     </script>
 </body>
 </html>
