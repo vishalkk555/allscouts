@@ -221,6 +221,7 @@ const placeOrder = async (req, res) => {
     // Apply coupon discount if present
     let discount = 0;
     let couponCode = null;
+    let appliedCoupon = null;
     if (req.session.appliedCoupon) {
       const coupon = await Coupon.findOne({
         couponCode: req.session.appliedCoupon.code,
@@ -230,10 +231,10 @@ const placeOrder = async (req, res) => {
       });
 
       if (coupon && subtotal >= coupon.minPurchase) {
+        appliedCoupon = coupon;
         couponCode = coupon.couponCode;
         if (coupon.type === 'percentageDiscount') {
           discount = Math.floor((subtotal * coupon.discount) / 100);
-          if (coupon.maxDiscount) discount = Math.min(discount, coupon.maxDiscount);
         } else {
           discount = coupon.discount;
         }
@@ -307,6 +308,14 @@ if (paymentMethod === 'cod') {
         );
       }
 
+      // Decrement coupon uses if applied
+      if (appliedCoupon) {
+        await Coupon.updateOne(
+          { _id: appliedCoupon._id },
+          { $inc: { maxRedeem: -1 } }
+        );
+      }
+
       // Clear coupon from session
       if (req.session.appliedCoupon) {
         delete req.session.appliedCoupon;
@@ -345,6 +354,14 @@ if (paymentMethod === 'cod') {
               totalstock: -item.quantity,
             },
           }
+        );
+      }
+
+      // Decrement coupon uses if applied
+      if (appliedCoupon) {
+        await Coupon.updateOne(
+          { _id: appliedCoupon._id },
+          { $inc: { maxRedeem: -1 } }
         );
       }
 
@@ -564,9 +581,8 @@ const getUserOrders = async (req, res) => {
     }
 };
 
-// Get single order details for user
-
- const getUserOrderDetails = async (req, res) => {
+// Get User Order Details with proper total calculation
+const getUserOrderDetails = async (req, res) => {
     try {
         const { orderId } = req.params;
         const userId = req.session.user;
@@ -582,10 +598,9 @@ const getUserOrders = async (req, res) => {
             });
         }
 
-        // First, get the order without population to see what's stored
         const order = await Orders.findOne({ 
-            _id: new mongoose.Types.ObjectId(orderId), 
-            userId: new mongoose.Types.ObjectId(userId) 
+            _id: new mongoose.Types.ObjectId(orderId),
+            userId: new mongoose.Types.ObjectId(userId)
         }).lean();
 
         if (!order) {
@@ -596,19 +611,16 @@ const getUserOrders = async (req, res) => {
         }
 
         console.log('Raw order deliveryAddress:', order.deliveryAddress);
-        console.log('Order data:', JSON.stringify(order, null, 2));
 
-        // If deliveryAddress is an ObjectId, populate it (supports both parent Address _id and sub-address _id)
+        // Resolve delivery address
         if (order.deliveryAddress && mongoose.Types.ObjectId.isValid(order.deliveryAddress)) {
             let address = await Address.findById(order.deliveryAddress).lean();
 
             if (!address) {
-                // Might be a sub-address _id; search within address array
                 const parentDoc = await Address.findOne({ 'address._id': order.deliveryAddress }).lean();
                 if (parentDoc) {
                     const sub = parentDoc.address.find(a => a._id.toString() === order.deliveryAddress.toString());
                     if (sub) {
-                        // Normalize to the structure expected by the view
                         address = { address: [sub] };
                     }
                 }
@@ -620,16 +632,13 @@ const getUserOrders = async (req, res) => {
 
         // Populate product data
         if (order.orderedItem && order.orderedItem.length > 0) {
-          
-            
             for (let item of order.orderedItem) {
                 if (item.productId && mongoose.Types.ObjectId.isValid(item.productId)) {
                     const product = await Product.findById(item.productId)
                         .select('productName productImage productPrice stock status')
                         .lean();
                     item.productId = product;
-                    
-                    // Process images
+
                     if (product && product.productImage) {
                         if (typeof product.productImage === 'string') {
                             product.productImage = [product.productImage];
@@ -645,8 +654,45 @@ const getUserOrders = async (req, res) => {
             }
         }
 
+        // Calculate CURRENT subtotal (only active items)
+        let currentSubtotal = 0;
+        order.orderedItem.forEach(item => {
+            if (!['Returned', 'Cancelled'].includes(item.productStatus)) {
+                currentSubtotal += item.totalProductPrice;
+            }
+        });
+
+        // Calculate CURRENT applicable discount
+        let currentDiscount = 0;
+        let couponInfo = null;
+        
+        if (order.couponCode) {
+            couponInfo = await Coupon.findOne({ couponCode: order.couponCode }).lean();
+            
+            if (couponInfo && currentSubtotal >= couponInfo.minPurchase) {
+                if (couponInfo.type === 'percentageDiscount') {
+                    currentDiscount = Math.round((currentSubtotal * couponInfo.discount) / 100);
+                } else {
+                    currentDiscount = couponInfo.discount;
+                }
+            }
+        }
+
+        const currentGrandTotal = currentSubtotal - currentDiscount;
+
+        // Add calculated values to order for EJS
+        order.calculatedSubtotal = currentSubtotal;
+        order.calculatedDiscount = currentDiscount;
+        order.calculatedGrandTotal = currentGrandTotal;
+        order.couponInfo = couponInfo;
+
+        console.log('=== ORDER TOTALS ===');
+        console.log('Current Subtotal:', currentSubtotal);
+        console.log('Current Discount:', currentDiscount);
+        console.log('Current Grand Total:', currentGrandTotal);
+
         res.render('orderDetails', { 
-            order, 
+            order,
             user: req.session.user,
             title: `Order ${order.orderNumber || order._id.toString().slice(-8).toUpperCase()}`
         });
@@ -1014,22 +1060,102 @@ const cancelItem = async (req, res) => {
     }
 };
 
-// Request return for individual item
-const returnItem = async (req, res) => {
+// Check if return will affect coupon (API endpoint for warning)
+const checkReturnCouponImpact = async (req, res) => {
     try {
-        const { orderId, productId, itemIndex, returnReason } = req.body;
-        const userId = req.session.user
+        const { orderId, itemIndex } = req.body;
+        const userId = req.session.user;
 
         if (!userId) {
+            return res.json({ success: false, message: 'User not authenticated' });
+        }
+
+        const order = await Orders.findOne({ _id: orderId, userId: userId });
+
+        if (!order) {
+            return res.json({ success: false, message: 'Order not found' });
+        }
+
+        const item = order.orderedItem[itemIndex];
+        
+        if (!item) {
+            return res.json({ success: false, message: 'Item not found' });
+        }
+
+        let willLoseCoupon = false;
+        let couponAmount = 0;
+        let newSubtotal = 0;
+        let currentSubtotal = 0;
+        
+        if (order.couponCode) {
+            const coupon = await Coupon.findOne({ couponCode: order.couponCode });
+            
+            if (coupon) {
+                // Calculate current subtotal (only active items)
+                order.orderedItem.forEach(orderItem => {
+                    if (!['Returned', 'Cancelled'].includes(orderItem.productStatus)) {
+                        currentSubtotal += orderItem.totalProductPrice;
+                    }
+                });
+
+                // Calculate subtotal after this return
+                newSubtotal = currentSubtotal - item.totalProductPrice;
+
+                // Check coupon eligibility before and after
+                const hasCurrentCoupon = currentSubtotal >= coupon.minPurchase;
+                const willHaveCoupon = newSubtotal >= coupon.minPurchase;
+
+                if (hasCurrentCoupon && !willHaveCoupon) {
+                    willLoseCoupon = true;
+                    
+                    // Calculate current coupon discount amount
+                    if (coupon.type === 'percentageDiscount') {
+                        couponAmount = Math.round((currentSubtotal * coupon.discount) / 100);
+                    } else {
+                        couponAmount = coupon.discount;
+                    }
+                }
+            }
+        }
+
+        res.json({
+            success: true,
+            willLoseCoupon,
+            couponAmount,
+            minPurchase: order.couponInfo?.minPurchase || 0,
+            newSubtotal,
+            currentSubtotal
+        });
+
+    } catch (error) {
+        console.error('Error checking coupon impact:', error);
+        res.json({ success: false, message: 'Failed to check coupon impact' });
+    }
+};
+
+// Request return for individual item (with transaction support)
+const returnItem = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+        const { orderId, productId, itemIndex, returnReason } = req.body;
+        const userId = req.session.user;
+
+        if (!userId) {
+            await session.abortTransaction();
+            session.endSession();
             return res.json({
                 success: false,
                 message: 'User not authenticated'
             });
         }
 
-        const order = await Orders.findOne({ _id: orderId, userId: userId });
+        const order = await Orders.findOne({ _id: orderId, userId: userId }).session(session);
 
         if (!order) {
+            await session.abortTransaction();
+            session.endSession();
             return res.json({
                 success: false,
                 message: 'Order not found'
@@ -1039,14 +1165,17 @@ const returnItem = async (req, res) => {
         const item = order.orderedItem[itemIndex];
         
         if (!item || item.productId.toString() !== productId) {
+            await session.abortTransaction();
+            session.endSession();
             return res.json({
                 success: false,
                 message: 'Item not found'
             });
         }
 
-        // Check if item can be returned
         if (item.productStatus !== 'Delivered') {
+            await session.abortTransaction();
+            session.endSession();
             return res.json({
                 success: false,
                 message: 'Only delivered items can be returned'
@@ -1059,7 +1188,9 @@ const returnItem = async (req, res) => {
         item.returnRequestDate = new Date();
         item.productStatus = 'Return Requested';
 
-        await order.save();
+        await order.save({ session });
+        await session.commitTransaction();
+        session.endSession();
 
         res.json({
             success: true,
@@ -1067,6 +1198,8 @@ const returnItem = async (req, res) => {
         });
 
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
         console.error('Error submitting return request:', error);
         res.json({
             success: false,
@@ -1075,7 +1208,6 @@ const returnItem = async (req, res) => {
         });
     }
 };
-
 
 const generateInvoice = async (req, res) => {
     try {
@@ -1881,6 +2013,7 @@ module.exports = {
     getUserOrderDetails,
     cancelOrder,
     cancelItem,
+    checkReturnCouponImpact,
     returnItem,
     generateInvoice,
     createRazorpayOrder,
