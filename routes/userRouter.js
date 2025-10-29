@@ -22,6 +22,8 @@ router.get('/login', guestAuth , userController.loadLogin)
 router.post('/login', guestAuth,  userController.login)
 router.get('/product',guestAuth,userController.loadProductPage)
 router.post('/logout',userController.logout)
+router.get('/about', userController.getAboutPage)
+router.get('/contact' , userController.getContactPage)
 
 
 // User Profile Routes

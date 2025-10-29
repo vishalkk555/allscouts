@@ -607,6 +607,23 @@ const resetPassword = async (req, res, next) => {
 };
 
 
+const getAboutPage = async(req,res,next) => {
+  try {
+    res.render("about")
+  } catch (error) {
+    next(error)
+  }
+}
+
+const getContactPage = async( req , res , next) => {
+  try {
+    res.render("contact")
+  } catch (error) {
+    (next)
+  }
+}
+
+
 module.exports = {
     loadHomePage,
     pageNotFound,
@@ -625,5 +642,7 @@ module.exports = {
     verifyForgotPasswordOtp,
     resendForgotPasswordOtp,
     loadResetPassword,
-    resetPassword
+    resetPassword,
+    getAboutPage,
+    getContactPage
 }

@@ -680,30 +680,7 @@ function updateWishlistCount() {
 
 
 
-        // Related product quick actions
-        document.querySelectorAll('.product-card').forEach(card => {
-            card.addEventListener('mouseenter', function() {
-                // Add quick action buttons on hover (optional enhancement)
-                const quickActions = document.createElement('div');
-                quickActions.className = 'quick-actions';
-                quickActions.innerHTML = `
-                    <button onclick="quickAddToCart('${this.dataset.productId}')" class="quick-btn">
-                        <i class="fas fa-shopping-cart"></i>
-                    </button>
-                    <button onclick="addToWishlist('${this.dataset.productId}')" class="quick-btn">
-                        <i class="far fa-heart"></i>
-                    </button>
-                `;
-                this.appendChild(quickActions);
-            });
-            
-            card.addEventListener('mouseleave', function() {
-                const quickActions = this.querySelector('.quick-actions');
-                if (quickActions) {
-                    quickActions.remove();
-                }
-            });
-        });
+       
 
       function quickAddToCart(productId) {
     fetch('/add', {

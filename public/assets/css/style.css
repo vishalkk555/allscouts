@@ -8605,14 +8605,7 @@ body {
 } */
 
 /* Main content */
-/* .profile-main-content {
-    flex: 1;
-    background: white;
-    border-radius: 12px;
-    padding: 40px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e8e8e8;
-}
+/* 
 
 .profile-page-title {
     font-size: 32px;
@@ -8679,6 +8672,17 @@ body {
 .profile-btn-primary:hover {
     background-color: #333;
 } */
+
+.profile-main-content {
+    flex: 1;
+    background: white;
+    border-radius: 12px;
+    padding: 40px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e8e8e8;
+    margin-bottom: 120px;
+}
+
     /* Referral Section Styles */
 .referral-section {
     margin-top: 2rem;
@@ -9438,6 +9442,7 @@ body {
 /* Related Products - Updated with Offer Styles */
 .related-products {
     margin-top: 80px;
+    margin-bottom: 100px
 }
 
 .related-products h2 {
@@ -14522,3 +14527,4 @@ body {
         font-size: 13px;
     }
 }
+

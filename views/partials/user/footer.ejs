@@ -78,6 +78,7 @@
   </div>
   <!-- End scroll up button -->
   <!-- All script files -->
+   
   <script src="assets/js/jquery-3.6.0.min.js"></script>
   <script src="assets/js/jquery.slick.min.js"></script>
   <script src="assets/js/isotope.pkg.min.js"></script>
@@ -85,6 +86,18 @@
   <script src="assets/js/animated-headline.js"></script>
   <script src="assets/js/main.js"></script>
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'95bef7b55a0f48e3',t:'MTc1MTk3MTI3MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='../../cdn-cgi/challenge-platform/h/b/scripts/jsd/e7e9d014f96e/maind41d.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"rayId":"95bef7b55a0f48e3","version":"2025.6.2","r":1,"serverTiming":{"name":{"cfExtPri":true,"cfEdge":true,"cfOrigin":true,"cfL4":true,"cfSpeedBrain":true,"cfCacheStatus":true}},"token":"6f756f02820545e3be40ddc6eb6154c3","b":1}' crossorigin="anonymous"></script>
+
+  <script>
+  // Select all footer links
+  document.querySelectorAll("footer a").forEach(link => {
+    link.addEventListener("click", function (event) {
+      event.preventDefault(); // stop normal navigation
+      location.reload();      // reload current page
+    });
+  });
+</script>
+
+
 </body>
 
 <!-- Mirrored from static.laralink.com/html/sattiyas/index.html by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 08 Jul 2025 10:41:39 GMT -->

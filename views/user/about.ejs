@@ -1,0 +1,248 @@
+<style>
+.about-page {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  color: #1a1a1a;
+}
+
+.about-hero {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  overflow: hidden;
+  background: #f5f5f5;
+}
+
+.about-hero-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.about-hero-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  padding: 60px 20px 40px;
+}
+
+.about-hero-title {
+  color: white;
+  font-size: 3.5rem;
+  font-weight: 300;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin: 0;
+  text-align: center;
+}
+
+.about-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 80px 20px;
+}
+
+.about-legacy-section {
+  max-width: 800px;
+  margin: 0 auto 80px;
+  text-align: center;
+}
+
+.about-section-title {
+  font-size: 2.5rem;
+  font-weight: 300;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 40px;
+  color: #1a1a1a;
+  position: relative;
+  display: inline-block;
+  font-family:'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif
+}
+
+.about-section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 2px;
+  background: #1a1a1a;
+}
+
+.about-legacy-text {
+  font-size: 1.1rem;
+  line-height: 1.9;
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  color: #000000;
+  margin-bottom: 30px;
+  text-align: justify;
+}
+
+.about-values-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 40px;
+  margin-top: 60px;
+}
+
+.about-value-card {
+  text-align: center;
+  padding: 40px 30px;
+  background: #ffffff;
+  transition: transform 0.3s ease;
+  border-radius: 25px;
+}
+
+.about-value-card:hover {
+  transform: translateY(-5px);
+}
+
+.about-value-icon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  color: #1a1a1a;
+}
+
+.about-value-title {
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 15px;
+  color: #1a1a1a;
+}
+
+.about-value-description {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #666;
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+
+.about-cta-section {
+  text-align: center;
+  padding: 60px 20px;
+  background: #1a1a1a;
+  color: white;
+  margin-top: 80px;
+}
+
+.about-cta-title {
+  font-size: 2rem;
+  font-weight: 300;
+  letter-spacing: 2px;
+  margin-bottom: 30px;
+  color: #f5f5f5;
+}
+
+.about-cta-button {
+  display: inline-block;
+  padding: 15px 50px;
+  background: white;
+  color: #1a1a1a;
+  text-decoration: none;
+  font-size: 1rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  transition: background 0.3s ease, color 0.3s ease;
+  border: 2px solid white;
+}
+
+.about-cta-button:hover {
+  background: transparent;
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .about-hero {
+    height: 350px;
+  }
+
+  .about-hero-title {
+    font-size: 2.5rem;
+    letter-spacing: 3px;
+  }
+
+  .about-container {
+    padding: 50px 20px;
+  }
+
+  .about-section-title {
+    font-size: 2rem;
+  }
+
+  .about-legacy-text {
+    font-size: 1rem;
+    text-align: left;
+  }
+
+  .about-values-section {
+    gap: 30px;
+  }
+}
+</style>
+
+<%- include("../partials/user/header") %>
+
+<main class="about-page">
+  <!-- Hero Banner Section -->
+  <section class="about-hero">
+    <img src="/assets/img/Gemini_Generated_banner.png" alt="ALLSCOUTS Brand Story" class="about-hero-image">
+    <!-- <div class="about-hero-overlay">
+      <h1 class="about-hero-title">Our Story</h1>
+    </div> -->
+  </section>
+
+  <!-- Main Content -->
+  <div class="about-container">
+    <!-- Legacy Section -->
+    <section class="about-legacy-section">
+      <h2 class="about-section-title">The Legacy</h2>
+      <p class="about-legacy-text">
+        Founded with a vision to redefine contemporary fashion, ALLSCOUTS emerged from a passion for quality craftsmanship and timeless design. Our journey began with a simple belief: that clothing should be more than just fabric—it should be an expression of individuality, confidence, and authenticity. Over the years, we've cultivated a community of fashion-forward individuals who appreciate the intersection of classic elegance and modern innovation.
+      </p>
+      <p class="about-legacy-text">
+        Every piece in our collection is thoughtfully curated and designed with meticulous attention to detail. We source premium materials from trusted suppliers worldwide and work closely with skilled artisans who share our commitment to excellence. ALLSCOUTS isn't just a brand; it's a movement toward conscious consumption, sustainable practices, and enduring style that transcends fleeting trends.
+      </p>
+    </section>
+
+    <!-- Values Section -->
+    <section class="about-values-section">
+      <div class="about-value-card">
+        <div class="about-value-icon">✦</div>
+        <h3 class="about-value-title">Quality First</h3>
+        <p class="about-value-description">
+          We believe in creating pieces that last. Every garment undergoes rigorous quality control to ensure it meets our exacting standards.
+        </p>
+      </div>
+
+      <div class="about-value-card">
+        <div class="about-value-icon">◈</div>
+        <h3 class="about-value-title">Sustainable Fashion</h3>
+        <p class="about-value-description">
+          Our commitment to the environment drives us to adopt eco-friendly practices and partner with ethical manufacturers.
+        </p>
+      </div>
+
+      <div class="about-value-card">
+        <div class="about-value-icon">❖</div>
+        <h3 class="about-value-title">Timeless Design</h3>
+        <p class="about-value-description">
+          We create versatile pieces that transcend seasons, allowing you to build a wardrobe that evolves with you.
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <!-- Call to Action -->
+  <section class="about-cta-section">
+    <h2 class="about-cta-title">Explore Our Collection</h2>
+    <a href="/shop" class="about-cta-button">Shop Now</a>
+  </section>
+</main>
+
+<%- include("../partials/user/footer") %>
