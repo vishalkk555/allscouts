@@ -35,6 +35,10 @@ const userSchema  = new Schema({
         type: Array,
         required: false,
     },
+      usedCoupons: {
+      type: [String],
+      default: [],
+    },
     isBlocked: {
         type : Boolean,
         default : false

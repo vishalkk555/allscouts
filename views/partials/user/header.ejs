@@ -17,8 +17,38 @@
   <link rel="stylesheet" href="/assets/css/animated-headline.css">
   <link rel="stylesheet" href="/assets/css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+  <style>
+    /* Cart badge styles - page specific */
+    .cs_cart_badge_wrapper {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .cs_cart_badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background-color: #ff4444;
+      color: #fff;
+      border-radius: 50%;
+      min-width: 15px;
+      height: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px;
+      line-height: 1;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .cs_cart_badge.cs_hidden {
+      display: none;
+    }
+  </style>
 </head>
 <body>
 
@@ -50,29 +80,28 @@
         <div class="cs_main_header_right">
           <div class="cs_header_action">
             
-            <!-- Search -->
-            <button type="button" class="cs_action_icon cs_header_search_btn">
-              <i class="fa-solid fa-magnifying-glass"></i>
-            </button>
-
             <% if (!user) { %>
-  <!-- Login Button Before Login -->
-  <a href="/login" class="cs_login_btn">
-    <span>Login</span>
-  </a>
-<% } else { %>
-  <!-- After Login: Profile + Wishlist + Cart -->
-  <a href="/profile" class="cs_action_icon" title="Profile">
-    <i class="fa-regular fa-circle-user"></i>
-  </a>
-  <a href="/wishlist" class="cs_action_icon" title="Wishlist">
-    <i class="fa-regular fa-heart"></i>
-  </a>
-  <a href="/cart" class="cs_action_icon" title="Cart">
-    <i class="fa-solid fa-cart-shopping"></i>
-  </a>
-<% } %>
-
+              <!-- Login Button Before Login -->
+              <a href="/login" class="cs_login_btn">
+                <span>Login</span>
+              </a>
+            <% } else { %>
+              <!-- After Login: Profile + Wishlist + Cart -->
+              <a href="/profile" class="cs_action_icon" title="Profile">
+                <i class="fa-regular fa-circle-user"></i>
+              </a>
+              <a href="/wishlist" class="cs_action_icon" title="Wishlist">
+                <i class="fa-regular fa-heart"></i>
+              </a>
+              <div class="cs_cart_badge_wrapper">
+                <a href="/cart" class="cs_action_icon" title="Cart">
+                  <i class="fa-solid fa-cart-shopping"></i>
+                </a>
+                <span class="cs_cart_badge <%= (typeof cartCount === 'undefined' || cartCount === 0) ? 'cs_hidden' : '' %>" id="cartBadge">
+                  <%= typeof cartCount !== 'undefined' ? cartCount : 0 %>
+                </span>
+              </div>
+            <% } %>
 
           </div>
         </div>
@@ -80,27 +109,34 @@
       </div>
     </div>
   </div>
-
-  <!-- Search Dropdown -->
-  <div class="cs_header_search_wrap">
-    <div class="container">
-      <div class="cs_header_search_in">
-        <div class="cs_hero_search_heading">
-          <h3>What are you looking for?</h3>
-          <button class="cs_header_search_close" type="button">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-        <form action="/search" class="cs_header_search_form">
-          <input type="text" name="q" placeholder="Search...">
-          <button type="submit">
-            <i class="fa-solid fa-magnifying-glass"></i>
-          </button>
-        </form>
-      </div>
-    </div>
-  </div>
 </header>
 
 <!-- Space below header -->
 <div class="cs_height_140nav cs_height_lg_80"></div>
+
+<% if (user) { %>
+<script>
+// Global function to update cart badge
+function updateCartBadge() {
+  fetch('/api/cart-count')
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const badge = document.getElementById('cartBadge');
+        if (badge) {
+          badge.textContent = data.count;
+          if (data.count > 0) {
+            badge.classList.remove('cs_hidden');
+          } else {
+            badge.classList.add('cs_hidden');
+          }
+        }
+      }
+    })
+    .catch(error => console.error('Error updating cart badge:', error));
+}
+
+// Initial load
+document.addEventListener('DOMContentLoaded', updateCartBadge);
+</script>
+<% } %>

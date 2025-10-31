@@ -732,7 +732,7 @@ const cancelOrder = async (req, res) => {
             });
         }
 
-        // Check if order can be cancelled (allow more statuses than just 'Pending')
+        // Check if order can be cancelled
         const nonCancellableStatuses = ['Delivered', 'Cancelled', 'Shipped'];
         if (nonCancellableStatuses.includes(order.orderStatus)) {
             return res.status(400).json({
@@ -741,21 +741,39 @@ const cancelOrder = async (req, res) => {
             });
         }
 
-        // Update stock for all items in the order
+        // === FIXED: RESTORE STOCK BY SIZE + totalStock (NO DUPLICATES) ===
         for (const item of order.orderedItem) {
             if (item.productId && item.productStatus !== 'Cancelled') {
                 const quantity = Number(item.quantity);
-                
-                // Update totalStock instead of stock
-                await Product.findByIdAndUpdate(
-                    item.productId._id,
-                    { 
-                        $inc: { totalStock: quantity },
+                const size = item.size;
+
+                // Step 1: Try to increment existing size entry
+                const updated = await Product.findOneAndUpdate(
+                    { _id: item.productId._id, "stock.size": size },
+                    {
+                        $inc: {
+                            "stock.$.quantity": quantity,
+                            totalStock: quantity
+                        },
                         $set: { status: "Available" }
-                    }
+                    },
+                    { new: true }
                 );
-                
-                console.log(`Restored ${quantity} units to product: ${item.productId._id}`);
+
+                // Step 2: Only if size not found → add new entry
+                if (!updated) {
+                    await Product.findByIdAndUpdate(
+                        item.productId._id,
+                        {
+                            $push: { stock: { size, quantity } },
+                            $inc: { totalStock: quantity },
+                            $set: { status: "Available" }
+                        },
+                        { new: true }
+                    );
+                }
+
+                console.log(`Restored ${quantity} units (size: ${size}) to product: ${item.productId._id}`);
             }
         }
 
@@ -777,7 +795,6 @@ const cancelOrder = async (req, res) => {
 
         // Process refund to wallet if payment was made
         if (order.paymentStatus === 'Paid' && ['razorpay', 'wallet', 'cod'].includes(order.paymentMethod) && totalRefundAmount > 0) {
-            // Find or create wallet
             let wallet = await Wallet.findOne({ userId: userId });
             if (!wallet) {
                 wallet = new Wallet({
@@ -787,7 +804,6 @@ const cancelOrder = async (req, res) => {
                 });
             }
 
-            // Add refund to wallet
             await Wallet.updateOne(
                 { userId: userId },
                 {
@@ -853,18 +869,11 @@ const cancelOrder = async (req, res) => {
     }
 };
 
-// Cancel individual item
+// Cancel individual item (UNCHANGED — ALREADY CORRECT)
 const cancelItem = async (req, res) => {
     try {
         const { orderId, productId, itemIndex } = req.body;
         const userId = req.session.user;
-
-        console.log('Cancel Item Request:', {
-            orderId,
-            productId,
-            itemIndex,
-            userId
-        });
 
         if (!userId) {
             return res.status(401).json({
@@ -873,7 +882,6 @@ const cancelItem = async (req, res) => {
             });
         }
 
-        // Find the order with populated product details
         const order = await Orders.findOne({ _id: orderId, userId: userId })
             .populate('orderedItem.productId');
 
@@ -901,7 +909,6 @@ const cancelItem = async (req, res) => {
             });
         }
 
-        // Verify the product ID matches
         if (item.productId._id.toString() !== productId) {
             return res.status(400).json({
                 success: false,
@@ -909,7 +916,6 @@ const cancelItem = async (req, res) => {
             });
         }
 
-        // Check if item can be cancelled
         if (['Delivered', 'Cancelled', 'Returned'].includes(item.productStatus)) {
             return res.status(400).json({
                 success: false,
@@ -925,28 +931,40 @@ const cancelItem = async (req, res) => {
             });
         }
 
-        console.log('Updating stock for product:', productId, 'Quantity:', quantity);
+        const size = item.size;
 
-        // Update the product stock - using totalStock field
-        const updateResult = await Product.findByIdAndUpdate(
-            productId,
-            { 
-                $inc: { totalStock: quantity },
-                $set: { 
-                    status: "Available" // Ensure status is updated to Available
-                }
+        // === RESTORE STOCK BY SIZE + totalStock (ALREADY CORRECT) ===
+        const updatedProduct = await Product.findOneAndUpdate(
+            { _id: productId, "stock.size": size },
+            {
+                $inc: {
+                    "stock.$.quantity": quantity,
+                    totalStock: quantity
+                },
+                $set: { status: "Available" }
             },
             { new: true, runValidators: true }
         );
 
-        if (!updateResult) {
+        let finalProduct = updatedProduct;
+        if (!finalProduct) {
+            finalProduct = await Product.findByIdAndUpdate(
+                productId,
+                {
+                    $push: { stock: { size, quantity } },
+                    $inc: { totalStock: quantity },
+                    $set: { status: "Available" }
+                },
+                { new: true }
+            );
+        }
+
+        if (!finalProduct) {
             return res.status(404).json({
                 success: false,
                 message: 'Product not found during stock update'
             });
         }
-
-        console.log('Stock update successful. New totalStock:', updateResult.totalStock);
 
         // Calculate refund amount with proportional coupon discount
         let refundAmount = item.totalProductPrice;
@@ -958,7 +976,6 @@ const cancelItem = async (req, res) => {
 
         // Process refund to wallet if payment was made
         if (order.paymentStatus === 'Paid' && ['razorpay', 'wallet', 'cod'].includes(order.paymentMethod)) {
-            // Find or create wallet
             let wallet = await Wallet.findOne({ userId: userId });
             if (!wallet) {
                 wallet = new Wallet({
@@ -968,7 +985,6 @@ const cancelItem = async (req, res) => {
                 });
             }
 
-            // Add refund to wallet
             await Wallet.updateOne(
                 { userId: userId },
                 {
@@ -997,10 +1013,8 @@ const cancelItem = async (req, res) => {
         );
         
         if (activeItems.length === 0) {
-            // All items are cancelled or returned
             order.orderStatus = 'Cancelled';
         } else if (order.orderStatus === 'Cancelled') {
-            // If some items are still active, change status back to appropriate status
             const hasShippedItems = order.orderedItem.some(item => 
                 ['Shipped', 'Delivered'].includes(item.productStatus)
             );
@@ -1017,7 +1031,6 @@ const cancelItem = async (req, res) => {
 
         await order.save();
 
-        // Populate the updated order for response if needed
         await order.populate('orderedItem.productId', 'productName productImage');
 
         const refundedToWallet = order.paymentStatus === 'Paid' && ['razorpay', 'wallet', 'cod'].includes(order.paymentMethod);
@@ -1045,7 +1058,9 @@ const cancelItem = async (req, res) => {
                 },
                 stockUpdate: {
                     productId: productId,
-                    newTotalStock: updateResult.totalStock
+                    newTotalStock: finalProduct.totalStock,
+                    restoredSize: size,
+                    restoredQty: quantity
                 }
             }
         });

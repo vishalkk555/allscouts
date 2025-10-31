@@ -12,6 +12,7 @@ const MemoryStore = require('memorystore')(session); // Use memorystore for sess
 const userRouter = require("./routes/userRouter");
 const adminRouter = require("./routes/adminRouter");
 const blockGuard = require("./middlewares/blockGuard");
+const getCartCount = require('./middlewares/cartCount');
 
 db();
 
@@ -37,9 +38,8 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use('/admin/assets', express.static(path.join(__dirname, "public/admin/assets")));
 app.use('/uploads', express.static(path.join(__dirname, "uploads")));
 
-// ---------------------------
+
 // Session Configuration
-// ---------------------------
 const userSession = session({
   name: "userSessionId",
   secret: process.env.SESSION_SECRET || "userSecret",
@@ -68,9 +68,8 @@ const adminSession = session({
   }
 });
 
-// ---------------------------
+
 // Apply User Session + Passport (NOT on /admin routes)
-// ---------------------------
 app.use((req, res, next) => {
   if (req.path.startsWith('/admin')) {
     return next();
@@ -126,6 +125,8 @@ app.use((req, res, next) => {
   }
   blockGuard(req, res, next);
 });
+
+app.use(getCartCount);
 
 // ---------------------------
 // Routes

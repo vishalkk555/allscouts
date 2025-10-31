@@ -2159,6 +2159,7 @@ End Review
   padding: 6px 25px 6px 0;
   outline: none;
   color: #5e5e5e;
+  background-color: #fcfbfb;
 }
 
 .cs_view {
@@ -7690,6 +7691,7 @@ body {
   padding: 0 15px;
 }
 
+
 .cs_product_grid_3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr) !important;
@@ -12209,7 +12211,7 @@ body {
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background-color: #f8f9fa;
+    background-color: white;
     color: #2c3e50;
     line-height: 1.6;
 }

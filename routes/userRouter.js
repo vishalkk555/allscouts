@@ -76,7 +76,8 @@ router.post('/updateQuantity', cartController.updateCartQuantity);
 // Remove item from cart
 router.post('/removeItem',  cartController.removeCartItem);
 // Clear entire cart
-router.post('/clear', cartController.clearCart);           
+router.post('/clear', cartController.clearCart);
+router.get('/api/cart-count', cartController.cartCount)           
  
 
 
