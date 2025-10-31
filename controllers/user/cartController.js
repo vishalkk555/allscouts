@@ -403,6 +403,22 @@ const clearCart = async (req, res) => {
   }
 };
 
+const cartCount = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.json({ success: true, count: 0 });
+        }
+
+        const cart = await Cart.findOne({ userId: req.session.user });
+        const count = cart && cart.item ? cart.item.length : 0;
+        
+        res.json({ success: true, count: count });
+    } catch (error) {
+        console.error('Error fetching cart count:', error);
+        res.json({ success: false, count: 0 });
+    }
+};
+
 
 
 module.exports = {
@@ -411,6 +427,7 @@ module.exports = {
   updateCartQuantity,
   removeCartItem,
   clearCart,
+  cartCount
 };
 
 

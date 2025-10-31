@@ -166,6 +166,8 @@
 
             if (data.success) {
               Swal.fire("Added!", data.message, "success");
+              updateCartBadge();
+            
             } else {
               Swal.fire("Error", data.message || "Could not add", "error");
             }

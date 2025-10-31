@@ -446,7 +446,9 @@ document.addEventListener("DOMContentLoaded", () => {
           timer: 1500,
           showConfirmButton: false
         });
-        
+         
+         updateCartBadge();
+
         // Close the modal
         bootstrap.Modal.getInstance(document.getElementById("stockSelectModal")).hide();
       } else {
