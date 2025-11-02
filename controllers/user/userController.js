@@ -1,4 +1,5 @@
 const User=require('../../models/userSchema')
+const Product = require("../../models/productSchema")
 const Wallet = require('../../models/walletSchema')
 const env = require("dotenv").config
 const nodemailer = require("nodemailer")
@@ -356,18 +357,23 @@ const pageNotFound = async(req,res) => {
 
 
 
+
 const loadHomePage = async (req, res) => {
   try {
-    return res.render("home", {
-      user: req.session.user,  
-      title: "Home"
-    });
+    const latestProducts = await Product.find({ isBlocked: false })
+      .sort({ createdAt: -1 }) // latest first
+      .limit(4); // show 8 products, you can adjust this
+
+   return res.render("home", {
+  user: req.session.user,
+  title: "Home",
+  products: latestProducts  // <-- renamed to match your EJS
+});
   } catch (error) {
-    console.log("Home page not found");
+    console.error("Error loading home page:", error);
     res.status(500).send("Server error");
   }
 };
-
 
 const loadSignUp = async (req, res) => {
     try {

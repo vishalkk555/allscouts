@@ -115,7 +115,31 @@
                 </ul>
             </div>
         </header>
+        <style>
+.menu-item.active .menu-link {
+    background-color: #f0f0f0 !important;
+    color: #000 !important;
+    font-weight: 600;
+    border-left: 4px solid #3085d6;
+}
+.menu-item.active .icon {
+    color: #3085d6;
+}
+</style>
+
      <script>
+
+   document.addEventListener("DOMContentLoaded", function() {
+    const currentPath = window.location.pathname;
+    const menuLinks = document.querySelectorAll(".menu-aside .menu-link");
+
+    menuLinks.forEach(link => {
+        if (link.getAttribute("href") && currentPath.startsWith(link.getAttribute("href"))) {
+            link.parentElement.classList.add("active");
+        }
+    });
+});
+
     function handleLogout(event) {
         event.preventDefault(); // IMPORTANT: Prevent default link behavior
         

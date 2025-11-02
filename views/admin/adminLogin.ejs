@@ -4,22 +4,66 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Login</title>
+
+  <!-- Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <!-- Font Awesome for Eye Icon -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+  <!-- Main CSS -->
   <link rel="stylesheet" href="/admin/assets/css/main.css"> <!-- Make sure this path is correct -->
+
+  <!-- CSS for Password Eye Icon -->
+  <style>
+    .password-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .password-wrapper input {
+      width: 100%;
+      padding-right: 40px; /* space for eye icon */
+      box-sizing: border-box;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #888;
+      font-size: 16px;
+      transition: color 0.3s ease;
+    }
+
+    .toggle-password:hover {
+      color: #333;
+    }
+  </style>
 </head>
+
 <body class="login-page">
   <div class="card">
     <h1 style="margin-left: 40px;">ALLSCOUTS</h1>
     <h2>Admin Sign In</h2>
+
     <form id="adminLoginForm" action="/admin/login" method="post">
       <div class="form-group">
         <label for="email">Email*</label>
         <input type="email" id="email" name="email" required />
       </div>
        
-      <div class="form-group">
+      <div class="form-group password-group">
         <label for="password">Password*</label>
-        <input type="password" id="password" name="password" required />
+        <div class="password-wrapper">
+          <input type="password" id="password" name="password" required />
+          <span class="toggle-password" id="togglePassword">
+            <i class="fa fa-eye"></i>
+          </span>
+        </div>
       </div>
                
       <% if (locals.message && message.length > 0) { %>
@@ -30,8 +74,8 @@
     </form>
   </div>
    
-  <!-- Optional: Custom JS validation -->
   <script>
+    // Basic form validation
     document.getElementById("adminLoginForm").addEventListener("submit", function (e) {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value.trim();
@@ -47,6 +91,18 @@
         e.preventDefault();
         return;
       }
+    });
+
+    // Password show/hide toggle
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+
+    togglePassword.addEventListener('click', () => {
+      const isPassword = passwordInput.type === 'password';
+      passwordInput.type = isPassword ? 'text' : 'password';
+      togglePassword.innerHTML = isPassword
+        ? '<i class="fa fa-eye-slash"></i>'
+        : '<i class="fa fa-eye"></i>';
     });
   </script>
 </body>
