@@ -220,66 +220,72 @@ const getTopCategories = async (dateRange) => {
 // Get Date Range based on filter
 function getDateRange(filter) {
     const now = new Date();
-    let currentStart, currentEnd, previousStart, previousEnd;
+    let start, end, prevStart, prevEnd;
 
     switch (filter) {
         case 'daily':
-            currentStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-            currentEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-            previousStart = new Date(currentStart);
-            previousStart.setDate(previousStart.getDate() - 1);
-            previousEnd = new Date(currentEnd);
-            previousEnd.setDate(previousEnd.getDate() - 1);
+            // Today from 00:00:00 to now
+            start = new Date(now);
+            start.setHours(0, 0, 0, 0);
+            end = new Date(now);
+
+            // Previous day range (yesterday)
+            prevStart = new Date(start);
+            prevStart.setDate(prevStart.getDate() - 1);
+            prevEnd = new Date(start);
+            prevEnd.setMilliseconds(-1);
             break;
 
         case 'weekly':
-            currentStart = new Date(now);
-            currentStart.setDate(now.getDate() - 6);
-            currentStart.setHours(0, 0, 0, 0);
-            currentEnd = new Date(now);
-            currentEnd.setHours(23, 59, 59, 999);
-            previousStart = new Date(currentStart);
-            previousStart.setDate(previousStart.getDate() - 7);
-            previousEnd = new Date(currentEnd);
-            previousEnd.setDate(previousEnd.getDate() - 7);
+            end = new Date(now);
+            start = new Date(now);
+            start.setDate(now.getDate() - 6);
+            start.setHours(0, 0, 0, 0);
+
+            prevEnd = new Date(start);
+            prevEnd.setMilliseconds(-1);
+            prevStart = new Date(prevEnd);
+            prevStart.setDate(prevStart.getDate() - 6);
+            prevStart.setHours(0, 0, 0, 0);
             break;
 
         case 'monthly':
-            currentStart = new Date(now);
-            currentStart.setDate(now.getDate() - 29);
-            currentStart.setHours(0, 0, 0, 0);
-            currentEnd = new Date(now);
-            currentEnd.setHours(23, 59, 59, 999);
-            previousStart = new Date(currentStart);
-            previousStart.setDate(previousStart.getDate() - 30);
-            previousEnd = new Date(currentEnd);
-            previousEnd.setDate(previousEnd.getDate() - 30);
+            end = new Date(now);
+            start = new Date(now);
+            start.setDate(now.getDate() - 29);
+            start.setHours(0, 0, 0, 0);
+
+            prevEnd = new Date(start);
+            prevEnd.setMilliseconds(-1);
+            prevStart = new Date(prevEnd);
+            prevStart.setDate(prevStart.getDate() - 29);
+            prevStart.setHours(0, 0, 0, 0);
             break;
 
         case 'yearly':
-            currentStart = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
-            currentEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
-            previousStart = new Date(currentStart);
-            previousStart.setFullYear(previousStart.getFullYear() - 1);
-            previousEnd = new Date(currentEnd);
-            previousEnd.setFullYear(previousEnd.getFullYear() - 1);
+            start = new Date(now.getFullYear(), 0, 1);
+            end = new Date(now);
+            prevStart = new Date(now.getFullYear() - 1, 0, 1);
+            prevEnd = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
             break;
 
         default:
-            currentStart = new Date(now);
-            currentStart.setDate(now.getDate() - 6);
-            currentEnd = new Date(now);
-            previousStart = new Date(currentStart);
-            previousStart.setDate(previousStart.getDate() - 7);
-            previousEnd = new Date(currentEnd);
-            previousEnd.setDate(previousEnd.getDate() - 7);
+            start = new Date(now);
+            start.setHours(0, 0, 0, 0);
+            end = new Date(now);
+            prevStart = new Date(start);
+            prevStart.setDate(prevStart.getDate() - 1);
+            prevEnd = new Date(start);
+            prevEnd.setMilliseconds(-1);
+            break;
     }
 
     return {
-        current: { start: currentStart, end: currentEnd },
-        previous: { start: previousStart, end: previousEnd }
+        current: { start, end },
+        previous: { start: prevStart, end: prevEnd }
     };
 }
+
 
 // Calculate Percentage Change
 function calculatePercentageChange(oldValue, newValue) {
@@ -499,13 +505,14 @@ function generatePDFReport(res, orders, totals, dateRange) {
 
     doc.pipe(res);
 
-    // Header
+    // --- Header Section ---
     doc.fontSize(20).font('Helvetica-Bold').text('Sales Report', { align: 'center' });
     doc.moveDown();
-    doc.fontSize(12).font('Helvetica').text(`Period: ${dateRange.start.toLocaleDateString()} - ${dateRange.end.toLocaleDateString()}`, { align: 'center' });
+    doc.fontSize(12).font('Helvetica')
+        .text(`Period: ${dateRange.start.toLocaleDateString()} - ${dateRange.end.toLocaleDateString()}`, { align: 'center' });
     doc.moveDown(2);
 
-    // Summary
+    // --- Summary Section ---
     doc.fontSize(14).font('Helvetica-Bold').text('Summary');
     doc.moveDown(0.5);
     doc.fontSize(11).font('Helvetica');
@@ -515,30 +522,39 @@ function generatePDFReport(res, orders, totals, dateRange) {
     doc.text(`Net Revenue: ₹${totals.netRevenue.toFixed(2)}`);
     doc.moveDown(2);
 
-    // Orders Table
+    // --- Table Section ---
     doc.fontSize(14).font('Helvetica-Bold').text('Order Details');
     doc.moveDown(0.5);
 
-    const tableTop = doc.y;
+    // Table configuration
+    let tableTop = doc.y;
     const itemHeight = 25;
+    const bottomMargin = 750;
 
-    // Table headers
-    doc.fontSize(10).font('Helvetica-Bold');
-    doc.text('Order ID', 50, tableTop);
-    doc.text('Date', 130, tableTop);
-    doc.text('Customer', 210, tableTop);
-    doc.text('Amount', 320, tableTop);
-    doc.text('Discount', 400, tableTop);
-    doc.text('Status', 480, tableTop);
+    const drawTableHeader = () => {
+        doc.fontSize(10).font('Helvetica-Bold');
+        doc.text('Order ID', 50, tableTop);
+        doc.text('Date', 130, tableTop);
+        doc.text('Customer', 210, tableTop);
+        doc.text('Amount', 320, tableTop);
+        doc.text('Discount', 400, tableTop);
+        doc.text('Status', 480, tableTop);
+        doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
+    };
 
-    // Table rows
+    drawTableHeader();
+
+    let y = tableTop + itemHeight;
+
     doc.font('Helvetica').fontSize(9);
-    orders.slice(0, 20).forEach((order, i) => {
-        const y = tableTop + (i + 1) * itemHeight;
-        
-        if (y > 700) {
+
+    orders.forEach((order, i) => {
+        if (y > bottomMargin) {
+            // --- New Page Handling ---
             doc.addPage();
-            return;
+            tableTop = 50;
+            drawTableHeader();
+            y = tableTop + itemHeight;
         }
 
         doc.text(order.orderNumber || order._id.toString().substring(0, 8), 50, y, { width: 70, ellipsis: true });
@@ -547,10 +563,13 @@ function generatePDFReport(res, orders, totals, dateRange) {
         doc.text(`₹${order.orderAmount.toFixed(2)}`, 320, y);
         doc.text(`₹${(order.couponDiscount || 0).toFixed(2)}`, 400, y);
         doc.text(order.orderStatus, 480, y);
+
+        y += itemHeight;
     });
 
     doc.end();
 }
+
 
 // Generate Excel Report
 async function generateExcelReport(res, orders, totals, dateRange) {

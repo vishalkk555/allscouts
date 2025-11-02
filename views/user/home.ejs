@@ -1,141 +1,261 @@
 <%- include("../partials/user/header") %>
 
+<!-- Preloader (unchanged) -->
+<div class="cs_perloader">…</div>
 
-  <!-- Start Preloader -->
-  <div class="cs_perloader">
-    <div class="cs_perloader_in">
-      <svg class="cs_cart_animation" role="img" aria-label="Sattiyas Preloader" viewBox="0 0 128 128" width="128px" height="128px" xmlns="http://www.w3.org/2000/svg">
-        <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="8">
-          <g class="cs_cart_track" stroke="hsla(0,10%,10%,0.1)">
-            <polyline points="4,4 21,4 26,22 124,22 112,64 35,64 39,80 106,80" />
-            <circle cx="43" cy="111" r="13" />
-            <circle cx="102" cy="111" r="13" />
-          </g>
-          <g class="cs_cart_lines" stroke="currentColor">
-            <polyline class="cs_cart_top" points="4,4 21,4 26,22 124,22 112,64 35,64 39,80 106,80" stroke-dasharray="338 338" stroke-dashoffset="-338" />
-            <g class="cs_cart_wheel_1" transform="rotate(-90,43,111)">
-              <circle class="cs_cart_wheel_stroke" cx="43" cy="111" r="13" stroke-dasharray="81.68 81.68" stroke-dashoffset="81.68" />
-            </g>
-            <g class="cs_cart_wheel_2" transform="rotate(90,102,111)">
-              <circle class="cs_cart_wheel_stroke" cx="102" cy="111" r="13" stroke-dasharray="81.68 81.68" stroke-dashoffset="81.68" />
-            </g>
-          </g>
-        </g>
-      </svg>
-      <!-- <span class="cs_perloader_text">Welcome to Sattiyas. Loading...</span> -->
-    </div>
-  </div>
-  <!-- End Preloader -->
-
-<!-- Start hero -->
+<!-- ==================== HERO ==================== -->
 <section class="hero_banner">
   <div class="hero_image_wrapper">
-    <img src="/assets/img/HP_DK_SU25_11_LOOKS_2600x1300_2x1.avif" alt="Hero Banner" class="hero_banner_img">
+    <img src="/assets/img/HP_DK_SU25_11_LOOKS_2600x1300_2x1.avif"
+         alt="Hero Banner" class="hero_banner_img"
+         onerror="this.src='/assets/img/fallback-hero.jpg'">
     <a href="/shop" class="hero_shop_btn">Shop Now</a>
   </div>
 </section>
-<!-- End hero -->
 
-
-<!-- Start category -->
-<div class="container-fluid">
-  <div class="cs_grid_list">
-    <% const categories = [
-      { name: "Men", image: "men.jpg" },
-      { name: "Women", image: "women.jpg" },
-      { name: "Children", image: "children.jpg" }
-    ]; %>
-
-    <% categories.forEach(category => { %>
-      <div class="cs_category cs_style_1">
-        <a href="/shop" class="cs_category_thumb position-relative">
-          <img src="/assets/img/<%= category.image %>" alt="<%= category.name %>" class="w-100">
-          <span class="cs_category_btn">
-            <span><%= category.name %></span>
-            <span><i class="fa-solid fa-arrow-right"></i></span>
-          </span>
-        </a>
-      </div>
-    <% }) %>
-  </div>
-</div>
-<!-- End category -->
-
-
-
-<!-- Start hero -->
-<!-- <section class="hero_banner">
-  <div class="hero_image_wrapper">
-    <img src="/assets/img/Gemini_Generated_banner.png" alt="Hero Banner" class="hero_banner_img">
-    <a href="/shop" class="hero_shop_btn">Shop Now</a>
-  </div>
-</section> -->
-<!-- End hero -->
-
-<!-- Start featured Items -->
-<div class="container">
+<!-- ==================== NEW ARRIVALS (4 cards) ==================== -->
+<div class="container new-arrivals-section">
   <div class="cs_height_120"></div>
-  <h2 class="cs_section_title">New Arrivals</h2>
-  <div class="cs_product_grid">
-    <% const products = [
-      { name: "Stone Cup", image: "MP2.jpg" },
-      { name: "Gray Bag", image: "WP2.jpg" },
-      { name: "Wooden Chair", image: "MP3.jpg" },
-      { name: "Modern Stool", image: "MP4.jpg" }
-    ]; %>
+  <h2 class="new-arrivals-title">NEW ARRIVALS</h2>
 
-    <% products.forEach(product => { %>
-      <div class="cs_product">
-        <div class="cs_product_thumb">
-          <img src="/assets/img/<%= product.image %>" alt="<%= product.name %>">
-          <div class="cs_wishlist_btn">
-            <i class="fa-regular fa-heart"></i>
+  <div class="cs_product_grid">
+    <% if (products && products.length) { %>
+      <% products.slice(0,4).forEach(p => { %>
+        <div class="cs_product cs_product_card">
+          <div class="cs_product_thumb">
+            <a href="/product/<%= p._id %>">
+              <img src="<%= p.productImage?.[0] ? '/uploads/products/'+p.productImage[0] : '/assets/img/no-image.jpg' %>"
+                   alt="<%= p.productName %>">
+            </a>
+          </div>
+          <div class="cs_product_info">
+            <h3 class="cs_product_title"><a href="/product/<%= p._id %>"><%= p.productName %></a></h3>
+            <div class="cs_product_price"><span class="cs_current_price">₹<%= p.regularPrice %></span></div>
           </div>
         </div>
-        <div class="cs_product_info">
-          <h3 class="cs_product_title">
-            <a href="#"><%= product.name %></a>
-          </h3>
-          <div class="cs_product_price">
-            <span class="cs_original_price">₹4600</span>
-            <span class="cs_current_price">₹2999</span>
-            <span class="cs_discount_text">35% OFF</span>
-          </div>
-        </div>
-      </div>
-    <% }) %>
+      <% }) %>
+    <% } else { %>
+      <p class="no-products">No new arrivals available right now.</p>
+    <% } %>
   </div>
-  <div class="text-center mt-4">
-    <a href="/shop" class="cs_btn cs_view_all_btn">View All</a>
+
+  <div class="text-center mt-4"><a href="/shop" class="cs_btn cs_view_all_btn">View All</a></div>
+</div>
+
+<!-- ==================== ALLSCOUTS FAM BANNER ==================== -->
+<div class="allscouts-fam-container" id="allscoutsContainer">
+  <div class="allscouts-fam-banner">
+    <img src="/assets/img/Allscouts fam banner.jpeg"
+         alt="AllScouts Fam Banner"
+         class="allscouts-fam-image"
+         id="allscoutsImage">
+    
+    <div class="allscouts-buttons" id="allscoutsButtons">
+      <a href="/shop?sort=latest&categories=Men&minPrice=&maxPrice=&size=" class="allscouts-btn">Shop Men</a>
+      <a href="/shop?sort=latest&categories=Women&minPrice=&maxPrice=&size=" class="allscouts-btn">Shop Women</a>
+      <a href="/shop?sort=latest&categories=Kids&minPrice=&maxPrice=&size=" class="allscouts-btn">Shop Kids</a>
+    </div>
   </div>
 </div>
-<!-- End featured Items -->
 
-
-
-<!-- Start collection 1 -->
+<!-- ==================== COLLECTION (was missing) ==================== -->
 <section>
   <div class="cs_height_140 cs_height_lg_80"></div>
   <div class="cs_card cs_style_1">
     <div class="container">
       <div class="row cs_gap_y_30 align-items-center">
-        <div class="col-lg-6">
-          <div class="cs_card_thumb">
-            <img src="/assets/img/card1.jpg" alt="Card Image" class="w-100">
-          </div>
-        </div>
+        <div class="col-lg-6"><div class="cs_card_thumb"><img src="/assets/img/card1.jpg" alt="Card Image" class="w-100"></div></div>
         <div class="col-lg-6">
           <div class="cs_card_info">
             <h2 class="cs_card_title cs_fs_50 cs_bold">Explore our latest winter fashion collection</h2>
-            <p class="cs_card_subtitle">We believe that winter fashion should be both functional and fabulous.<br>Our Winter Fashion Collection reflects our commitment to quality, comfort <br>and style. Embrace the season with confidence.</p>
+            <p class="cs_card_subtitle">
+              We believe that winter fashion should be both functional and fabulous.<br>
+              Embrace the season with confidence.
+            </p>
             <a href="/shop" class="cs_btn cs_style_1 cs_fs_16 cs_medium">Shop Now</a>
           </div>
         </div>
       </div>
     </div>
   </div>
-  <div class="cs_height_120 cs_height_lg_70"></div>
 </section>
-<!-- End collection 1 -->
 
 <%- include("../partials/user/footer") %>
+
+<!-- ======= PAGE-SPECIFIC CSS ======= -->
+<style>
+/* ---------- HERO ---------- */
+.hero_banner{position:relative;overflow:hidden;min-height:70vh;}
+.hero_image_wrapper{position:relative;width:100%;height:100%;}
+.hero_banner_img{width:100%;height:100%;object-fit:cover;display:block;}
+.hero_shop_btn{
+  position:absolute;bottom:40px;left:50%;transform:translateX(-50%);
+  background:#000;color:#fff;padding:12px 32px;border-radius:30px;
+  text-decoration:none;font-weight:600;transition:.3s;
+}
+.hero_shop_btn:hover{background:#333;}
+
+/* ---------- NEW ARRIVALS ---------- */
+.new-arrivals-section{text-align:center;margin-bottom:60px;}
+.new-arrivals-title{
+  font-size:2rem;font-weight:700;letter-spacing:2px;margin-bottom:40px;
+  text-transform:uppercase;display:inline-block;padding-bottom:8px;
+}
+.cs_product_grid{display:flex;justify-content:center;gap:25px;overflow-x:auto;padding:10px 0;}
+.cs_product_card{
+  flex:0 0 250px;background:#fff;border-radius:12px;overflow:hidden;
+  box-shadow:0 4px 12px rgba(0,0,0,.08);transition:transform .3s;
+}
+.cs_product_card:hover{transform:translateY(-8px);}
+.cs_product_thumb img{width:100%;height:320px;object-fit:cover;}
+.cs_product_info{padding:15px;text-align:left;}
+.cs_product_title a{font-size:1.1rem;color:#222;text-decoration:none;}
+.cs_product_price{margin-top:8px;font-weight:600;color:#000;}
+
+/* ---------- ALLSCOUTS FAM BANNER FIXED STYLING ---------- */
+.allscouts-fam-container {
+  position: relative;
+  margin: 60px 0;
+  width: 100%;
+}
+
+.allscouts-fam-banner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.allscouts-fam-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.allscouts-buttons {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 230px;
+  opacity: 0;
+  transition: all 0.4s ease;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.allscouts-buttons.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.allscouts-buttons.scrolling {
+  position: absolute;
+  transition: top 0.1s ease;
+}
+
+.allscouts-btn {
+  background: #fff;
+  color: #000;
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+  padding: 10px 22px;
+  border-radius: 15px;
+  font-size: 15px;
+  text-decoration: none;
+  transition: background .3s;
+  white-space: nowrap;
+}
+
+.allscouts-btn:hover {
+  background: #000000;
+  color: #fff;
+}
+
+/* Responsive buttons */
+@media (max-width: 768px) {
+  .allscouts-buttons {
+    flex-direction: column;
+    gap: 15px;
+  }
+}
+</style>
+
+<!-- ======= PAGE-SPECIFIC JS ======= -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('allscoutsContainer');
+  const image = document.getElementById('allscoutsImage');
+  const buttons = document.getElementById('allscoutsButtons');
+  
+  if (!container || !image || !buttons) return;
+
+  let ticking = false;
+  let imageHeight = 0;
+
+  // Get image height after load
+  if (image.complete) {
+    imageHeight = image.offsetHeight;
+  } else {
+    image.addEventListener('load', () => {
+      imageHeight = image.offsetHeight;
+    });
+  }
+
+  const updateButtons = () => {
+    const containerRect = container.getBoundingClientRect();
+    const windowHeight = window.innerHeight;
+    
+    // Use actual image height if available, otherwise container height
+    const effectiveHeight = imageHeight || containerRect.height;
+    
+    // Calculate scroll progress through the image
+    const imageTop = containerRect.top;
+    const imageBottom = containerRect.bottom;
+    
+    // When 25% of image is visible (from top)
+    const showAt = windowHeight * 0.25;
+    // When image is almost at the bottom
+    const hideAt = 100; // pixels from bottom
+    
+    const isVisible = imageTop <= showAt && imageBottom > hideAt;
+    
+    if (isVisible) {
+      buttons.classList.add('visible');
+      
+      // Calculate scroll progress (0 = top, 1 = bottom)
+      const scrollProgress = Math.max(0, Math.min(1, 
+        (windowHeight - imageTop) / (windowHeight + effectiveHeight)
+      ));
+      
+      // Move buttons from center to bottom as user scrolls
+      const startPosition = 50; // center
+      const endPosition = 85; // near bottom
+      const currentPosition = startPosition + (scrollProgress * (endPosition - startPosition));
+      
+      buttons.style.top = `${currentPosition}%`;
+      
+    } else {
+      buttons.classList.remove('visible');
+      buttons.style.top = '50%'; // Reset to center
+    }
+
+    ticking = false;
+  };
+
+  const requestTick = () => {
+    if (!ticking) {
+      requestAnimationFrame(updateButtons);
+      ticking = true;
+    }
+  };
+
+  window.addEventListener('scroll', requestTick);
+  window.addEventListener('resize', requestTick);
+  
+  // Initial setup
+  setTimeout(() => {
+    imageHeight = image.offsetHeight;
+    requestTick();
+  }, 100);
+});
+</script>

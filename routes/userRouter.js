@@ -90,10 +90,10 @@ router.post("/wishlist/add",productController.addToWishlist)
 router.get("/checkout", productController.getCheckoutPage)
 router.post("/addAddress" , productController.addAddress)
 router.get('/getAddress/:addressId', profileController.getAddressForModal);
-
-
-router.post('/applyCoupon',orderController.applyCoupon)
-router.post('/removeCoupon',orderController.removeCoupon)
+router.post('/editAddress', userAuth, profileController.editAddressFromCheckout);
+router.post('/checkStockAvailability', orderController.checkStockAvailability);
+router.post('/applyCouponDynamic',orderController.applyCoupon)
+router.post('/removeCouponDynamic',orderController.removeCoupon)
 router.post("/placeOrder" , orderController.placeOrder)
 router.get("/orderSuccess/:orderId", orderController.orderSuccessPage)
 router.post('/create-razorpay-order', orderController.createRazorpayOrder);

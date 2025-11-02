@@ -69,11 +69,13 @@
 </td>
 <td class="text-end">
   <% if (product.totalStock > 0 && product.status === "Available") { %>
-    <button 
-      class="cs_btn cs_style_1 cs_type_1 cs_fs_16 cs_medium btn-add-cart" 
-      data-product-id="<%= product._id %>">
-      Add to Cart
-    </button>
+   <button 
+  class="cs_btn cs_style_1 cs_type_1 cs_fs_16 cs_medium btn-add-cart" 
+  data-product-id="<%= product._id %>" 
+  data-stock='<%= JSON.stringify(product.stock) %>'>
+  Add to Cart
+</button>
+
   <% } else { %>
     <span class="text-muted">Unavailable</span>
   <% } %>
@@ -167,6 +169,21 @@
             if (data.success) {
               Swal.fire("Added!", data.message, "success");
               updateCartBadge();
+
+                // remove wishlist row dynamically
+  const row = button.closest("tr");
+  if (row) {
+    row.remove();
+  }
+
+  // if wishlist becomes empty, show message
+  const tableBody = document.querySelector("tbody");
+  if (tableBody && tableBody.children.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center">Your wishlist is empty.</td>
+      </tr>`;
+  }
             
             } else {
               Swal.fire("Error", data.message || "Could not add", "error");
@@ -179,6 +196,7 @@
     });
   });
 });
+
 
 
 </script>

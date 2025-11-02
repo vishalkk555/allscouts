@@ -257,11 +257,15 @@
 
 <script>
   // Handle filter changes (checkboxes and radio buttons)
-  document.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(input => {
-    input.addEventListener('change', () => {
+ document.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(input => {
+  input.addEventListener('change', () => {
+    if (input.name === 'size' && input.value === '') {
+      window.location.href = '/shop';
+    } else {
       document.getElementById('filterForm').submit();
-    });
+    }
   });
+});
 
   // Handle price input changes
   const minPriceInput = document.getElementById('minPrice');

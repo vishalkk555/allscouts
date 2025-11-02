@@ -2111,12 +2111,12 @@ tr:hover {
 }
 
 .search-btn {
-    background: linear-gradient(135deg, #3498db, #2980b9);
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
     color: white;
 }
 
 .search-btn:hover {
-    background: linear-gradient(135deg, #2980b9, #21618c);
+     background: linear-gradient(135deg, #27ae60, #1e8449);
     transform: translateY(-1px);
 }
 
@@ -2572,6 +2572,8 @@ tr:hover {
     display: flex;
     align-items: flex-start;
     gap: 20px;
+    background-color: white;
+    border-radius: 15px;
 }
 
 .back-btn {
@@ -3418,7 +3420,7 @@ tr:hover {
        ADD COUPON   
 =============================== */
 /* Add Coupon Page Specific Styles */
-.add-coupon-container {
+/* .add-coupon-container {
     margin-left: 25px;
     margin-top: 10px;
     padding: 10px 40px;
@@ -3435,13 +3437,56 @@ tr:hover {
     font-weight: 600;
     color: #2c3e50;
     margin: 0 0 8px 0;
+    background-color: white;
+    height: 90px;
+    border-radius: 10px;
 }
 
 .add-coupon-header .subtitle {
     font-size: 14px;
     color: #7f8c8d;
     margin: 0;
+    margin-left: ;
+} */
+
+
+
+.add-coupon-container {
+  max-width: 850px;
+  margin: 0 auto;
+  padding: 30px;
 }
+
+.add-coupon-header {
+  background-color: white;
+  color: white;
+  padding: 25px 30px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.add-coupon-header .header-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.add-coupon-header .title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.add-coupon-header .subtitle {
+  font-size: 15px;
+  font-weight: 400;
+  margin-top: 5px;
+  color: grey; /* softer blue tone */
+}
+
 
 .add-coupon-card {
     background: #ffffff;
@@ -3635,8 +3680,8 @@ tr:hover {
 
 /* Coupons Listing Page Specific Styles */
 .coupons-container {
-    margin-left: 5px;
-    margin-top: 10px;
+    margin-left: 2px;
+    margin-top: 2px;
     padding: 30px 40px;
     min-height: calc(100vh - 80px);
     background-color: #f5f5f5;
@@ -3647,6 +3692,9 @@ tr:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background-color: white;
+    height: 6.1rem;
+    border-radius: 16px;
 }
 
 .header-left h1 {
@@ -3654,6 +3702,8 @@ tr:hover {
     font-weight: 600;
     color: #2c3e50;
     margin: 0 0 8px 0;
+    padding: 20px;
+    
 }
 
 .header-left .subtitle {
@@ -4452,6 +4502,8 @@ tr:hover {
     font-size: 14px;
     color: #7f8c8d;
     margin: 0;
+    margin-top: 30px;
+    margin-left: 400px;
 }
 
 .offers-card {
@@ -5173,6 +5225,7 @@ tr:hover {
     cursor: pointer;
     transition: all 0.3s ease;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    
 }
 
 .btn-cancel {

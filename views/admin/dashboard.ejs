@@ -41,7 +41,6 @@
             <div class="stat-content">
                 <h3>Total Revenue</h3>
                 <p class="stat-value" id="totalRevenue">₹0</p>
-                <span class="stat-change positive" id="revenueChange">+0%</span>
             </div>
         </div>
 
@@ -52,7 +51,6 @@
             <div class="stat-content">
                 <h3>Total Orders</h3>
                 <p class="stat-value" id="totalOrders">0</p>
-                <span class="stat-change positive" id="ordersChange">+0%</span>
             </div>
         </div>
 
@@ -417,7 +415,7 @@ function updateChart(chartData, filter, dateRange = null) {
         periodText = `${formatDate(new Date(dateRange.start))} - ${formatDate(new Date(dateRange.end))}`;
     } else {
         const periodTexts = {
-            'daily': 'Last 24 Hours',
+            'daily': 'Today',
             'weekly': 'Last 7 Days',
             'monthly': 'Last 30 Days',
             'yearly': 'Last 12 Months'

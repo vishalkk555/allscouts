@@ -1173,22 +1173,16 @@
                     }
                     
                     Swal.fire({
-                        icon: 'success',
-                        title: title,
-                        text: message,
-                        confirmButtonColor: '#28a745',
-                        showDenyButton: true,
-                        confirmButtonText: 'Continue Shopping',
-                        denyButtonText: 'View Order Details',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false
-                    }).then((result) => {
-                        if (result.isDenied) {
-                            location.reload();
-                        } else {
-                            window.location.href = '/products';
-                        }
-                    });
+        icon: 'success',
+        title: title,
+        text: message,
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#28a745',
+        allowOutsideClick: false,
+        allowEscapeKey: false
+    }).then(() => {
+       location.reload()
+    });
                 } else {
                     Swal.fire({
                         icon: 'error',

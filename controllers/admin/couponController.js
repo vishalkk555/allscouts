@@ -13,8 +13,8 @@ const getAddCoupon = async (req,res,next) => {
 }
 
 
-const createCoupon = async(req,res,next) => {
-     try {
+const createCoupon = async (req, res, next) => {
+    try {
         const {
             couponCode,
             type,
@@ -26,14 +26,15 @@ const createCoupon = async(req,res,next) => {
             description
         } = req.body;
 
-        // Server-side validation
-        if (!couponCode || !type || !discount || !minPurchase || !maxRedeem || !expiry) {
+        // Required fields
+        if (!couponCode || !type || !discount || !minPurchase || !expiry) {
             return res.status(400).json({
                 success: false,
                 message: 'All required fields must be provided'
             });
         }
 
+        // Coupon code format
         if (!/^[A-Z0-9]+$/.test(couponCode)) {
             return res.status(400).json({
                 success: false,
@@ -41,10 +42,8 @@ const createCoupon = async(req,res,next) => {
             });
         }
 
-        const existingCoupon = await Coupon.findOne({ 
-            couponCode: couponCode.toUpperCase() 
-        });
-
+        // Check duplicate
+        const existingCoupon = await Coupon.findOne({ couponCode: couponCode.toUpperCase() });
         if (existingCoupon) {
             return res.status(400).json({
                 success: false,
@@ -60,15 +59,20 @@ const createCoupon = async(req,res,next) => {
             });
         }
 
-     if (type === 'percentageDiscount') {
-    if (discountValue <= 0 || discountValue >= 100) {
-        return res.status(400).json({
-            success: false,
-            message: 'Percentage discount must be greater than 0% and less than 100%'
-        });
-    }
-}
-
+        if (type === 'percentageDiscount') {
+            if (discountValue >= 100) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Percentage discount cannot exceed 100%'
+                });
+            }
+            if (!maxRedeem || parseFloat(maxRedeem) <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Max discount cap is required for percentage coupons'
+                });
+            }
+        }
 
         const minPurchaseValue = parseFloat(minPurchase);
         if (minPurchaseValue < 0) {
@@ -78,7 +82,7 @@ const createCoupon = async(req,res,next) => {
             });
         }
 
-        // Validate that fixed discount doesn't exceed min purchase
+        // Fixed discount cannot exceed min purchase
         if (type === 'flatDiscount' && discountValue > minPurchaseValue) {
             return res.status(400).json({
                 success: false,
@@ -86,18 +90,9 @@ const createCoupon = async(req,res,next) => {
             });
         }
 
-        const maxRedeemValue = parseInt(maxRedeem);
-        if (maxRedeemValue <= 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Maximum redemption must be greater than 0'
-            });
-        }
-
         const expiryDate = new Date(expiry);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-
         if (expiryDate < today) {
             return res.status(400).json({
                 success: false,
@@ -105,17 +100,24 @@ const createCoupon = async(req,res,next) => {
             });
         }
 
-        const newCoupon = new Coupon({
+        // Build coupon object
+        const couponData = {
             couponCode: couponCode.toUpperCase(),
             type,
             discount: discountValue,
-            status: status === true || status === 'true',
             minPurchase: minPurchaseValue,
-            maxRedeem: maxRedeemValue,
             expiry: expiryDate,
+            status: true,
             description: description || ''
-        });
+        };
 
+        // Only add maxRedeem if percentage
+        if (type === 'percentageDiscount') {
+            couponData.maxRedeem = parseFloat(maxRedeem);
+        }
+        // For flat: maxRedeem stays undefined → Mongo won't save it
+
+        const newCoupon = new Coupon(couponData);
         await newCoupon.save();
 
         res.status(201).json({
@@ -125,9 +127,9 @@ const createCoupon = async(req,res,next) => {
         });
 
     } catch (error) {
-       next(error)
+        next(error);
     }
-}
+};
 
 const getCouponPage = async(req,res,next) => {
     try{
@@ -241,148 +243,94 @@ const toggleCouponStatus = async (req, res) => {
 
 // Update coupon
 const updateCoupon = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const {
-      couponCode,
-      type,
-      discount,
-      status,
-      minPurchase,
-      maxRedeem,
-      expiry,
-      description
-    } = req.body;
+    try {
+        const { id } = req.params;
+        const {
+            couponCode,
+            type,
+            discount,
+            status,
+            minPurchase,
+            maxRedeem,
+            expiry,
+            description
+        } = req.body;
 
-    // Check if coupon exists
-    const existingCoupon = await Coupon.findById(id);
-    if (!existingCoupon) {
-      return res.status(404).json({
-        success: false,
-        message: 'Coupon not found'
-      });
-    }
+        const existingCoupon = await Coupon.findById(id);
+        if (!existingCoupon) {
+            return res.status(404).json({ success: false, message: 'Coupon not found' });
+        }
 
-    // Validate required fields
-    if (!couponCode || !type || !discount || !minPurchase || !maxRedeem || !expiry) {
-      return res.status(400).json({
-        success: false,
-        message: 'All required fields must be provided'
-      });
-    }
+        // Required fields
+        if (!couponCode || !type || !discount || !minPurchase || !expiry) {
+            return res.status(400).json({ success: false, message: 'All required fields must be provided' });
+        }
 
-    // Validate coupon code format
-    if (!/^[A-Z0-9]+$/.test(couponCode)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Coupon code must contain only uppercase letters and numbers'
-      });
-    }
+        if (!/^[A-Z0-9]+$/.test(couponCode)) {
+            return res.status(400).json({ success: false, message: 'Coupon code: uppercase letters & numbers only' });
+        }
 
-    // Check for duplicate coupon code (excluding current one)
-    const duplicateCoupon = await Coupon.findOne({
-      couponCode: couponCode.toUpperCase(),
-      _id: { $ne: id }
-    });
+        // Check duplicate (exclude self)
+        const duplicate = await Coupon.findOne({ couponCode: couponCode.toUpperCase(), _id: { $ne: id } });
+        if (duplicate) {
+            return res.status(400).json({ success: false, message: 'Coupon code already exists' });
+        }
 
-    if (duplicateCoupon) {
-      return res.status(400).json({
-        success: false,
-        message: 'Coupon code already exists'
-      });
-    }
+        const discountValue = parseFloat(discount);
+        if (discountValue <= 0) {
+            return res.status(400).json({ success: false, message: 'Discount must be > 0' });
+        }
 
-    // Validate discount value
-    const discountValue = parseFloat(discount);
-    if (isNaN(discountValue) || discountValue <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Discount must be a number greater than 0'
-      });
-    }
+        if (type === 'percentageDiscount') {
+            if (discountValue >= 100) {
+                return res.status(400).json({ success: false, message: 'Percentage must be < 100%' });
+            }
+            if (!maxRedeem || parseFloat(maxRedeem) <= 0) {
+                return res.status(400).json({ success: false, message: 'Max discount cap required for percentage coupons' });
+            }
+        }
 
-    // ✅ FIX: Prevent 100% discount
-    if (type === 'percentageDiscount') {
-      if (discountValue >= 100) {
-        return res.status(400).json({
-          success: false,
-          message: 'Percentage discount must be greater than 0% and less than 100%'
+        const minPurchaseValue = parseFloat(minPurchase);
+        if (minPurchaseValue < 0) {
+            return res.status(400).json({ success: false, message: 'Min purchase ≥ 0' });
+        }
+
+        if (type === 'flatDiscount' && discountValue > minPurchaseValue) {
+            return res.status(400).json({ success: false, message: 'Fixed discount cannot exceed min purchase' });
+        }
+
+        const expiryDate = new Date(expiry);
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        if (expiryDate < today) {
+            return res.status(400).json({ success: false, message: 'Expiry must be today or later' });
+        }
+
+        // Build update
+        existingCoupon.couponCode = couponCode.toUpperCase();
+        existingCoupon.type = type;
+        existingCoupon.discount = discountValue;
+        existingCoupon.status = status === true || status === 'true';
+        existingCoupon.minPurchase = minPurchaseValue;
+        existingCoupon.expiry = expiryDate;
+        existingCoupon.description = description || '';
+
+        if (type === 'percentageDiscount') {
+            existingCoupon.maxRedeem = parseFloat(maxRedeem);
+        }
+        // For flat: maxRedeem not sent → leave as-is or null if needed
+
+        await existingCoupon.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Coupon updated successfully',
+            coupon: existingCoupon
         });
-      }
+
+    } catch (error) {
+        console.error('Error updating coupon:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
-
-    // Validate minimum purchase
-    const minPurchaseValue = parseFloat(minPurchase);
-    if (isNaN(minPurchaseValue) || minPurchaseValue < 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Minimum purchase amount cannot be negative'
-      });
-    }
-
-    // For flat discount, ensure discount isn't more than min purchase
-    if (type === 'flatDiscount' && discountValue > minPurchaseValue) {
-      return res.status(400).json({
-        success: false,
-        message: 'Flat discount cannot exceed minimum purchase amount'
-      });
-    }
-
-    // Validate max redeem
-    const maxRedeemValue = parseInt(maxRedeem);
-    if (isNaN(maxRedeemValue) || maxRedeemValue <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Maximum redemption must be greater than 0'
-      });
-    }
-
-    // Validate expiry date
-    const expiryDate = new Date(expiry);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (expiryDate < today) {
-      return res.status(400).json({
-        success: false,
-        message: 'Expiry date must be today or in the future'
-      });
-    }
-
-    // Update coupon fields
-    existingCoupon.couponCode = couponCode.toUpperCase();
-    existingCoupon.type = type;
-    existingCoupon.discount = discountValue;
-    existingCoupon.status = status === true || status === 'true';
-    existingCoupon.minPurchase = minPurchaseValue;
-    existingCoupon.maxRedeem = maxRedeemValue;
-    existingCoupon.expiry = expiryDate;
-    existingCoupon.description = description || '';
-
-    await existingCoupon.save();
-
-    res.status(200).json({
-      success: true,
-      message: 'Coupon updated successfully',
-      coupon: existingCoupon
-    });
-
-  } catch (error) {
-    console.error('Error updating coupon:', error);
-
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        message: messages.join(', ')
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating coupon'
-    });
-  }
 };
 
 

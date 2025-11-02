@@ -956,7 +956,7 @@ const deleteAddress = async (req, res,next) => {
 }
 
 
-  const getAddressForModal = async (req, res) => {
+const getAddressForModal = async (req, res) => {
     try {
         const userId = req.session.user;
         const { addressId } = req.params;
@@ -964,10 +964,11 @@ const deleteAddress = async (req, res,next) => {
         if (!userId) {
             return res.status(401).json({
                 success: false,
-                message: 'Login required'
+                message: 'Authentication required'
             });
         }
 
+        // Validate addressId format
         if (!mongoose.Types.ObjectId.isValid(addressId)) {
             return res.status(400).json({
                 success: false,
@@ -976,6 +977,7 @@ const deleteAddress = async (req, res,next) => {
         }
 
         const userAddress = await Address.findOne({ userId });
+
         if (!userAddress) {
             return res.status(404).json({
                 success: false,
@@ -983,7 +985,9 @@ const deleteAddress = async (req, res,next) => {
             });
         }
 
+        // Find the specific address
         const address = userAddress.address.id(addressId);
+
         if (!address) {
             return res.status(404).json({
                 success: false,
@@ -991,10 +995,22 @@ const deleteAddress = async (req, res,next) => {
             });
         }
 
-        // Return JSON for modal
         res.json({
             success: true,
-            address
+            address: {
+                _id: address._id,
+                name: address.name,
+                email: address.email,
+                number: address.number,
+                houseName: address.houseName,
+                street: address.street,
+                city: address.city,
+                state: address.state,
+                country: address.country,
+                pincode: address.pincode,
+                saveAs: address.saveAs,
+                isDefault: address.isDefault
+            }
         });
 
     } catch (error) {
@@ -1002,6 +1018,193 @@ const deleteAddress = async (req, res,next) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch address'
+        });
+    }
+};
+
+const editAddressFromCheckout = async (req, res) => {
+    try {
+        const userId = req.session.user;
+        const {
+            addressId,
+            name,
+            email,
+            number,
+            houseName,
+            street,
+            city,
+            state,
+            country,
+            pincode,
+            saveAs,
+            isDefault
+        } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+        }
+
+        // Validate required fields
+        if (!addressId || !name || !email || !number || !houseName || !street || 
+            !city || !state || !country || !pincode || !saveAs) {
+            return res.status(400).json({
+                success: false,
+                message: 'All fields are required'
+            });
+        }
+
+        // Validate addressId format
+        if (!mongoose.Types.ObjectId.isValid(addressId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid address ID'
+            });
+        }
+
+        // Validate name (only letters and spaces, 2-50 characters)
+        const nameRegex = /^[a-zA-Z\s]{2,50}$/;
+        if (!nameRegex.test(name.trim())) {
+            return res.status(400).json({
+                success: false,
+                message: 'Name should contain only letters and spaces (2-50 characters)'
+            });
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email.trim())) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please enter a valid email address'
+            });
+        }
+
+        // Validate phone number (must start with 6-9 and be exactly 10 digits)
+        const phoneRegex = /^[6-9]\d{9}$/;
+        if (!phoneRegex.test(number.toString())) {
+            return res.status(400).json({
+                success: false,
+                message: 'Phone number must be 10 digits and start with 6, 7, 8, or 9'
+            });
+        }
+
+        // Validate pincode (exactly 6 digits)
+        const pincodeRegex = /^\d{6}$/;
+        if (!pincodeRegex.test(pincode)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Pincode must be exactly 6 digits'
+            });
+        }
+
+        // Validate house name/number
+        if (houseName.trim().length < 2 || houseName.trim().length > 100) {
+            return res.status(400).json({
+                success: false,
+                message: 'House name/number should be between 2-100 characters'
+            });
+        }
+
+        // Validate street
+        if (street.trim().length < 2 || street.trim().length > 100) {
+            return res.status(400).json({
+                success: false,
+                message: 'Street address should be between 2-100 characters'
+            });
+        }
+
+        // Validate city (only letters and spaces)
+        const cityRegex = /^[a-zA-Z\s]{2,50}$/;
+        if (!cityRegex.test(city.trim())) {
+            return res.status(400).json({
+                success: false,
+                message: 'City should contain only letters and spaces (2-50 characters)'
+            });
+        }
+
+        // Validate state (only letters and spaces)
+        const stateRegex = /^[a-zA-Z\s]{2,50}$/;
+        if (!stateRegex.test(state.trim())) {
+            return res.status(400).json({
+                success: false,
+                message: 'State should contain only letters and spaces (2-50 characters)'
+            });
+        }
+
+        // Validate saveAs type
+        if (!['Home', 'Work', 'Other'].includes(saveAs)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Address type must be Home, Work, or Other'
+            });
+        }
+
+        const userAddress = await Address.findOne({ userId });
+
+        if (!userAddress) {
+            return res.status(404).json({
+                success: false,
+                message: 'No addresses found'
+            });
+        }
+
+        const addressToUpdate = userAddress.address.id(addressId);
+
+        if (!addressToUpdate) {
+            return res.status(404).json({
+                success: false,
+                message: 'Address not found'
+            });
+        }
+
+        // If setting as default, unset all other defaults
+        const isDefaultBool = isDefault === 'true' || isDefault === true;
+        if (isDefaultBool) {
+            userAddress.address.forEach(addr => {
+                if (addr._id.toString() !== addressId) {
+                    addr.isDefault = false;
+                }
+            });
+        }
+
+        // Update address fields
+        addressToUpdate.name = name.trim();
+        addressToUpdate.email = email.trim().toLowerCase();
+        addressToUpdate.number = parseInt(number);
+        addressToUpdate.houseName = houseName.trim();
+        addressToUpdate.street = street.trim();
+        addressToUpdate.city = city.trim();
+        addressToUpdate.state = state.trim();
+        addressToUpdate.country = country.trim();
+        addressToUpdate.pincode = pincode.trim();
+        addressToUpdate.saveAs = saveAs;
+        addressToUpdate.isDefault = isDefaultBool;
+
+        await userAddress.save();
+
+        res.json({
+            success: true,
+            message: 'Address updated successfully',
+            address: addressToUpdate
+        });
+
+    } catch (error) {
+        console.error('Error updating address:', error);
+        
+        if (error.name === 'ValidationError') {
+            const validationErrors = Object.values(error.errors).map(err => err.message);
+            return res.status(400).json({
+                success: false,
+                message: validationErrors.join(', ')
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update address. Please try again.'
         });
     }
 };
@@ -1025,6 +1228,7 @@ module.exports = {
     updateAddress,
     setDefaultAddress,
     deleteAddress,
-    getAddressForModal
+    getAddressForModal,
+    editAddressFromCheckout
     
 }

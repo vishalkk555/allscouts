@@ -666,17 +666,36 @@ const getCheckoutPage = async (req, res, next) => {
   try {
     const userId = req.session.user;
     const userAddresses = await Address.findOne({ userId });
-    const addresses = userAddresses ? userAddresses.address : [];
+    
+    // Get user with used coupons
+    const user = await User.findById(userId);
+    
+    // Sort addresses: default first
+    let addresses = [];
+    if (userAddresses && userAddresses.address && userAddresses.address.length > 0) {
+      addresses = userAddresses.address.sort((a, b) => {
+        if (a.isDefault && !b.isDefault) return -1;
+        if (!a.isDefault && b.isDefault) return 1;
+        return 0;
+      });
+    }
+
     const cart = await Cart.findOne({ userId }).populate({
       path: 'item.productId',
       select: 'productName regularPrice productImage stock isBlocked'
     });
-    const wallet = await Wallet.findOne({ userId }); // Fetch wallet balance
-    const coupons = await Coupon.find({
+    const wallet = await Wallet.findOne({ userId });
+    
+    // Fetch coupons - FIXED: Don't filter by maxRedeem as it's only for percentage coupons
+    let coupons = await Coupon.find({
       status: true,
-      expiry: { $gte: new Date() },
-      maxRedeem: { $gt: 0 }
+      expiry: { $gte: new Date() }
     });
+
+    // Filter out coupons user has already used
+    if (user && user.usedCoupons && user.usedCoupons.length > 0) {
+      coupons = coupons.filter(coupon => !user.usedCoupons.includes(coupon.couponCode));
+    }
 
     if (!cart || !cart.item || cart.item.length === 0) {
       return res.redirect('/cart');
@@ -714,10 +733,10 @@ const getCheckoutPage = async (req, res, next) => {
 
       return {
         ...cartItem.toObject(),
-        stockStatus: stockStatus,
-        isAvailable: isAvailable,
-        itemPrice: itemPrice,
-        itemTotal: itemTotal
+        stockStatus,
+        isAvailable,
+        itemPrice,
+        itemTotal
       };
     });
 
@@ -727,22 +746,25 @@ const getCheckoutPage = async (req, res, next) => {
       const coupon = await Coupon.findOne({
         couponCode: req.session.appliedCoupon.code,
         status: true,
-        expiry: { $gte: new Date() },
-        maxRedeem: { $gt: 0 }
+        expiry: { $gte: new Date() }
       });
 
-      if (coupon && subtotal >= coupon.minPurchase) {
+      // Check if user hasn't already used this coupon
+      const hasUsedCoupon = user.usedCoupons && user.usedCoupons.includes(req.session.appliedCoupon.code);
+
+      if (coupon && subtotal >= coupon.minPurchase && !hasUsedCoupon) {
         appliedCoupon = {
           code: coupon.couponCode,
           type: coupon.type,
           discount: coupon.discount,
           minPurchase: coupon.minPurchase,
-          description: coupon.description
+          description: coupon.description,
+          maxRedeem: coupon.maxRedeem
         };
 
         if (coupon.type === 'percentageDiscount') {
           discount = Math.floor((subtotal * coupon.discount) / 100);
-          if (coupon.maxDiscount) discount = Math.min(discount, coupon.maxDiscount);
+          if (coupon.maxRedeem) discount = Math.min(discount, coupon.maxRedeem);
         } else {
           discount = coupon.discount;
         }
@@ -766,8 +788,8 @@ const getCheckoutPage = async (req, res, next) => {
       appliedCoupon,
       razorpayKeyId: process.env.RAZORPAY_KEY_ID,
       hasUnavailableItems,
-      walletBalance: wallet ? wallet.balance : 0, // Pass wallet balance
-      paymentMethod: 'cod' // Default payment method
+      walletBalance: wallet ? wallet.balance : 0,
+      paymentMethod: 'cod'
     });
   } catch (error) {
     console.error('Error loading checkout page:', error);
@@ -801,62 +823,115 @@ const addAddress = async (req, res) => {
             });
         }
 
+        // Validate name (only letters and spaces, 2-50 characters)
+        const nameRegex = /^[a-zA-Z\s]{2,50}$/;
+        if (!nameRegex.test(name.trim())) {
+            return res.status(400).json({
+                success: false,
+                message: 'Name should contain only letters and spaces (2-50 characters)'
+            });
+        }
+
         // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (!emailRegex.test(email.trim())) {
             return res.status(400).json({
                 success: false,
                 message: 'Please enter a valid email address'
             });
         }
 
-        // Validate phone number
-        if (number.toString().length < 10) {
+        // Validate phone number (must start with 6-9 and be exactly 10 digits)
+        const phoneRegex = /^[6-9]\d{9}$/;
+        if (!phoneRegex.test(number.toString())) {
             return res.status(400).json({
                 success: false,
-                message: 'Please enter a valid phone number'
+                message: 'Phone number must be 10 digits and start with 6, 7, 8, or 9'
             });
         }
 
-        // Validate pincode
-        if (pincode.length !== 6 || !/^\d{6}$/.test(pincode)) {
+        // Validate pincode (exactly 6 digits)
+        const pincodeRegex = /^\d{6}$/;
+        if (!pincodeRegex.test(pincode)) {
             return res.status(400).json({
                 success: false,
-                message: 'Please enter a valid 6-digit pincode'
+                message: 'Pincode must be exactly 6 digits'
+            });
+        }
+
+        // Validate house name/number (2-100 characters, alphanumeric and special chars allowed)
+        if (houseName.trim().length < 2 || houseName.trim().length > 100) {
+            return res.status(400).json({
+                success: false,
+                message: 'House name/number should be between 2-100 characters'
+            });
+        }
+
+        // Validate street (2-100 characters)
+        if (street.trim().length < 2 || street.trim().length > 100) {
+            return res.status(400).json({
+                success: false,
+                message: 'Street address should be between 2-100 characters'
+            });
+        }
+
+        // Validate city (only letters and spaces, 2-50 characters)
+        const cityRegex = /^[a-zA-Z\s]{2,50}$/;
+        if (!cityRegex.test(city.trim())) {
+            return res.status(400).json({
+                success: false,
+                message: 'City should contain only letters and spaces (2-50 characters)'
+            });
+        }
+
+        // Validate state (only letters and spaces, 2-50 characters)
+        const stateRegex = /^[a-zA-Z\s]{2,50}$/;
+        if (!stateRegex.test(state.trim())) {
+            return res.status(400).json({
+                success: false,
+                message: 'State should contain only letters and spaces (2-50 characters)'
+            });
+        }
+
+        // Validate saveAs type
+        if (!['Home', 'Work', 'Other'].includes(saveAs)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Address type must be Home, Work, or Other'
             });
         }
 
         const newAddress = {
-            name,
-            email,
+            name: name.trim(),
+            email: email.trim().toLowerCase(),
             number: parseInt(number),
-            houseName,
-            street,
-            city,
-            state,
-            country,
-            pincode,
+            houseName: houseName.trim(),
+            street: street.trim(),
+            city: city.trim(),
+            state: state.trim(),
+            country: country.trim(),
+            pincode: pincode.trim(),
             saveAs,
-            isDefault: isDefault || false
+            isDefault: isDefault === 'true' || isDefault === true
         };
 
         let userAddresses = await Address.findOne({ userId });
 
         if (!userAddresses) {
-            // Create new address document for user
+            // Create new address document for user - first address is always default
             userAddresses = new Address({
                 userId,
-                address: [{ ...newAddress, isDefault: true }] // First address is always default
+                address: [{ ...newAddress, isDefault: true }]
             });
         } else {
-            // If setting as default, update other addresses
+            // If setting as default, unset other default addresses
             if (newAddress.isDefault) {
                 userAddresses.address.forEach(addr => {
                     addr.isDefault = false;
                 });
             }
             
-            // If no addresses exist or this is the first address, make it default
+            // If no addresses exist, make this the default
             if (userAddresses.address.length === 0) {
                 newAddress.isDefault = true;
             }
@@ -873,9 +948,19 @@ const addAddress = async (req, res) => {
 
     } catch (error) {
         console.error('Error adding address:', error);
+        
+        // Handle validation errors
+        if (error.name === 'ValidationError') {
+            const validationErrors = Object.values(error.errors).map(err => err.message);
+            return res.status(400).json({
+                success: false,
+                message: validationErrors.join(', ')
+            });
+        }
+
         res.status(500).json({
             success: false,
-            message: 'Error adding address'
+            message: 'Failed to add address. Please try again.'
         });
     }
 };

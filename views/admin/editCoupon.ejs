@@ -1,7 +1,7 @@
 
 
 <body>
-<!-- <%- include("../partials/admin/header") %> -->
+<%- include("../partials/admin/header") %> 
 
     <div class="add-coupon-container">
         <div class="add-coupon-header">
@@ -103,23 +103,27 @@
                         <span class="error-message" id="minPurchaseError"></span>
                     </div>
 
-                    <!-- Max Redemption -->
-                    <div class="form-group">
-                        <label for="maxRedeem" class="form-label">
-                            Max Redemption <span class="required">*</span>
-                        </label>
-                        <input 
-                            type="number" 
-                            id="maxRedeem" 
-                            name="maxRedeem" 
-                            class="form-input" 
-                            placeholder="Maximum redemption limit"
-                            min="1"
-                            value="<%= coupon.maxRedeem %>"
-                            required
-                        >
-                        <span class="error-message" id="maxRedeemError"></span>
-                    </div>
+                   <!-- Max Redemption (only for percentage) -->
+<div class="form-group" id="maxRedeemGroup" style="display: none;">
+    <label for="maxRedeem" class="form-label">
+        Max Discount Cap (₹) <span class="required">*</span>
+    </label>
+    <div class="input-with-icon">
+        <span class="input-icon">₹</span>
+        <input 
+            type="number" 
+            id="maxRedeem" 
+            name="maxRedeem" 
+            class="form-input with-icon" 
+            placeholder="e.g., 500"
+            min="0.01"
+            step="0.01"
+            value="<%= coupon.maxRedeem %>"
+        >
+    </div>
+    <span class="error-message" id="maxRedeemError"></span>
+    <small class="text-muted">Maximum discount amount user can receive (for percentage coupons)</small>
+</div>
 
                     <!-- Expiry Date -->
                     <div class="form-group">
@@ -163,230 +167,217 @@
     </div>
 
     
-    <script>
-    
-    document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('editCouponForm');
+ <script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form               = document.getElementById('editCouponForm');
     const discountTypeSelect = document.getElementById('discountType');
     const discountValueInput = document.getElementById('discountValue');
-    const discountIcon = document.getElementById('discountIcon');
-    const cancelBtn = document.getElementById('cancelBtn');
-    const expiryInput = document.getElementById('expiry');
-    const couponId = document.getElementById('couponId').value;
+    const discountIcon       = document.getElementById('discountIcon');
+    const maxRedeemGroup     = document.getElementById('maxRedeemGroup');
+    const maxRedeemInput     = document.getElementById('maxRedeem');
+    const statusSelect       = document.getElementById('status');
+    const cancelBtn          = document.getElementById('cancelBtn');
+    const expiryInput        = document.getElementById('expiry');
+    const couponId           = document.getElementById('couponId').value;
 
-    // Set minimum date to today
+    /* ---------- 1. INITIAL SETUP ---------- */
     const today = new Date().toISOString().split('T')[0];
     expiryInput.setAttribute('min', today);
 
-    // Change discount icon based on type
-    discountTypeSelect.addEventListener('change', function() {
-        const selectedType = this.value;
-        if (selectedType === 'percentageDiscount') {
-            discountIcon.textContent = '%';
-            discountValueInput.setAttribute('max', '100');
-            discountValueInput.placeholder = 'Enter percentage (0-100)';
-        } else if (selectedType === 'flatDiscount') {
-            discountIcon.textContent = '₹';
+    // DO NOT call toggleMaxRedeemField() here — it clears discount value
+    // Just set icon & maxRedeem visibility based on current type
+    initializeFields();
+
+    // Only toggle on user change
+    discountTypeSelect.addEventListener('change', toggleMaxRedeemField);
+
+    /* ---------- INITIALIZE (run once on load) ---------- */
+    function initializeFields() {
+        const type = discountTypeSelect.value;
+
+        // Set icon
+        discountIcon.textContent = type === 'percentageDiscount' ? '%' : '₹';
+
+        // Set min/max attributes
+        if (type === 'percentageDiscount') {
+            discountValueInput.setAttribute('max', '99.99');
+            discountValueInput.setAttribute('min', '0.01');
+        } else {
             discountValueInput.removeAttribute('max');
+            discountValueInput.setAttribute('min', '0.01');
+        }
+
+        // Show/hide maxRedeem
+        if (type === 'percentageDiscount') {
+            maxRedeemGroup.style.display = 'block';
+            maxRedeemInput.setAttribute('required', 'required');
+        } else {
+            maxRedeemGroup.style.display = 'none';
+            maxRedeemInput.removeAttribute('required');
+        }
+
+        // DO NOT clear discountValueInput.value here!
+    }
+
+    /* ---------- TOGGLE ON USER CHANGE ---------- */
+    function toggleMaxRedeemField() {
+        const type = discountTypeSelect.value;
+
+        discountIcon.textContent = type === 'percentageDiscount' ? '%' : '₹';
+
+        if (type === 'percentageDiscount') {
+            maxRedeemGroup.style.display = 'block';
+            maxRedeemInput.setAttribute('required', 'required');
+            discountValueInput.setAttribute('max', '99.99');
+            discountValueInput.setAttribute('min', '0.01');
+            discountValueInput.placeholder = 'Enter % (0.01 - 99.99)';
+        } else {
+            maxRedeemGroup.style.display = 'none';
+            maxRedeemInput.removeAttribute('required');
+            discountValueInput.removeAttribute('max');
+            discountValueInput.setAttribute('min', '0.01');
             discountValueInput.placeholder = 'Enter fixed amount';
-        } else {
-            discountIcon.textContent = '₹';
-            discountValueInput.removeAttribute('max');
-            discountValueInput.placeholder = 'Enter discount value';
         }
+
+        // Only clear discount value when user *changes* type
+        discountValueInput.value = '';
         clearError('discountValue');
-    });
-
-    // Form validation
-    function validateForm() {
-        let isValid = true;
-
-        // Clear all errors
-        clearAllErrors();
-
-        // Coupon Code validation
-        const couponCode = document.getElementById('couponCode').value.trim();
-        if (!couponCode) {
-            showError('couponCode', 'Coupon code is required');
-            isValid = false;
-        } else if (couponCode.length < 3) {
-            showError('couponCode', 'Coupon code must be at least 3 characters');
-            isValid = false;
-        } else if (!/^[A-Z0-9]+$/.test(couponCode.toUpperCase())) {
-            showError('couponCode', 'Coupon code must contain only letters and numbers');
-            isValid = false;
-        }
-
-        // Discount Type validation
-        const discountType = discountTypeSelect.value;
-        if (!discountType) {
-            showError('discountType', 'Please select a discount type');
-            isValid = false;
-        }
-
-        // Discount Value validation
-        const discountValue = parseFloat(discountValueInput.value);
-        if (!discountValueInput.value || isNaN(discountValue)) {
-            showError('discountValue', 'Discount value is required');
-            isValid = false;
-        } else if (discountValue <= 0) {
-            showError('discountValue', 'Discount value must be greater than 0');
-            isValid = false;
-        } else if (discountType === 'percentageDiscount' && discountValue > 100) {
-            showError('discountValue', 'Percentage discount cannot exceed 100%');
-            isValid = false;
-        }
-
-        // Min Purchase validation
-        const minPurchase = parseFloat(document.getElementById('minPurchase').value);
-        if (!document.getElementById('minPurchase').value || isNaN(minPurchase)) {
-            showError('minPurchase', 'Minimum purchase amount is required');
-            isValid = false;
-        } else if (minPurchase < 0) {
-            showError('minPurchase', 'Minimum purchase amount cannot be negative');
-            isValid = false;
-        }
-
-        // Max Redemption validation
-        const maxRedeem = parseInt(document.getElementById('maxRedeem').value);
-        if (!document.getElementById('maxRedeem').value || isNaN(maxRedeem)) {
-            showError('maxRedeem', 'Maximum redemption is required');
-            isValid = false;
-        } else if (maxRedeem <= 0) {
-            showError('maxRedeem', 'Maximum redemption must be greater than 0');
-            isValid = false;
-        }
-
-        // Cross-field validation: Max redemption vs Min purchase
-        if (!isNaN(maxRedeem) && !isNaN(minPurchase)) {
-            if (discountType === 'flatDiscount' && discountValue > minPurchase) {
-                showError('discountValue', 'Fixed discount cannot be greater than minimum purchase amount');
-                isValid = false;
-            }
-        }
-
-        // Expiry Date validation
-        const expiry = document.getElementById('expiry').value;
-        if (!expiry) {
-            showError('expiry', 'Expiry date is required');
-            isValid = false;
-        } else {
-            const expiryDate = new Date(expiry);
-            const todayDate = new Date();
-            todayDate.setHours(0, 0, 0, 0);
-            
-            if (expiryDate < todayDate) {
-                showError('expiry', 'Expiry date must be today or in the future');
-                isValid = false;
-            }
-        }
-
-        return isValid;
     }
 
-    function showError(fieldId, message) {
-        const errorElement = document.getElementById(fieldId + 'Error');
-        const inputElement = document.getElementById(fieldId);
-        
-        if (errorElement) {
-            errorElement.textContent = message;
-        }
-        
-        if (inputElement) {
-            inputElement.style.borderColor = '#e74c3c';
-        }
+    /* ---------- REST OF YOUR CODE (unchanged) ---------- */
+    // ... [showError, clearError, validateForm, submit, cancel, etc.] ...
+    // (Copy the rest from the previous working version)
+
+    // Keep all validation, submit, etc. exactly as before
+    // Just make sure `initializeFields()` is called instead of `toggleMaxRedeemField()`
+
+    function showError(id, msg) {
+        const errEl = document.getElementById(id + 'Error');
+        const inpEl = document.getElementById(id);
+        if (errEl) errEl.textContent = msg;
+        if (inpEl) inpEl.style.borderColor = '#e74c3c';
     }
 
-    function clearError(fieldId) {
-        const errorElement = document.getElementById(fieldId + 'Error');
-        const inputElement = document.getElementById(fieldId);
-        
-        if (errorElement) {
-            errorElement.textContent = '';
-        }
-        
-        if (inputElement) {
-            inputElement.style.borderColor = '#dfe6e9';
-        }
+    function clearError(id) {
+        const errEl = document.getElementById(id + 'Error');
+        const inpEl = document.getElementById(id);
+        if (errEl) errEl.textContent = '';
+        if (inpEl) inpEl.style.borderColor = '#dfe6e9';
     }
 
     function clearAllErrors() {
-        const errorElements = document.querySelectorAll('.error-message');
-        errorElements.forEach(element => {
-            element.textContent = '';
-        });
-
-        const inputs = document.querySelectorAll('.form-input, .form-select, .form-textarea');
-        inputs.forEach(input => {
-            input.style.borderColor = '#dfe6e9';
-        });
+        document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+        document.querySelectorAll('.form-input, .form-select, .form-textarea')
+                .forEach(el => el.style.borderColor = '#dfe6e9');
     }
 
-    // Real-time validation
-    const inputs = ['couponCode', 'discountType', 'discountValue', 'minPurchase', 'maxRedeem', 'expiry'];
-    inputs.forEach(inputId => {
-        const element = document.getElementById(inputId);
-        if (element) {
-            element.addEventListener('input', function() {
-                clearError(inputId);
-            });
-            element.addEventListener('change', function() {
-                clearError(inputId);
-            });
+    ['couponCode','discountType','discountValue','minPurchase','maxRedeem','expiry','description','status']
+        .forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input',  () => clearError(id));
+                el.addEventListener('change', () => clearError(id));
+            }
+        });
+
+    function validateForm() {
+        let ok = true;
+        clearAllErrors();
+
+        const code = document.getElementById('couponCode').value.trim();
+        if (!code) { showError('couponCode', 'Coupon code is required'); ok = false; }
+        else if (code.length < 3) { showError('couponCode', 'At least 3 characters'); ok = false; }
+        else if (!/^[A-Z0-9]+$/.test(code)) { showError('couponCode', 'Only uppercase letters & numbers'); ok = false; }
+
+        const type = discountTypeSelect.value;
+        if (!type) { showError('discountType', 'Select a discount type'); ok = false; }
+
+        const disc = parseFloat(discountValueInput.value);
+        if (isNaN(disc) || disc <= 0) { showError('discountValue', 'Discount must be > 0'); ok = false; }
+        else if (type === 'percentageDiscount') {
+            if (disc >= 100) { showError('discountValue', 'Percentage must be < 100%'); ok = false; }
+            if (disc <= 0) { showError('discountValue', 'Percentage must be > 0%'); ok = false; }
+        } else if (type === 'flatDiscount') {
+            if (disc <= 0) { showError('discountValue', 'Fixed discount must be > 0'); ok = false; }
         }
-    });
 
-    // Form submission
-    form.addEventListener('submit', async function(e) {
+        const minP = parseFloat(document.getElementById('minPurchase').value);
+        if (isNaN(minP) || minP < 0) { showError('minPurchase', 'Min purchase ≥ 0'); ok = false; }
+
+        if (type === 'flatDiscount' && !isNaN(disc) && !isNaN(minP) && disc > minP) {
+            showError('discountValue', 'Fixed discount cannot exceed min purchase');
+            ok = false;
+        }
+
+        if (type === 'percentageDiscount') {
+            const maxR = parseFloat(maxRedeemInput.value);
+            if (isNaN(maxR) || maxR <= 0) { showError('maxRedeem', 'Max discount cap > 0'); ok = false; }
+            const possible = (minP * disc) / 100;
+            if (!isNaN(possible) && maxR < possible) {
+                showError('maxRedeem', 'Max cap must be ≥ discount on min purchase');
+                ok = false;
+            }
+        }
+
+        const exp = document.getElementById('expiry').value;
+        if (!exp) { showError('expiry', 'Expiry date required'); ok = false; }
+        else {
+            const expDate = new Date(exp);
+            const today   = new Date(); today.setHours(0,0,0,0);
+            if (expDate < today) { showError('expiry', 'Expiry must be today or later'); ok = false; }
+        }
+
+        const desc = document.getElementById('description').value.trim();
+        if (desc.length > 500) { showError('description', 'Description ≤ 500 chars'); ok = false; }
+
+        return ok;
+    }
+
+    form.addEventListener('submit', async function (e) {
         e.preventDefault();
-
         if (!validateForm()) {
             Swal.fire({
                 icon: 'error',
                 title: 'Validation Error',
-                text: 'Please fix all errors before submitting',
+                text: 'Please fix the highlighted fields before submitting.',
                 confirmButtonColor: '#e74c3c'
             });
             return;
         }
 
-        // Prepare form data
-        const formData = {
-            couponCode: document.getElementById('couponCode').value.trim().toUpperCase(),
-            type: discountTypeSelect.value,
-            discount: parseFloat(discountValueInput.value),
-            status: document.getElementById('status').value === 'true',
+        const payload = {
+            couponCode : document.getElementById('couponCode').value.trim().toUpperCase(),
+            type       : discountTypeSelect.value,
+            discount   : parseFloat(discountValueInput.value),
+            status     : statusSelect.value === 'true',
             minPurchase: parseFloat(document.getElementById('minPurchase').value),
-            maxRedeem: parseInt(document.getElementById('maxRedeem').value),
-            expiry: document.getElementById('expiry').value,
+            expiry     : document.getElementById('expiry').value,
             description: document.getElementById('description').value.trim()
         };
 
-        // Disable submit button
+        if (discountTypeSelect.value === 'percentageDiscount') {
+            payload.maxRedeem = parseFloat(maxRedeemInput.value);
+        }
+
         const submitBtn = form.querySelector('.btn-save');
         submitBtn.disabled = true;
         submitBtn.textContent = 'Updating...';
 
         try {
-            const response = await fetch(`/admin/coupons/edit/${couponId}`, {
+            const res  = await fetch(`/admin/coupons/edit/${couponId}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
+            const data = await res.json();
 
-            const data = await response.json();
-
-            if (response.ok) {
+            if (res.ok) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Success!',
                     text: 'Coupon updated successfully',
                     confirmButtonColor: '#27ae60'
-                }).then(() => {
-                    window.location.href = '/admin/coupons';
-                });
+                }).then(() => location.href = '/admin/coupons');
             } else {
                 Swal.fire({
                     icon: 'error',
@@ -395,12 +386,12 @@
                     confirmButtonColor: '#e74c3c'
                 });
             }
-        } catch (error) {
-            console.error('Error:', error);
+        } catch (err) {
+            console.error(err);
             Swal.fire({
                 icon: 'error',
-                title: 'Error',
-                text: 'An error occurred while updating the coupon',
+                title: 'Network Error',
+                text: 'Could not reach the server',
                 confirmButtonColor: '#e74c3c'
             });
         } finally {
@@ -409,30 +400,22 @@
         }
     });
 
-    // Cancel button
-    cancelBtn.addEventListener('click', function() {
+    cancelBtn.addEventListener('click', () => {
         Swal.fire({
-            title: 'Are you sure?',
-            text: 'All unsaved changes will be lost',
+            title: 'Discard changes?',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#e74c3c',
             cancelButtonColor: '#95a5a6',
-            confirmButtonText: 'Yes, discard changes',
-            cancelButtonText: 'Continue editing'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = '/admin/coupons';
-            }
-        });
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'No'
+        }).then(r => { if (r.isConfirmed) location.href = '/admin/coupons'; });
     });
 
-    // Convert coupon code to uppercase on input
-    document.getElementById('couponCode').addEventListener('input', function() {
-        this.value = this.value.toUpperCase();
+    document.getElementById('couponCode').addEventListener('input', function () {
+        this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     });
 });
-     
-    </script>
+</script>
 </body>
 </html>

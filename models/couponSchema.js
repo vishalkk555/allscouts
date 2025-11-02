@@ -43,9 +43,12 @@ const couponschema = new Schema(
       },
     },
     maxRedeem: {
-      type: Number,
-      required: true,
-    },
+  type: Number,
+  required: function() {
+    return this.type === 'percentageDiscount';
+  },
+  min: [1, 'Max discount cap must be at least 1']
+},
     expiry: {
       type: Date,
       required: true,
