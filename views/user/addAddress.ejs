@@ -244,293 +244,234 @@
     </div>
 
     <script>
-        // Form validation functions
-        function validateName(name) {
-            return /^[a-zA-Z\s]{2,50}$/.test(name.trim());
-        }
+    // --- Validation Functions ---
+    function validateName(name) {
+        return /^[a-zA-Z\s]{2,50}$/.test(name.trim());
+    }
 
-        function validateEmail(email) {
-            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-        }
+    function validateEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
 
-        function validatePhoneNumber(phone) {
-            return /^[6-9]\d{9}$/.test(phone);
-        }
+    function validatePhoneNumber(phone) {
+        return /^[6-9]\d{9}$/.test(phone);
+    }
 
-        function validatePincode(pincode) {
-            return /^\d{6}$/.test(pincode);
-        }
+    function validatePincode(pincode) {
+        return /^\d{6}$/.test(pincode);
+    }
 
-        function validateText(text, minLength = 2, maxLength = 100) {
-            return text.trim().length >= minLength && text.trim().length <= maxLength;
-        }
+    function validateText(text, minLength = 2, maxLength = 100) {
+        return text.trim().length >= minLength && text.trim().length <= maxLength;
+    }
 
-        // Phone number input formatting
-        document.getElementById('number').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length > 10) {
-                value = value.slice(0, 10);
-            }
-            e.target.value = value;
-        });
+    // --- Input Format Restrictions ---
+    document.getElementById('number').addEventListener('input', function (e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 10) value = value.slice(0, 10);
+        e.target.value = value;
+    });
 
-        // Pincode input formatting
-        document.getElementById('pincode').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length > 6) {
-                value = value.slice(0, 6);
-            }
-            e.target.value = value;
-        });
+    document.getElementById('pincode').addEventListener('input', function (e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 6) value = value.slice(0, 6);
+        e.target.value = value;
+    });
 
-        // Clear form function
-        function clearForm() {
-            Swal.fire({
-                title: 'Clear Form?',
-                text: 'This will clear all entered information.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Yes, clear it!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('addAddressForm').reset();
-                    
-                    // Clear error styles
-                    document.querySelectorAll('.add-address-form-input, .add-address-form-select').forEach(input => {
-                        input.classList.remove('add-address-error');
-                    });
-                    
-                    // Remove error messages
-                    document.querySelectorAll('.add-address-error-message').forEach(error => {
-                        error.remove();
-                    });
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Form Cleared!',
-                        text: 'All information has been cleared.',
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
-                }
-            });
-        }
-
-        // Add error message function
-        function showFieldError(fieldId, message) {
-            const field = document.getElementById(fieldId);
-            field.classList.add('add-address-error');
-            
-            // Remove existing error message
-            const existingError = field.parentNode.querySelector('.add-address-error-message');
-            if (existingError) {
-                existingError.remove();
-            }
-            
-            // Add new error message
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'add-address-error-message';
-            errorDiv.textContent = message;
-            field.parentNode.appendChild(errorDiv);
-        }
-
-        // Clear field error function
-        function clearFieldError(fieldId) {
-            const field = document.getElementById(fieldId);
-            field.classList.remove('add-address-error');
-            
-            const existingError = field.parentNode.querySelector('.add-address-error-message');
-            if (existingError) {
-                existingError.remove();
-            }
-        }
-
-        // Form submission
-        document.getElementById('addAddressForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            // Clear all previous errors
-            document.querySelectorAll('.add-address-form-input, .add-address-form-select').forEach(input => {
-                clearFieldError(input.id);
-            });
-            
-            const formData = new FormData(this);
-            const data = Object.fromEntries(formData);
-            
-            let hasErrors = false;
-            
-            // Validate all fields
-            if (!validateName(data.name)) {
-                showFieldError('name', 'Name should contain only letters and spaces (2-50 characters)');
-                hasErrors = true;
-            }
-            
-            if (!validateEmail(data.email)) {
-                showFieldError('email', 'Please enter a valid email address');
-                hasErrors = true;
-            }
-            
-            if (!validatePhoneNumber(data.number)) {
-                showFieldError('number', 'Phone number should be 10 digits starting with 6-9');
-                hasErrors = true;
-            }
-            
-            if (!validateText(data.houseName)) {
-                showFieldError('houseName', 'House name is required (2-100 characters)');
-                hasErrors = true;
-            }
-            
-            if (!validateText(data.street)) {
-                showFieldError('street', 'Street address is required (2-100 characters)');
-                hasErrors = true;
-            }
-            
-            if (!validateText(data.city)) {
-                showFieldError('city', 'City name is required (2-100 characters)');
-                hasErrors = true;
-            }
-            
-            if (!validateText(data.state)) {
-                showFieldError('state', 'State name is required (2-100 characters)');
-                hasErrors = true;
-            }
-            
-            if (!data.country) {
-                showFieldError('country', 'Please select a country');
-                hasErrors = true;
-            }
-            
-            if (!validatePincode(data.pincode)) {
-                showFieldError('pincode', 'Pincode should be exactly 6 digits');
-                hasErrors = true;
-            }
-            
-            if (!data.saveAs) {
+    // --- Clear Form ---
+    function clearForm() {
+        Swal.fire({
+            title: 'Clear Form?',
+            text: 'This will clear all entered information.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, clear it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('addAddressForm').reset();
+                document.querySelectorAll('.add-address-form-input, .add-address-form-select').forEach(input => input.classList.remove('add-address-error'));
+                document.querySelectorAll('.add-address-error-message').forEach(err => err.remove());
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Validation Error',
-                    text: 'Please select how to save this address'
+                    icon: 'success',
+                    title: 'Form Cleared!',
+                    text: 'All information has been cleared.',
+                    timer: 1500,
+                    showConfirmButton: false
                 });
-                hasErrors = true;
             }
-            
-            if (hasErrors) {
+        });
+    }
+
+    // --- Error Handling Helpers ---
+    function showFieldError(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        field.classList.add('add-address-error');
+        const existing = field.parentNode.querySelector('.add-address-error-message');
+        if (existing) existing.remove();
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'add-address-error-message';
+        errorDiv.textContent = message;
+        field.parentNode.appendChild(errorDiv);
+    }
+
+    function clearFieldError(fieldId) {
+        const field = document.getElementById(fieldId);
+        field.classList.remove('add-address-error');
+        const existing = field.parentNode.querySelector('.add-address-error-message');
+        if (existing) existing.remove();
+    }
+
+    // --- Form Submit ---
+    document.getElementById('addAddressForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        document.querySelectorAll('.add-address-form-input, .add-address-form-select').forEach(input => clearFieldError(input.id));
+
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData);
+        let hasErrors = false;
+
+        // --- Validation ---
+        if (!validateName(data.name)) {
+            showFieldError('name', 'Name should contain only letters and spaces (2–50 characters)');
+            Swal.fire('Invalid Name', 'Name should contain only letters and spaces (2–50 characters).', 'warning');
+            hasErrors = true;
+        }
+
+        if (!validateEmail(data.email)) {
+            showFieldError('email', 'Please enter a valid email address');
+            Swal.fire('Invalid Email', 'Please enter a valid email address.', 'warning');
+            hasErrors = true;
+        }
+
+        if (!validatePhoneNumber(data.number)) {
+            showFieldError('number', 'Phone number should be 10 digits starting with 6–9');
+            Swal.fire('Invalid Phone Number', 'Phone number should be 10 digits starting with 6–9.', 'warning');
+            hasErrors = true;
+        }
+
+        if (!validateText(data.houseName)) {
+            showFieldError('houseName', 'House name is required (2–100 characters)');
+            hasErrors = true;
+        }
+
+        if (!validateText(data.street)) {
+            showFieldError('street', 'Street address is required (2–100 characters)');
+            hasErrors = true;
+        }
+
+        if (!validateText(data.city)) {
+            showFieldError('city', 'City name is required (2–100 characters)');
+            hasErrors = true;
+        }
+
+        if (!validateText(data.state)) {
+            showFieldError('state', 'State name is required (2–100 characters)');
+            hasErrors = true;
+        }
+
+        if (!data.country) {
+            showFieldError('country', 'Please select a country');
+            hasErrors = true;
+        }
+
+        if (!validatePincode(data.pincode)) {
+            showFieldError('pincode', 'Pincode should be exactly 6 digits');
+            hasErrors = true;
+        }
+
+        if (!data.saveAs) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Validation Error',
+                text: 'Please select how to save this address.'
+            });
+            hasErrors = true;
+        }
+
+        if (hasErrors) return;
+
+        // --- Confirm Submit ---
+        const confirm = await Swal.fire({
+            title: 'Add Address?',
+            text: 'Are you sure you want to add this address?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#1a1a1a',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, add it!'
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        Swal.fire({
+            title: 'Adding Address...',
+            text: 'Please wait while we save your address.',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        try {
+            data.number = parseInt(data.number);
+            data.isDefault = document.getElementById('isDefault').checked;
+
+            const res = await fetch('/addAddress', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await res.json();
+            Swal.close();
+
+            if (!res.ok || !result.success) {
+                Swal.fire('Failed to Add Address', result.message || 'Something went wrong.', 'error');
                 return;
             }
-            
-            // Confirmation dialog
-            const result = await Swal.fire({
-                title: 'Add Address?',
-                text: 'Are you sure you want to add this address?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#1a1a1a',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Yes, add it!'
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'Address Added!',
+                text: 'Your address has been added successfully.',
+                confirmButtonColor: '#1a1a1a'
             });
-            
-            if (result.isConfirmed) {
-                // Show loading
-                const loadingAlert = Swal.fire({
-                    title: 'Adding Address...',
-                    text: 'Please wait while we save your address.',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-                
-                try {
-                    // Convert number to Number type
-                    data.number = parseInt(data.number);
-                    data.isDefault = document.getElementById('isDefault').checked;
-                    
-                    // Submit form data
-                    const response = await fetch('/addAddress', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(data)
-                    });
-                    
-                    const responseData = await response.json();
-                    
-                    if (!response.ok) {
-    Swal.fire({
-        icon: 'error',
-        title: 'Validation Error',
-        text: responseData.message
+
+            window.location.href = '/addresses';
+
+        } catch (error) {
+            Swal.close();
+            Swal.fire('Network Error', 'Please check your internet connection and try again.', 'error');
+        }
     });
-    return;
-}
 
-                    loadingAlert.close();
-                    
-                    if (response.ok && responseData.success) {
-                        await Swal.fire({
-                            icon: 'success',
-                            title: 'Address Added!',
-                            text: 'Your address has been added successfully.',
-                            confirmButtonColor: '#1a1a1a'
-                        });
-                        
-                        // Redirect to addresses page
-                        window.location.href = '/addresses';
-                        
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Failed to Add Address',
-                            text: responseData.message || 'Failed to add address. Please try again.'
-                        });
-                    }
-                } catch (error) {
-                    loadingAlert.close();
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Network Error',
-                        text: 'Please check your connection and try again.'
-                    });
-                }
-            }
-        });
+    // --- Real-time Validation (on blur) ---
+    document.getElementById('name').addEventListener('blur', function () {
+        if (this.value && !validateName(this.value)) {
+            showFieldError('name', 'Name should contain only letters and spaces (2–50 characters)');
+        } else clearFieldError('name');
+    });
 
-        // Real-time validation
-        document.getElementById('name').addEventListener('blur', function() {
-            if (this.value && !validateName(this.value)) {
-                showFieldError('name', 'Name should contain only letters and spaces (2-50 characters)');
-            } else {
-                clearFieldError('name');
-            }
-        });
+    document.getElementById('email').addEventListener('blur', function () {
+        if (this.value && !validateEmail(this.value)) {
+            showFieldError('email', 'Please enter a valid email address');
+        } else clearFieldError('email');
+    });
 
-        document.getElementById('email').addEventListener('blur', function() {
-            if (this.value && !validateEmail(this.value)) {
-                showFieldError('email', 'Please enter a valid email address');
-            } else {
-                clearFieldError('email');
-            }
-        });
+    document.getElementById('number').addEventListener('blur', function () {
+        if (this.value && !validatePhoneNumber(this.value)) {
+            showFieldError('number', 'Phone number should be 10 digits starting with 6–9');
+        } else clearFieldError('number');
+    });
 
-        document.getElementById('number').addEventListener('blur', function() {
-            if (this.value && !validatePhoneNumber(this.value)) {
-                showFieldError('number', 'Phone number should be 10 digits starting with 6-9');
-            } else {
-                clearFieldError('number');
-            }
-        });
+    document.getElementById('pincode').addEventListener('blur', function () {
+        if (this.value && !validatePincode(this.value)) {
+            showFieldError('pincode', 'Pincode should be exactly 6 digits');
+        } else clearFieldError('pincode');
+    });
+</script>
 
-        document.getElementById('pincode').addEventListener('blur', function() {
-            if (this.value && !validatePincode(this.value)) {
-                showFieldError('pincode', 'Pincode should be exactly 6 digits');
-            } else {
-                clearFieldError('pincode');
-            }
-        });
-    </script>
 </body>
 </html>
 

@@ -36,7 +36,6 @@ const getDashboardData = async (req, res) => {
             };
             dateRanges.current.end.setHours(23, 59, 59, 999);
             
-            // Calculate previous period for comparison
             const daysDiff = Math.ceil((dateRanges.current.end - dateRanges.current.start) / (1000 * 60 * 60 * 24));
             dateRanges.previous.start = new Date(dateRanges.current.start);
             dateRanges.previous.start.setDate(dateRanges.previous.start.getDate() - daysDiff - 1);
@@ -46,29 +45,14 @@ const getDashboardData = async (req, res) => {
             dateRanges = getDateRange(filter);
         }
 
-        // Get stats for current period
         const currentStats = await calculateStats(dateRanges.current);
-        
-        // Get stats for previous period (for comparison)
         const previousStats = await calculateStats(dateRanges.previous);
 
-        // Calculate percentage changes
-        const revenueChange = calculatePercentageChange(
-            previousStats.totalRevenue,
-            currentStats.totalRevenue
-        );
-        const ordersChange = calculatePercentageChange(
-            previousStats.totalOrders,
-            currentStats.totalOrders
-        );
+        const revenueChange = calculatePercentageChange(previousStats.totalRevenue, currentStats.totalRevenue);
+        const ordersChange = calculatePercentageChange(previousStats.totalOrders, currentStats.totalOrders);
 
-        // Get chart data
         const chartData = await getChartData(filter, dateRanges.current, startDate, endDate);
-
-        // Get top 10 best selling products
         const topProducts = await getTopProducts(dateRanges.current);
-
-        // Get top 10 best selling categories
         const topCategories = await getTopCategories(dateRanges.current);
 
         res.json({
@@ -91,22 +75,15 @@ const getDashboardData = async (req, res) => {
 // Calculate Statistics
 const calculateStats = async (dateRange) => {
     try {
-        // Get orders within date range
         const orders = await Order.find({
             createdAt: { $gte: dateRange.start, $lte: dateRange.end },
             orderStatus: { $nin: ['Cancelled'] }
         });
 
-        // Calculate total revenue (excluding cancelled orders)
         const totalRevenue = orders.reduce((sum, order) => sum + order.orderAmount, 0);
-
-        // Calculate total discounts
         const totalDiscounts = orders.reduce((sum, order) => sum + (order.couponDiscount || 0), 0);
-
-        // Total orders count
         const totalOrders = orders.length;
 
-        // Get active products (not blocked and in stock)
         const activeProducts = await Product.countDocuments({
             isBlocked: false,
             status: { $in: ['Available', 'out of stock'] }
@@ -157,11 +134,9 @@ const getTopProducts = async (dateRange) => {
             });
         });
 
-        const topProducts = Object.values(productStats)
+        return Object.values(productStats)
             .sort((a, b) => b.unitsSold - a.unitsSold)
             .slice(0, 10);
-
-        return topProducts;
     } catch (error) {
         console.error('Error getting top products:', error);
         return [];
@@ -206,11 +181,9 @@ const getTopCategories = async (dateRange) => {
             });
         });
 
-        const topCategories = Object.values(categoryStats)
+        return Object.values(categoryStats)
             .sort((a, b) => b.unitsSold - a.unitsSold)
             .slice(0, 10);
-
-        return topCategories;
     } catch (error) {
         console.error('Error getting top categories:', error);
         return [];
@@ -224,12 +197,10 @@ function getDateRange(filter) {
 
     switch (filter) {
         case 'daily':
-            // Today from 00:00:00 to now
             start = new Date(now);
             start.setHours(0, 0, 0, 0);
             end = new Date(now);
 
-            // Previous day range (yesterday)
             prevStart = new Date(start);
             prevStart.setDate(prevStart.getDate() - 1);
             prevEnd = new Date(start);
@@ -286,156 +257,74 @@ function getDateRange(filter) {
     };
 }
 
-
 // Calculate Percentage Change
 function calculatePercentageChange(oldValue, newValue) {
     if (oldValue === 0) return newValue > 0 ? 100 : 0;
     return ((newValue - oldValue) / oldValue) * 100;
 }
 
-// Get Chart Data
+// Get Chart Data – FIXED YEARLY GROUPING
 const getChartData = async (filter, dateRange, startDate, endDate) => {
     try {
-        let groupBy, labels, data;
+        let labels, data;
 
+        // Determine grouping based on filter or custom date span
         if (filter === 'custom' && startDate && endDate) {
-            // For custom date range, determine grouping based on date span
             const start = new Date(startDate);
             const end = new Date(endDate);
             const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
 
-            if (daysDiff <= 1) {
-                // Group by hour for same day
-                filter = 'daily';
-            } else if (daysDiff <= 31) {
-                // Group by day for up to a month
-                filter = 'weekly';
-            } else if (daysDiff <= 365) {
-                // Group by week for up to a year
-                filter = 'monthly';
-            } else {
-                // Group by month for more than a year
-                filter = 'yearly';
-            }
+            if (daysDiff <= 1) filter = 'daily';
+            else if (daysDiff <= 31) filter = 'weekly';
+            else if (daysDiff <= 365) filter = 'monthly';
+            else filter = 'yearly';
         }
 
         switch (filter) {
             case 'daily':
-                // Group by hour
-                groupBy = { $hour: '$createdAt' };
-                const hourlyOrders = await Order.aggregate([
-                    {
-                        $match: {
-                            createdAt: { $gte: dateRange.start, $lte: dateRange.end }
-                        }
-                    },
-                    {
-                        $group: {
-                            _id: groupBy,
-                            count: { $sum: 1 }
-                        }
-                    },
+                const hourly = await Order.aggregate([
+                    { $match: { createdAt: { $gte: dateRange.start, $lte: dateRange.end } } },
+                    { $group: { _id: { $hour: '$createdAt' }, count: { $sum: 1 } } },
                     { $sort: { _id: 1 } }
                 ]);
-
                 labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
                 data = Array(24).fill(0);
-                hourlyOrders.forEach(item => {
-                    data[item._id] = item.count;
-                });
+                hourly.forEach(h => data[h._id] = h.count);
                 break;
 
             case 'weekly':
-                // Group by day of week
-                const weeklyOrders = await Order.aggregate([
-                    {
-                        $match: {
-                            createdAt: { $gte: dateRange.start, $lte: dateRange.end }
-                        }
-                    },
-                    {
-                        $group: {
-                            _id: {
-                                $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
-                            },
-                            count: { $sum: 1 }
-                        }
-                    },
-                    { $sort: { _id: 1 } }
-                ]);
-
-                labels = [];
-                data = [];
-                const daysToShow = Math.min(30, Math.ceil((dateRange.end - dateRange.start) / (1000 * 60 * 60 * 24)));
-                for (let i = daysToShow - 1; i >= 0; i--) {
-                    const date = new Date(dateRange.end);
-                    date.setDate(date.getDate() - i);
-                    const dateStr = date.toISOString().split('T')[0];
-                    labels.push(date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }));
-                    const order = weeklyOrders.find(o => o._id === dateStr);
-                    data.push(order ? order.count : 0);
-                }
-                break;
-
             case 'monthly':
-                // Group by day
-                const monthlyOrders = await Order.aggregate([
-                    {
-                        $match: {
-                            createdAt: { $gte: dateRange.start, $lte: dateRange.end }
-                        }
-                    },
-                    {
-                        $group: {
-                            _id: {
-                                $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
-                            },
-                            count: { $sum: 1 }
-                        }
-                    },
+                const daysToShow = filter === 'weekly' ? 7 : 30;
+                const dayFmt = await Order.aggregate([
+                    { $match: { createdAt: { $gte: dateRange.start, $lte: dateRange.end } } },
+                    { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
                     { $sort: { _id: 1 } }
                 ]);
-
-                labels = [];
-                data = [];
-                for (let i = 29; i >= 0; i--) {
-                    const date = new Date(dateRange.end);
-                    date.setDate(date.getDate() - i);
-                    const dateStr = date.toISOString().split('T')[0];
-                    labels.push(date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }));
-                    const order = monthlyOrders.find(o => o._id === dateStr);
-                    data.push(order ? order.count : 0);
+                labels = []; data = [];
+                for (let i = daysToShow - 1; i >= 0; i--) {
+                    const d = new Date(dateRange.end);
+                    d.setDate(d.getDate() - i);
+                    const ds = d.toISOString().split('T')[0];
+                    labels.push(d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }));
+                    const o = dayFmt.find(x => x._id === ds);
+                    data.push(o ? o.count : 0);
                 }
                 break;
 
             case 'yearly':
-                // Group by month
-                const yearlyOrders = await Order.aggregate([
-                    {
-                        $match: {
-                            createdAt: { $gte: dateRange.start, $lte: dateRange.end }
-                        }
-                    },
-                    {
-                        $group: {
-                            _id: { $month: '$createdAt' },
-                            count: { $sum: 1 }
-                        }
-                    },
+                const monthly = await Order.aggregate([
+                    { $match: { createdAt: { $gte: dateRange.start, $lte: dateRange.end } } },
+                    { $group: { _id: { $month: '$createdAt' }, count: { $sum: 1 } } },
                     { $sort: { _id: 1 } }
                 ]);
-
-                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
                 labels = monthNames;
                 data = Array(12).fill(0);
-                yearlyOrders.forEach(item => {
-                    data[item._id - 1] = item.count;
-                });
+                monthly.forEach(m => data[m._id - 1] = m.count);
                 break;
 
             default:
-                labels = [];
-                data = [];
+                labels = []; data = [];
         }
 
         return { labels, data };
@@ -445,7 +334,7 @@ const getChartData = async (filter, dateRange, startDate, endDate) => {
     }
 };
 
-// Generate Sales Report
+// Generate Sales Report (unchanged)
 const generateSalesReport = async (req, res) => {
     try {
         const { type, format, startDate, endDate } = req.query;
@@ -461,7 +350,6 @@ const generateSalesReport = async (req, res) => {
             dateRange = getDateRange(type).current;
         }
 
-        // Fetch orders within date range
         const orders = await Order.find({
             createdAt: { $gte: dateRange.start, $lte: dateRange.end }
         })
@@ -470,12 +358,9 @@ const generateSalesReport = async (req, res) => {
             .sort({ createdAt: -1 })
             .lean();
 
-        // Calculate totals
         const totalOrders = orders.length;
         const totalRevenue = orders.reduce((sum, order) => {
-            if (order.orderStatus !== 'Cancelled') {
-                return sum + order.orderAmount;
-            }
+            if (order.orderStatus !== 'Cancelled') return sum + order.orderAmount;
             return sum;
         }, 0);
         const totalDiscount = orders.reduce((sum, order) => sum + (order.couponDiscount || 0), 0);
@@ -496,23 +381,19 @@ const generateSalesReport = async (req, res) => {
     }
 };
 
-// Generate PDF Report
+// PDF, Excel, CSV functions (unchanged)
 function generatePDFReport(res, orders, totals, dateRange) {
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
-
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename=sales-report.pdf');
-
     doc.pipe(res);
 
-    // --- Header Section ---
     doc.fontSize(20).font('Helvetica-Bold').text('Sales Report', { align: 'center' });
     doc.moveDown();
     doc.fontSize(12).font('Helvetica')
         .text(`Period: ${dateRange.start.toLocaleDateString()} - ${dateRange.end.toLocaleDateString()}`, { align: 'center' });
     doc.moveDown(2);
 
-    // --- Summary Section ---
     doc.fontSize(14).font('Helvetica-Bold').text('Summary');
     doc.moveDown(0.5);
     doc.fontSize(11).font('Helvetica');
@@ -522,11 +403,9 @@ function generatePDFReport(res, orders, totals, dateRange) {
     doc.text(`Net Revenue: ₹${totals.netRevenue.toFixed(2)}`);
     doc.moveDown(2);
 
-    // --- Table Section ---
     doc.fontSize(14).font('Helvetica-Bold').text('Order Details');
     doc.moveDown(0.5);
 
-    // Table configuration
     let tableTop = doc.y;
     const itemHeight = 25;
     const bottomMargin = 750;
@@ -543,14 +422,11 @@ function generatePDFReport(res, orders, totals, dateRange) {
     };
 
     drawTableHeader();
-
     let y = tableTop + itemHeight;
-
     doc.font('Helvetica').fontSize(9);
 
     orders.forEach((order, i) => {
         if (y > bottomMargin) {
-            // --- New Page Handling ---
             doc.addPage();
             tableTop = 50;
             drawTableHeader();
@@ -563,20 +439,16 @@ function generatePDFReport(res, orders, totals, dateRange) {
         doc.text(`₹${order.orderAmount.toFixed(2)}`, 320, y);
         doc.text(`₹${(order.couponDiscount || 0).toFixed(2)}`, 400, y);
         doc.text(order.orderStatus, 480, y);
-
         y += itemHeight;
     });
 
     doc.end();
 }
 
-
-// Generate Excel Report
 async function generateExcelReport(res, orders, totals, dateRange) {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Sales Report');
 
-    // Set column widths
     worksheet.columns = [
         { header: 'Order ID', key: 'orderId', width: 20 },
         { header: 'Date', key: 'date', width: 15 },
@@ -589,7 +461,6 @@ async function generateExcelReport(res, orders, totals, dateRange) {
         { header: 'Status', key: 'status', width: 15 }
     ];
 
-    // Add summary rows
     worksheet.addRow([]);
     worksheet.addRow(['Sales Report']);
     worksheet.addRow([`Period: ${dateRange.start.toLocaleDateString()} - ${dateRange.end.toLocaleDateString()}`]);
@@ -601,18 +472,12 @@ async function generateExcelReport(res, orders, totals, dateRange) {
     worksheet.addRow(['Net Revenue', `₹${totals.netRevenue.toFixed(2)}`]);
     worksheet.addRow([]);
 
-    // Add header row
     const headerRow = worksheet.addRow([
         'Order ID', 'Date', 'Customer', 'Email', 'Order Amount', 'Coupon Discount', 'Net Amount', 'Payment Method', 'Status'
     ]);
     headerRow.font = { bold: true };
-    headerRow.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFD3D3D3' }
-    };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD3D3D3' } };
 
-    // Add data rows
     orders.forEach(order => {
         worksheet.addRow({
             orderId: order.orderNumber || order._id.toString().substring(0, 8),
@@ -629,12 +494,10 @@ async function generateExcelReport(res, orders, totals, dateRange) {
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=sales-report.xlsx');
-
     await workbook.xlsx.write(res);
     res.end();
 }
 
-// Generate CSV Report
 function generateCSVReport(res, orders, totals, dateRange) {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=sales-report.csv');

@@ -298,24 +298,26 @@ const getShop = async (req, res) => {
   }
 };
 
-const getStock = async(req,res,next) => {
+const getStock = async(req, res, next) => {
   try {
-    // const userId = req.session.user
-    // if(!userId){
-    //   res.redirect("login")
-    // }
-
-    const productId = req.params.id
-    const product =   await Product.findById(productId).select("stock")
-    if(!product){
-      return  res.status(400).json({success:false,message:"Product not found"})
+    const productId = req.params.id;
+    
+    const product = await Product.findById(productId).select("stock");
+    
+    if (!product) {
+      return res.status(400).json({
+        success: false,
+        message: "Product not found"
+      });
     } 
 
-    res.json({success:true,stock:product.stock,product})
-
+    res.json({
+      success: true,
+      stock: product.stock
+    });
 
   } catch (error) {
-      next(error)
+    next(error);
   }
 }
 
@@ -462,6 +464,19 @@ const addToCart = async (req, res) => {
       return res.status(400).json({ success: false, message: "Product unavailable" });
     }
 
+    // Check stock for selected size
+    const sizeStock = product.stock.find(s => s.size === size);
+    if (!sizeStock) {
+      return res.status(400).json({ success: false, message: "Selected size not found" });
+    }
+
+    if (sizeStock.quantity < 1) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Size ${size} is out of stock` 
+      });
+    }
+
     // Calculate current offer price
     const now = new Date();
     
@@ -497,12 +512,6 @@ const addToCart = async (req, res) => {
       currentOfferPrice = parseFloat(currentOfferPrice.toFixed(2));
     }
 
-    // Check stock for selected size
-    const sizeStock = product.stock.find(s => s.size === size);
-    if (!sizeStock || sizeStock.quantity < 1) {
-      return res.status(400).json({ success: false, message: "Selected size not available" });
-    }
-
     const MAX_QTY = 5;
 
     // Find or create cart
@@ -516,10 +525,19 @@ const addToCart = async (req, res) => {
     const currentQtyInCart = existingItem ? existingItem.quantity : 0;
     const totalQty = currentQtyInCart + qty;
 
+    // Check against site-wide limit (5 items max per product)
     if (totalQty > MAX_QTY) {
       return res.status(400).json({
         success: false,
         message: `You can only add up to ${MAX_QTY} units of this product. You already have ${currentQtyInCart} in your cart.`
+      });
+    }
+
+    // CRITICAL: Check against available stock
+    if (totalQty > sizeStock.quantity) {
+      return res.status(400).json({
+        success: false,
+        message: `Only ${sizeStock.quantity} units available for size ${size}. You already have ${currentQtyInCart} in your cart.`
       });
     }
 
@@ -528,6 +546,7 @@ const addToCart = async (req, res) => {
       existingItem.quantity += qty;
       existingItem.price = currentOfferPrice; // Update with current offer price
       existingItem.total = existingItem.quantity * currentOfferPrice;
+      existingItem.stock = sizeStock.quantity; // Update stock info
     } else {
       cart.item.push({
         productId,
@@ -552,7 +571,11 @@ const addToCart = async (req, res) => {
       await user.save();
     }
 
-    return res.json({ success: true, message: "Product added to cart successfully" });
+    return res.json({ 
+      success: true, 
+      message: "Product added to cart successfully",
+      cartCount: cart.item.reduce((sum, i) => sum + i.quantity, 0)
+    });
     
   } catch (error) {
     console.error("Add to cart error:", error);

@@ -72,6 +72,7 @@
    <button 
   class="cs_btn cs_style_1 cs_type_1 cs_fs_16 cs_medium btn-add-cart" 
   data-product-id="<%= product._id %>" 
+  data-product-name="<%= product.productName %>"
   data-stock='<%= JSON.stringify(product.stock) %>'>
   Add to Cart
 </button>
@@ -96,8 +97,75 @@
 
   <div class="cs_height_140 cs_height_lg_80"></div>
   <hr>
-<script>
 
+<style>
+  .size-option {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 80px;
+    min-height: 80px;
+    padding: 15px;
+    margin: 5px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.3s ease;
+    background-color: white;
+  }
+  
+  .size-option:hover:not(.out-of-stock) {
+    border-color: #3085d6;
+    background-color: #f0f8ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  
+  .size-option.selected {
+    border-color: #3085d6;
+    background-color: #3085d6;
+    color: white;
+  }
+  
+  .size-option.out-of-stock {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background-color: #f5f5f5;
+  }
+  
+  .size-label {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+  
+  .size-stock {
+    font-size: 11px;
+    color: #666;
+    margin-top: 5px;
+  }
+  
+  .size-option.selected .size-stock {
+    color: white;
+  }
+  
+  .size-option.out-of-stock .size-stock {
+    color: #999;
+  }
+  
+  .size-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin: 20px 0;
+    padding: 10px;
+  }
+</style>
+
+<script>
    document.addEventListener("DOMContentLoaded", () => {
   // Handle remove from wishlist
   document.querySelectorAll(".btn-remove").forEach(button => {
@@ -125,7 +193,7 @@
 
             if (data.success) {
               Swal.fire("Removed!", data.message, "success").then(() => {
-                location.reload(); // refresh page to update table
+                location.reload();
               });
             } else {
               Swal.fire("Error", data.message || "Could not remove", "error");
@@ -138,67 +206,112 @@
     });
   });
 
-  // Handle add to cart
+  // Handle add to cart with size selection
   document.querySelectorAll(".btn-add-cart").forEach(button => {
     button.addEventListener("click", async (e) => {
       e.preventDefault();
       const productId = button.getAttribute("data-product-id");
+      const productName = button.getAttribute("data-product-name");
+      const stockData = JSON.parse(button.getAttribute("data-stock"));
 
-      Swal.fire({
-        title: "Add to cart?",
-        text: "This product will be moved to your shopping cart.",
-        icon: "question",
+      // Create size selection HTML
+      let sizeOptionsHtml = '<div class="size-container">';
+      stockData.forEach(item => {
+        const isAvailable = item.quantity > 0;
+        const disabledClass = isAvailable ? '' : 'out-of-stock';
+        const stockText = isAvailable ? `${item.quantity} in stock` : 'Out of stock';
+        
+        sizeOptionsHtml += `
+          <div class="size-option ${disabledClass}" 
+               data-size="${item.size}" 
+               data-available="${isAvailable}">
+            <div class="size-label">${item.size}</div>
+            <div class="size-stock">${stockText}</div>
+          </div>
+        `;
+      });
+      sizeOptionsHtml += '</div>';
+
+      // Variable to store selected size
+      let selectedSize = null;
+
+      // Show size selection popup
+      const result = await Swal.fire({
+        title: `Select Size for ${productName}`,
+        html: sizeOptionsHtml,
         showCancelButton: true,
+        confirmButtonText: "Add to Cart",
+        cancelButtonText: "Cancel",
         confirmButtonColor: "#3085d6",
         cancelButtonColor: "#aaa",
-        confirmButtonText: "Yes, add it!"
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          try {
-            const res = await fetch(`/wishlist/addToCart/${productId}`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ 
-    size: "M", 
-    quantity: 1,
-  })
-});
-
-            const data = await res.json();
-
-            if (data.success) {
-              Swal.fire("Added!", data.message, "success");
-              updateCartBadge();
-
-                // remove wishlist row dynamically
-  const row = button.closest("tr");
-  if (row) {
-    row.remove();
-  }
-
-  // if wishlist becomes empty, show message
-  const tableBody = document.querySelector("tbody");
-  if (tableBody && tableBody.children.length === 0) {
-    tableBody.innerHTML = `
-      <tr>
-        <td colspan="5" class="text-center">Your wishlist is empty.</td>
-      </tr>`;
-  }
-            
-            } else {
-              Swal.fire("Error", data.message || "Could not add", "error");
+        allowOutsideClick: false,
+        didOpen: () => {
+          // Add click handlers to size options
+          document.querySelectorAll('.size-option').forEach(option => {
+            if (option.getAttribute('data-available') === 'true') {
+              option.addEventListener('click', () => {
+                // Remove previous selection
+                document.querySelectorAll('.size-option').forEach(opt => {
+                  opt.classList.remove('selected');
+                });
+                // Add selection to clicked option
+                option.classList.add('selected');
+                selectedSize = option.getAttribute('data-size');
+              });
             }
-          } catch (err) {
-            Swal.fire("Error", "Something went wrong!", "error");
+          });
+        },
+        preConfirm: () => {
+          if (!selectedSize) {
+            Swal.showValidationMessage('Please select a size');
+            return false;
           }
+          return selectedSize;
         }
       });
+
+      // If user confirmed and selected a size
+      if (result.isConfirmed && result.value) {
+        try {
+          const res = await fetch(`/wishlist/addToCart/${productId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              size: result.value, 
+              quantity: 1
+            })
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            Swal.fire("Added!", data.message, "success");
+            updateCartBadge();
+
+            // Remove wishlist row dynamically
+            const row = button.closest("tr");
+            if (row) {
+              row.remove();
+            }
+
+            // If wishlist becomes empty, show message
+            const tableBody = document.querySelector("tbody");
+            if (tableBody && tableBody.children.length === 0) {
+              tableBody.innerHTML = `
+                <tr>
+                  <td colspan="5" class="text-center">Your wishlist is empty.</td>
+                </tr>`;
+            }
+          } else {
+            Swal.fire("Error", data.message || "Could not add", "error");
+          }
+        } catch (err) {
+          Swal.fire("Error", "Something went wrong!", "error");
+        }
+      }
     });
   });
 });
-
-
-
 </script>
   <%- include("../partials/user/footer") %>
   

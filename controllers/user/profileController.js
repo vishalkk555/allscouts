@@ -426,59 +426,72 @@ function validateAddress(data) {
     city, state, country, pincode, saveAs
   } = data;
 
-  // Required fields
-  if (!name || !email || !number || !houseName || !street || !city || !state || !country || !pincode || !saveAs) {
-    return { success: false, message: "All required fields must be filled" };
-  }
+  // Regex patterns
+  const nameRegex = /^[A-Za-z\s]+$/;
+  const textRegex = /^[A-Za-z\s.,-]+$/;  // for city, state, house name, street
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const numberRegex = /^[0-9]{10}$/;
+  const pincodeRegex = /^[0-9]{5,10}$/;
 
   // Name validation
-  if (!/^[a-zA-Z\s]{2,50}$/.test(name.trim())) {
-    return { success: false, message: "Name should contain only letters and spaces (2-50 characters)" };
+  if (!name || !nameRegex.test(name.trim())) {
+    return { success: false, message: "Please enter a valid name (letters only)." };
   }
 
   // Email validation
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { success: false, message: "Please enter a valid email address" };
+  if (!email || !emailRegex.test(email.trim())) {
+    return { success: false, message: "Please enter a valid email address." };
   }
 
-  // Phone number validation - handle both string and number
-  const phoneStr = number.toString();
-  if (!/^[6-9]\d{9}$/.test(phoneStr)) {
-    return { success: false, message: "Phone number should be 10 digits starting with 6-9" };
+  // Phone number validation
+  if (!number || !numberRegex.test(number.toString().trim())) {
+    return { success: false, message: "Please enter a valid 10-digit mobile number." };
   }
 
-  // Pincode validation
-  if (!/^\d{6}$/.test(pincode)) {
-    return { success: false, message: "Pincode should be exactly 6 digits" };
+  // House name
+  if (!houseName || !textRegex.test(houseName.trim())) {
+    return { success: false, message: "House name should contain only letters, spaces, commas, or periods." };
   }
 
-  // Text field validations
-  const textFields = [
-    { field: houseName, name: "House name" },
-    { field: street, name: "Street address" },
-    { field: city, name: "City" },
-    { field: state, name: "State" }
-  ];
+  // Street
+  if (!street || !textRegex.test(street.trim())) {
+    return { success: false, message: "Street should contain only letters, spaces, commas, or periods." };
+  }
 
-  for (let textField of textFields) {
-    if (!textField.field.trim() || textField.field.trim().length < 2 || textField.field.trim().length > 100) {
-      return { success: false, message: `${textField.name} should be between 2-100 characters` };
-    }
+  // City
+  if (!city || !textRegex.test(city.trim())) {
+    return { success: false, message: "City name should contain only letters." };
+  }
+
+  // State
+  if (!state || !textRegex.test(state.trim())) {
+    return { success: false, message: "State name should contain only letters." };
+  }
+
+  // Country
+  if (!country || !textRegex.test(country.trim())) {
+    return { success: false, message: "Country name should contain only letters." };
+  }
+
+  // Pincode
+  if (!pincode || !pincodeRegex.test(pincode.trim())) {
+    return { success: false, message: "Please enter a valid pincode." };
   }
 
   // SaveAs validation
-  if (!["Home", "Work", "Other"].includes(saveAs)) {
-    return { success: false, message: "Invalid address type selected" };
+  const validTypes = ["Home", "Work", "Other"];
+  if (!saveAs || !validTypes.includes(saveAs)) {
+    return { success: false, message: "Invalid address type selected." };
   }
 
   return { success: true };
 }
 
+
+
 const addNewAddress = async (req, res, next) => {
   try {
-    console.log("Add Address Request Body:", req.body);
-    console.log("Session User:", req.session.user);
-
+  
     // Validate input data
     const validation = validateAddress(req.body);
     if (!validation.success) {
@@ -625,177 +638,91 @@ const getEditAddress = async (req, res,next) => {
 
 // PUT - Update address
 const updateAddress = async (req, res) => {
-    try {
-        const userId = req.session.user;
-        const {
-            addressId,
-            name,
-            email,
-            number,
-            houseName,
-            street,
-            city,
-            state,
-            country,
-            pincode,
-            saveAs,
-            isDefault
-        } = req.body;
+  try {
+    const userId = req.session.user;
+    const { addressId, isDefault } = req.body;
 
-        if (!userId) {
-            return res.status(401).json({
-                success: false,
-                message: 'Authentication required'
-            });
-        }
-
-        // Validate required fields
-        if (!name || !email || !number || !houseName || !street || 
-            !city || !state || !country || !pincode || !saveAs) {
-            return res.status(400).json({
-                success: false,
-                message: 'All required fields must be filled'
-            });
-        }
-
-        // Validate addressId format
-        if (!mongoose.Types.ObjectId.isValid(addressId)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid address ID'
-            });
-        }
-
-        // Validate field formats
-        const nameRegex = /^[a-zA-Z\s]{2,50}$/;
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const phoneRegex = /^[6-9]\d{9}$/;
-        const pincodeRegex = /^\d{6}$/;
-
-        if (!nameRegex.test(name.trim())) {
-            return res.status(400).json({
-                success: false,
-                message: 'Name should contain only letters and spaces (2-50 characters)'
-            });
-        }
-
-        if (!emailRegex.test(email)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Please enter a valid email address'
-            });
-        }
-
-        if (!phoneRegex.test(number.toString())) {
-            return res.status(400).json({
-                success: false,
-                message: 'Phone number should be 10 digits starting with 6-9'
-            });
-        }
-
-        if (!pincodeRegex.test(pincode)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Pincode should be exactly 6 digits'
-            });
-        }
-
-        if (!['Home', 'Work', 'Other'].includes(saveAs)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid address type'
-            });
-        }
-
-        // Validate text fields length
-        const textFields = [houseName, street, city, state];
-        for (let field of textFields) {
-            if (field.trim().length < 2 || field.trim().length > 100) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Address fields should be between 2-100 characters'
-                });
-            }
-        }
-
-        // Find the user's address document
-        const userAddress = await Address.findOne({ userId });
-
-        if (!userAddress) {
-            return res.status(404).json({
-                success: false,
-                message: 'Address document not found'
-            });
-        }
-
-        // Find the specific address within the address array
-        const addressToUpdate = userAddress.address.id(addressId);
-
-        if (!addressToUpdate) {
-            return res.status(404).json({
-                success: false,
-                message: 'Address not found'
-            });
-        }
-
-        // If setting as default, first unset all other default addresses
-        if (isDefault) {
-            userAddress.address.forEach(addr => {
-                addr.isDefault = false;
-            });
-        }
-
-        // Update the address fields
-        addressToUpdate.name = name.trim();
-        addressToUpdate.email = email.trim();
-        addressToUpdate.number = parseInt(number);
-        addressToUpdate.houseName = houseName.trim();
-        addressToUpdate.street = street.trim();
-        addressToUpdate.city = city.trim();
-        addressToUpdate.state = state.trim();
-        addressToUpdate.country = country;
-        addressToUpdate.pincode = pincode;
-        addressToUpdate.saveAs = saveAs;
-        addressToUpdate.isDefault = isDefault || false;
-
-        // Save the updated document
-        await userAddress.save();
-
-        res.status(200).json({
-            success: true,
-            message: 'Address updated successfully',
-            data: {
-                addressId: addressToUpdate._id,
-                updatedAddress: addressToUpdate
-            }
-        });
-
-    } catch (error) {
-        console.error('Error updating address:', error);
-        
-        // Handle MongoDB validation errors
-        if (error.name === 'ValidationError') {
-            const validationErrors = Object.values(error.errors).map(err => err.message);
-            return res.status(400).json({
-                success: false,
-                message: validationErrors.join(', ')
-            });
-        }
-
-        // Handle duplicate key errors (if any unique constraints)
-        if (error.code === 11000) {
-            return res.status(400).json({
-                success: false,
-                message: 'Duplicate address information found'
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            message: 'Failed to update address. Please try again later.'
-        });
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required"
+      });
     }
+
+    // ✅ Use the same validation used for Add Address
+    const validation = validateAddress(req.body);
+    if (!validation.success) {
+      return res.status(400).json(validation); // SweetAlert will catch this
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(addressId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid address ID"
+      });
+    }
+
+    // ✅ Proceed with finding and updating the address
+    const userAddress = await Address.findOne({ userId });
+    if (!userAddress) {
+      return res.status(404).json({
+        success: false,
+        message: "Address document not found"
+      });
+    }
+
+    const addressToUpdate = userAddress.address.id(addressId);
+    if (!addressToUpdate) {
+      return res.status(404).json({
+        success: false,
+        message: "Address not found"
+      });
+    }
+
+    // If setting as default, unset all others
+    if (isDefault) {
+      userAddress.address.forEach(addr => (addr.isDefault = false));
+    }
+
+    // ✅ Update fields safely
+    const {
+      name, email, number, houseName, street,
+      city, state, country, pincode, saveAs
+    } = req.body;
+
+    Object.assign(addressToUpdate, {
+      name: name.trim(),
+      email: email.trim(),
+      number: parseInt(number),
+      houseName: houseName.trim(),
+      street: street.trim(),
+      city: city.trim(),
+      state: state.trim(),
+      country: country.trim(),
+      pincode: pincode.trim(),
+      saveAs,
+      isDefault: isDefault || false
+    });
+
+    await userAddress.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Address updated successfully",
+      data: {
+        addressId: addressToUpdate._id,
+        updatedAddress: addressToUpdate
+      }
+    });
+  } catch (error) {
+    console.error("Error updating address:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update address. Please try again later."
+    });
+  }
 };
+
 
 const setDefaultAddress = async (req, res,next) => {
     try {
