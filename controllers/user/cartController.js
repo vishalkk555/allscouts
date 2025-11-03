@@ -1,6 +1,7 @@
 const User = require ("../../models/userSchema")
 const Product = require("../../models/productSchema")
 const Cart = require("../../models/cartSchema")
+const Offer = require("../../models/offerSchema")
 
 
 
@@ -62,13 +63,84 @@ const validateStockAvailability = (product, size, requestedQty) => {
 /**
  * Load cart page with updated stock information
  */
+
+// Helper function to calculate product offer (keep this as is)
+async function calculateProductOffer(product) {
+  const now = new Date();
+  
+  // Find active product-specific offers
+  const productOffers = await Offer.find({
+    offerType: 'product',
+    productId: product._id,
+    status: true,
+    startDate: { $lte: now },
+    endDate: { $gte: now }
+  }).sort({ discount: -1 });
+
+  // Find active category offers
+  const categoryOffers = await Offer.find({
+    offerType: 'category',
+    categoryId: product.category._id,
+    status: true,
+    startDate: { $lte: now },
+    endDate: { $gte: now }
+  }).sort({ discount: -1 });
+
+  let bestOffer = null;
+  let offerType = null;
+
+  const bestProductOffer = productOffers.length > 0 ? productOffers[0] : null;
+  const bestCategoryOffer = categoryOffers.length > 0 ? categoryOffers[0] : null;
+
+  // Determine which offer is better
+  if (bestProductOffer && bestCategoryOffer) {
+    if (bestProductOffer.discount >= bestCategoryOffer.discount) {
+      bestOffer = bestProductOffer;
+      offerType = 'product';
+    } else {
+      bestOffer = bestCategoryOffer;
+      offerType = 'category';
+    }
+  } else if (bestProductOffer) {
+    bestOffer = bestProductOffer;
+    offerType = 'product';
+  } else if (bestCategoryOffer) {
+    bestOffer = bestCategoryOffer;
+    offerType = 'category';
+  }
+
+  // Calculate prices
+  const regularPrice = product.regularPrice;
+  let finalPrice = regularPrice;
+  let discountPercentage = 0;
+  let appliedOfferName = null;
+
+  if (bestOffer) {
+    discountPercentage = bestOffer.discount;
+    finalPrice = regularPrice - (regularPrice * (discountPercentage / 100));
+    appliedOfferName = bestOffer.offerName;
+  }
+
+  return {
+    hasOffer: bestOffer !== null,
+    offerName: appliedOfferName,
+    offerType: offerType,
+    discountPercentage: discountPercentage,
+    regularPrice: regularPrice,
+    finalPrice: parseFloat(finalPrice.toFixed(2)),
+    savings: parseFloat((regularPrice - finalPrice).toFixed(2)),
+    offerId: bestOffer?._id
+  };
+}
+
+// Updated loadCart function with offer calculation
 const loadCart = async (req, res) => {
   try {
     console.log("Loading cart page for user:", req.session.user);
 
     const cart = await Cart.findOne({ userId: req.session.user }).populate({
       path: "item.productId",
-      populate: { path: "category", select: "isBlocked" },
+      populate: { path: "category", select: "isBlocked name" },
       select: "productName productImage stock regularPrice status isBlocked category"
     });
 
@@ -76,10 +148,15 @@ const loadCart = async (req, res) => {
       return res.render("cart", { cart: null });
     }
 
-    // Per-item computations
+    let cartUpdated = false; // Track if we need to save cart
+
+    // Per-item computations with offer calculation
     for (let item of cart.item) {
       const product = item.productId;
       if (!product) continue;
+
+      // Calculate current offer for this product
+      const offerDetails = await calculateProductOffer(product);
 
       // Find the stock for the SELECTED SIZE only
       const stockEntry = Array.isArray(product.stock)
@@ -92,22 +169,40 @@ const loadCart = async (req, res) => {
       const isBlocked =
         Boolean(product.isBlocked) ||
         Boolean(product.category?.isBlocked) ||
-        product.status === "blocked" ||      // if you use this status
-        product.status === "inactive";       // if you use this status
+        product.status === "blocked" ||
+        product.status === "inactive";
 
-      // OUT OF STOCK should be strictly based on the selected size quantity vs cart quantity
+      // OUT OF STOCK based on selected size quantity vs cart quantity
       const isOutOfStock = sizeQty < (item.quantity || 0);
 
-      // expose to the view
+      // Expose to the view
       item.availableStock = sizeQty;
       item.isBlocked = isBlocked;
       item.isOutOfStock = isOutOfStock;
-      item.inStock = !isBlocked && !isOutOfStock; // convenience
+      item.inStock = !isBlocked && !isOutOfStock;
 
-      // Price/total
-      const price = Number(item.price ?? product.regularPrice ?? 0);
-      item.price = price;
-      item.total = price * (item.quantity || 0);
+      // Store offer details in the item for display
+      item.offer = offerDetails;
+      item.regularPrice = offerDetails.regularPrice;
+
+      // Update item price if there's an active offer and price has changed
+      const currentOfferPrice = offerDetails.finalPrice;
+      if (item.price !== currentOfferPrice) {
+        item.price = currentOfferPrice;
+        cartUpdated = true;
+      }
+
+      // Update offer_id if it changed
+      if (offerDetails.offerId && (!item.offer_id || item.offer_id.toString() !== offerDetails.offerId.toString())) {
+        item.offer_id = offerDetails.offerId;
+        cartUpdated = true;
+      } else if (!offerDetails.offerId && item.offer_id) {
+        item.offer_id = null;
+        cartUpdated = true;
+      }
+
+      // Recalculate total
+      item.total = item.price * (item.quantity || 0);
     }
 
     // Cart totals/flags
@@ -115,9 +210,11 @@ const loadCart = async (req, res) => {
     cart.hasBlockedItems = cart.item.some(it => it.isBlocked);
     cart.hasOutOfStockItems = cart.item.some(it => it.isOutOfStock);
 
-    // Persist any legitimate cart field changes you want (price/quantity/total). 
-    // If you DON'T want to persist view-only flags, no problem—they're not in schema and won't be saved.
-    await cart.save();
+    // Save cart only if prices were updated
+    if (cartUpdated) {
+      await cart.save();
+      console.log("Cart prices updated with current offers");
+    }
 
     return res.render("cart", { cart });
   } catch (error) {
@@ -125,13 +222,10 @@ const loadCart = async (req, res) => {
     return res.status(500).send("Server Error");
   }
 };
-
 /**
  * Add product to cart
  */
 const addToCart = async (req, res) => {
-  console.log("req.body:", req.body);
-  console.log("Add to cart ");
   try {
     const { productId, size, quantity, price } = req.body;
     const userId = req.session.user;
@@ -163,8 +257,15 @@ const addToCart = async (req, res) => {
 
     // Check stock for selected size
     const sizeStock = product.stock.find(s => s.size === size);
-    if (!sizeStock || sizeStock.quantity < 1) {
-      return res.status(400).json({ success: false, message: "Selected size not available" });
+    if (!sizeStock) {
+      return res.status(400).json({ success: false, message: "Selected size not found" });
+    }
+
+    if (sizeStock.quantity < 1) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Size ${size} is out of stock` 
+      });
     }
 
     // Maximum quantity per product (site-wide limit)
@@ -179,14 +280,25 @@ const addToCart = async (req, res) => {
     // Check if product with same size already in cart
     const existingItem = cart.item.find(i => i.productId.toString() === productId && i.size === size);
 
-    // Total quantity after adding new request
+    // Current quantity in cart for this product and size
     const currentQtyInCart = existingItem ? existingItem.quantity : 0;
+    
+    // Total quantity after adding new request
     const totalQty = currentQtyInCart + qty;
 
+    // Check against site-wide limit
     if (totalQty > MAX_QTY) {
       return res.status(400).json({
         success: false,
         message: `You can only add up to ${MAX_QTY} units of this product. You already have ${currentQtyInCart} in your cart.`
+      });
+    }
+
+    // CRITICAL: Check against available stock
+    if (totalQty > sizeStock.quantity) {
+      return res.status(400).json({
+        success: false,
+        message: `Only ${sizeStock.quantity} units available for size ${size}. You already have ${currentQtyInCart} in your cart.`
       });
     }
 
@@ -195,6 +307,7 @@ const addToCart = async (req, res) => {
       existingItem.quantity += qty;
       existingItem.price = finalPrice; // Update with current offer price
       existingItem.total = existingItem.quantity * finalPrice;
+      existingItem.stock = sizeStock.quantity; // Update stock info
     } else {
       // Add new item with offer price
       cart.item.push({
@@ -211,14 +324,17 @@ const addToCart = async (req, res) => {
     cart.cartTotal = cart.item.reduce((sum, i) => sum + i.total, 0);
     await cart.save();
 
-    return res.json({ success: true, message: "Product added to cart successfully" });
+    return res.json({ 
+      success: true, 
+      message: "Product added to cart successfully",
+      cartCount: cart.item.reduce((sum, i) => sum + i.quantity, 0)
+    });
 
   } catch (error) {
     console.error("Add to cart error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
 /**
  * Update cart item quantity (increment/decrement)
  */
