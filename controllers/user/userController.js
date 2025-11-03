@@ -1,7 +1,7 @@
 const User=require('../../models/userSchema')
 const Product = require("../../models/productSchema")
 const Wallet = require('../../models/walletSchema')
-const env = require("dotenv").config
+require("dotenv").config({quiet:true})
 const nodemailer = require("nodemailer")
 const bcrypt=require('bcrypt');
 const validator = require('validator');

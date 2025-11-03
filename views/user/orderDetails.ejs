@@ -773,7 +773,7 @@
                     else if (order.orderStatus === 'Cancelled') progressWidth = '0%';
                     else progressWidth = '25%';
                     %>
-                    <div class="progress-line-fill" style="width: <%= progressWidth %>;"></div>
+                    <div class="progress-line-fill" style="width: <%= progressWidth %>%"></div>
                 </div>
                 <div class="progress-step">
                     <div class="progress-circle <%= order.orderStatus !== 'Cancelled' ? 'active' : '' %>">1</div>
