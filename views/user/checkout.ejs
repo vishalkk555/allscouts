@@ -88,6 +88,17 @@
         margin-top: 5px;
     }
 
+    /* Ensure SweetAlert appears above Razorpay modal */
+.swal-high-zindex {
+    z-index: 999999 !important;
+}
+.swal2-container {
+    z-index: 999999 !important;
+}
+.swal2-popup {
+    z-index: 999999 !important;
+}
+
     .stock-status.in-stock {
         background: #d4edda;
         color: #155724;
@@ -1258,14 +1269,25 @@ function openRazorpayCheckout(razorpayOrder, orderId) {
         },
         modal: {
             ondismiss: function() {
+                console.log('⚠️ Payment modal dismissed by user');
+                const errorMessage = 'Payment cancelled by user';
+                
+                // Show SweetAlert ABOVE the modal
                 Swal.fire({
-                    icon: 'warning',
-                    title: 'Payment Cancelled',
-                    text: 'You cancelled the payment. Redirecting to order details...',
-                    timer: 2000,
-                    showConfirmButton: false
+                    icon: 'error',
+                    title: 'Order Failed',
+                    text: errorMessage,
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#d33',
+                    allowOutsideClick: false,
+                    customClass: {
+                        container: 'swal-high-zindex'
+                    },
+                    didOpen: () => {
+                        document.querySelector('.swal2-container').style.zIndex = '999999';
+                    }
                 }).then(() => {
-                    window.location.href = `/orderFailure/${orderId}?error=Payment cancelled by user`;
+                    handlePaymentFailure(orderId, errorMessage);
                 });
             }
         }
@@ -1274,23 +1296,63 @@ function openRazorpayCheckout(razorpayOrder, orderId) {
     const rzp = new Razorpay(options);
     
     rzp.on('payment.failed', function(response) {
-        console.error('Payment failed:', response.error);
+        console.error('❌ Razorpay payment failed:', response.error);
+        const errorMessage = response.error.description || 
+                            response.error.reason || 
+                            'Payment failed';
         
-        fetch('/payment-failed', {
+        // Show SweetAlert ABOVE the modal
+        Swal.fire({
+            icon: 'error',
+            title: 'Order Failed',
+            text: errorMessage,
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#d33',
+            allowOutsideClick: false,
+            customClass: {
+                container: 'swal-high-zindex'
+            },
+            didOpen: () => {
+                document.querySelector('.swal2-container').style.zIndex = '999999';
+            }
+        }).then(() => {
+            handlePaymentFailure(orderId, errorMessage);
+        });
+    });
+    
+    rzp.open();
+}
+
+async function handlePaymentFailure(orderId, errorMessage) {
+    console.log('⚠️ Handling payment failure for order:', orderId);
+    
+    try {
+        // Update payment status to Failed
+        const response = await fetch('/update-payment-failed', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
                 orderId: orderId,
-                error: response.error
+                error: errorMessage
             })
-        }).then(() => {
-            window.location.href = `/orderFailure/${orderId}?error=${encodeURIComponent(response.error.description)}`;
         });
-    });
-    
-    rzp.open();
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log('✅ Payment status updated to Failed');
+            // Redirect to order failure page
+            window.location.href = `/orderFailure/${orderId}?error=${encodeURIComponent(errorMessage)}`;
+        } else {
+            throw new Error('Failed to update payment status');
+        }
+    } catch (error) {
+        console.error('Error handling payment failure:', error);
+        // Even if update fails, redirect to order failure page
+        window.location.href = `/orderFailure/${orderId}?error=${encodeURIComponent(errorMessage)}`;
+    }
 }
 
 function verifyRazorpayPayment(paymentResponse, orderId) {
@@ -1343,10 +1405,18 @@ function verifyRazorpayPayment(paymentResponse, orderId) {
     })
     .catch(error => {
         console.error('Payment verification error:', error);
+        Swal.close();
+        
+        // Show payment failed alert and redirect
         Swal.fire({
             icon: 'error',
             title: 'Payment Failed',
-            text: 'Payment verification failed. Please contact support if amount was deducted.'
+            text: error.message || 'Payment verification failed. Please try again.',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#d33',
+            allowOutsideClick: false
+        }).then(() => {
+            window.location.href = `/orderFailure/${orderId}?error=${encodeURIComponent(error.message || 'Payment verification failed')}`;
         });
     });
 }
