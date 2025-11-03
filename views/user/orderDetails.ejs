@@ -1063,145 +1063,147 @@
         }
     }
 
-    async function cancelItem(productId, itemIndex) {
-        const result = await Swal.fire({
-            title: 'Cancel Item?',
-            text: 'Are you sure you want to cancel this item?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, cancel it!',
-            cancelButtonText: 'No, keep it'
-        });
+   // Updated cancelItem function with payment status handling
+async function cancelItem(productId, itemIndex) {
+    const result = await Swal.fire({
+        title: 'Cancel Item?',
+        text: 'Are you sure you want to cancel this item?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, cancel it!',
+        cancelButtonText: 'No, keep it'
+    });
 
-        if (result.isConfirmed) {
-            try {
-                const response = await fetch(`/orders/cancel-item`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        orderId: '<%= order._id %>',
-                        productId: productId,
-                        itemIndex: itemIndex.toString()
-                    })
-                });
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(`/orders/cancel-item`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    orderId: '<%= order._id %>',
+                    productId: productId,
+                    itemIndex: itemIndex.toString()
+                })
+            });
 
-                const data = await response.json();
+            const data = await response.json();
 
-                if (data.success) {
-                    let title = 'Item Cancelled';
-                    let message = 'The item has been cancelled successfully';
-                    
-                    if (data.refundedToWallet && data.refundAmount > 0) {
-                        title = 'Item Cancelled & Refunded!';
-                        message = `The item has been cancelled successfully.\n\n💰 Refund Amount: ₹${data.refundAmount.toFixed(2)} has been added to your wallet.`;
-                    }
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: title,
-                        text: message,
-                        confirmButtonColor: '#e74c3c',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.message || 'Failed to cancel item',
-                        confirmButtonColor: '#e74c3c'
-                    });
+            if (data.success) {
+                let title = 'Item Cancelled';
+                let message = 'The item has been cancelled successfully';
+                
+                if (data.refundedToWallet && data.refundAmount > 0) {
+                    title = 'Item Cancelled & Refunded!';
+                    message = `The item has been cancelled successfully.\n\n💰 Refund Amount: ₹${data.refundAmount.toFixed(2)} has been added to your wallet.\n\n📋 Payment Status: ${data.paymentStatus}`;
                 }
-            } catch (error) {
-                console.error('Error:', error);
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: title,
+                    html: message.replace(/\n/g, '<br>'),
+                    confirmButtonColor: '#e74c3c',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'Something went wrong. Please try again.',
+                    text: data.message || 'Failed to cancel item',
                     confirmButtonColor: '#e74c3c'
                 });
             }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Something went wrong. Please try again.',
+                confirmButtonColor: '#e74c3c'
+            });
         }
     }
+}
 
-    async function cancelEntireOrder(orderId) {
-        const result = await Swal.fire({
-            title: 'Cancel Entire Order?',
-            text: 'Are you sure you want to cancel this entire order? This action cannot be undone.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, cancel order!',
-            cancelButtonText: 'No, keep order',
-            reverseButtons: true
-        });
-
-        if (result.isConfirmed) {
-            try {
-                Swal.fire({
-                    title: 'Cancelling Order...',
-                    text: 'Please wait while we process your request',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                const response = await fetch(`/orders/${orderId}/cancel`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    let title = 'Order Cancelled!';
-                    let message = 'Your order has been cancelled successfully';
-                    
-                    if (data.refundedToWallet && data.refundAmount > 0) {
-                        title = 'Order Cancelled & Refunded!';
-                        message = `Your order has been cancelled successfully.\n\n💰 Refund Amount: ₹${data.refundAmount.toFixed(2)} has been added to your wallet.`;
-                    }
-                    
-                    Swal.fire({
-        icon: 'success',
-        title: title,
-        text: message,
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#28a745',
-        allowOutsideClick: false,
-        allowEscapeKey: false
-    }).then(() => {
-       location.reload()
+// Updated cancelEntireOrder function with payment status handling
+async function cancelEntireOrder(orderId) {
+    const result = await Swal.fire({
+        title: 'Cancel Entire Order?',
+        text: 'Are you sure you want to cancel this entire order? This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, cancel order!',
+        cancelButtonText: 'No, keep order',
+        reverseButtons: true
     });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Cancellation Failed',
-                        text: data.message || 'Failed to cancel order. Please try again.',
-                        confirmButtonColor: '#e74c3c'
-                    });
+
+    if (result.isConfirmed) {
+        try {
+            Swal.fire({
+                title: 'Cancelling Order...',
+                text: 'Please wait while we process your request',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
                 }
-            } catch (error) {
-                console.error('Error:', error);
+            });
+
+            const response = await fetch(`/orders/${orderId}/cancel`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                let title = 'Order Cancelled!';
+                let message = 'Your order has been cancelled successfully';
+                
+                if (data.refundedToWallet && data.refundAmount > 0) {
+                    title = 'Order Cancelled & Refunded!';
+                    message = `Your order has been cancelled successfully.\n\n💰 Refund Amount: ₹${data.refundAmount.toFixed(2)} has been added to your wallet.\n\n📋 Payment Status: ${data.paymentStatus}`;
+                }
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: title,
+                    html: message.replace(/\n/g, '<br>'),
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#28a745',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Network Error',
-                    text: 'Something went wrong. Please check your connection and try again.',
+                    title: 'Cancellation Failed',
+                    text: data.message || 'Failed to cancel order. Please try again.',
                     confirmButtonColor: '#e74c3c'
                 });
             }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Network Error',
+                text: 'Something went wrong. Please check your connection and try again.',
+                confirmButtonColor: '#e74c3c'
+            });
         }
     }
+}
 
     async function generateInvoice() {
         Swal.fire({
