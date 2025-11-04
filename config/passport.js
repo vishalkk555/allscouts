@@ -5,10 +5,10 @@ require("dotenv").config();
 
 
 passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: 'https://allscouts.online/google/callback'
-  },
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  callbackURL: process.env.NODE_ENV === "production" ? "https://allscouts.online/google/callback" : '/google/callback'
+},
   async (accessToken, refreshToken, profile, done) => {
     try {
       let user = await User.findOne({ googleId: profile.id });
@@ -42,19 +42,19 @@ passport.use(new GoogleStrategy({
 
 
 
-passport.serializeUser((user,done)=>{
+passport.serializeUser((user, done) => {
 
-    done(null,user.id)
+  done(null, user.id)
 
 });
 
-passport.deserializeUser((id,done)=>{
-    User.findById(id)
-    .then(user=>{
-        done(null,user)
+passport.deserializeUser((id, done) => {
+  User.findById(id)
+    .then(user => {
+      done(null, user)
     })
-    .catch(err =>{
-        done(err,null)
+    .catch(err => {
+      done(err, null)
     })
 })
 
