@@ -46,7 +46,7 @@ const userSession = session({
   resave: false,
   saveUninitialized: false,
   store: new MemoryStore({
-    checkPeriod: 86400000 // Prune expired entries every 24 hours
+    checkPeriod: 86400000 
   }),
   cookie: { 
     maxAge: 1000 * 60 * 60 * 24,
@@ -60,7 +60,7 @@ const adminSession = session({
   resave: false,
   saveUninitialized: false,
   store: new MemoryStore({
-    checkPeriod: 86400000 // Prune expired entries every 24 hours
+    checkPeriod: 86400000 
   }),
   cookie: { 
     maxAge: 1000 * 60 * 60 * 24,
@@ -69,7 +69,7 @@ const adminSession = session({
 });
 
 
-// Apply User Session + Passport (NOT on /admin routes)
+// Apply User Session + Passport 
 app.use((req, res, next) => {
   if (req.path.startsWith('/admin')) {
     return next();
@@ -109,7 +109,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Make user available in views (user routes only)
+// Make user available in views 
 app.use((req, res, next) => {
   if (req.path.startsWith('/admin')) {
     return next();
@@ -118,7 +118,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Blocked user middleware (user routes only)
+// Blocked user middleware
 app.use((req, res, next) => {
   if (req.path.startsWith('/admin')) {
     return next();
@@ -128,22 +128,15 @@ app.use((req, res, next) => {
 
 app.use(getCartCount);
 
-// ---------------------------
-// Routes
-// ---------------------------
 
-// User routes (already has user session + passport)
 app.use("/", userRouter);
 
-// Admin routes (apply admin session separately)
 app.use("/admin", adminSession, (req, res, next) => {
   res.locals.admin = req.session?.admin || null;
   next();
 }, adminRouter);
 
-// ---------------------------
-// Error handling
-// ---------------------------
+
 app.use((err, req, res, next) => {
   console.error(err.stack);
 
@@ -161,7 +154,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
+
 app.listen(process.env.PORT, () => {
   console.log("Server Running");
 });

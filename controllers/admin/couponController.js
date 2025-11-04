@@ -115,7 +115,7 @@ const createCoupon = async (req, res, next) => {
         if (type === 'percentageDiscount') {
             couponData.maxRedeem = parseFloat(maxRedeem);
         }
-        // For flat: maxRedeem stays undefined → Mongo won't save it
+        
 
         const newCoupon = new Coupon(couponData);
         await newCoupon.save();

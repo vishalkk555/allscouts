@@ -173,10 +173,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const maxRedeemInput     = document.getElementById('maxRedeem');
     const cancelBtn          = document.getElementById('cancelBtn');
     const expiryInput        = document.getElementById('expiry');
+    const couponCodeInput    = document.getElementById('couponCode');
+    const minPurchaseInput   = document.getElementById('minPurchase');
 
     const today = new Date().toISOString().split('T')[0];
     expiryInput.setAttribute('min', today);
-    toggleFields();                     // hide/show maxRedeem on page load
+    toggleFields();
     discountTypeSelect.addEventListener('change', toggleFields);
 
     function toggleFields() {
@@ -204,7 +206,6 @@ document.addEventListener('DOMContentLoaded', function () {
             discountValueInput.removeAttribute('max');
         }
 
-        // reset discount value when type changes
         discountValueInput.value = '';
         clearError('discountValue');
     }
@@ -213,119 +214,333 @@ document.addEventListener('DOMContentLoaded', function () {
     function showError(id, msg) {
         const errEl = document.getElementById(id + 'Error');
         const inpEl = document.getElementById(id);
-        if (errEl) errEl.textContent = msg;
-        if (inpEl) inpEl.style.borderColor = '#e74c3c';
+        if (errEl) {
+            errEl.textContent = msg;
+            errEl.style.color = '#e74c3c';
+            errEl.style.fontSize = '0.875rem';
+            errEl.style.marginTop = '0.25rem';
+            errEl.style.display = 'block';
+        }
+        if (inpEl) {
+            inpEl.style.borderColor = '#e74c3c';
+            inpEl.style.boxShadow = '0 0 0 3px rgba(231, 76, 60, 0.1)';
+        }
     }
 
     function clearError(id) {
         const errEl = document.getElementById(id + 'Error');
         const inpEl = document.getElementById(id);
-        if (errEl) errEl.textContent = '';
-        if (inpEl) inpEl.style.borderColor = '#dfe6e9';
+        if (errEl) {
+            errEl.textContent = '';
+            errEl.style.display = 'none';
+        }
+        if (inpEl) {
+            inpEl.style.borderColor = '#dfe6e9';
+            inpEl.style.boxShadow = 'none';
+        }
     }
 
     function clearAllErrors() {
-        document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+        document.querySelectorAll('.error-message').forEach(el => {
+            el.textContent = '';
+            el.style.display = 'none';
+        });
         document.querySelectorAll('.form-input, .form-select, .form-textarea')
-                .forEach(el => el.style.borderColor = '#dfe6e9');
+                .forEach(el => {
+                    el.style.borderColor = '#dfe6e9';
+                    el.style.boxShadow = 'none';
+                });
     }
 
-    /* ---------- REAL-TIME CLEAR ERRORS ---------- */
-    ['couponCode','discountType','discountValue','minPurchase','maxRedeem','expiry','description']
-        .forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.addEventListener('input',  () => clearError(id));
-                el.addEventListener('change', () => clearError(id));
-            }
-        });
+    /* ---------- REAL-TIME VALIDATION ---------- */
+    
+    // Coupon Code - Real-time validation
+    couponCodeInput.addEventListener('input', function() {
+        const code = this.value.trim();
+        clearError('couponCode');
+        
+        if (code && code.length < 3) {
+            showError('couponCode', 'Coupon code must be at least 3 characters');
+        }
+        // Removed the pattern check from real-time validation
+        // Pattern will be enforced by the input formatter below
+    });
 
-  
+    couponCodeInput.addEventListener('blur', function() {
+        const code = this.value.trim();
+        if (!code) {
+            showError('couponCode', 'Coupon code is required');
+        }
+    });
+
+    // Discount Type
+    discountTypeSelect.addEventListener('change', function() {
+        clearError('discountType');
+        if (!this.value) {
+            showError('discountType', 'Please select a discount type');
+        }
+        // Re-validate discount value when type changes
+        if (discountValueInput.value) {
+            validateDiscountValue();
+        }
+    });
+
+    // Discount Value - Real-time validation
+    discountValueInput.addEventListener('input', validateDiscountValue);
+    discountValueInput.addEventListener('blur', validateDiscountValue);
+
+    function validateDiscountValue() {
+        const disc = parseFloat(discountValueInput.value);
+        const type = discountTypeSelect.value;
+        const minP = parseFloat(minPurchaseInput.value);
+        
+        clearError('discountValue');
+
+        if (discountValueInput.value && isNaN(disc)) {
+            showError('discountValue', 'Please enter a valid number');
+            return;
+        }
+
+        if (discountValueInput.value && disc <= 0) {
+            showError('discountValue', 'Discount must be greater than 0');
+            return;
+        }
+
+        if (type === 'percentageDiscount') {
+            if (disc > 100) {
+                showError('discountValue', 'Percentage cannot exceed 100%');
+                return;
+            }
+            if (disc < 0.01) {
+                showError('discountValue', 'Percentage must be at least 0.01%');
+                return;
+            }
+        } else if (type === 'flatDiscount') {
+            if (disc < 0.01) {
+                showError('discountValue', 'Fixed amount must be at least ₹0.01');
+                return;
+            }
+            if (!isNaN(minP) && minP > 0 && disc > minP) {
+                showError('discountValue', 'Fixed discount cannot exceed minimum purchase amount');
+                return;
+            }
+        }
+    }
+
+    // Min Purchase - Real-time validation
+    minPurchaseInput.addEventListener('input', validateMinPurchase);
+    minPurchaseInput.addEventListener('blur', validateMinPurchase);
+
+    function validateMinPurchase() {
+        const minP = parseFloat(minPurchaseInput.value);
+        const disc = parseFloat(discountValueInput.value);
+        const type = discountTypeSelect.value;
+        
+        clearError('minPurchase');
+
+        if (minPurchaseInput.value && isNaN(minP)) {
+            showError('minPurchase', 'Please enter a valid number');
+            return;
+        }
+
+        if (minPurchaseInput.value && minP < 0) {
+            showError('minPurchase', 'Minimum purchase cannot be negative');
+            return;
+        }
+
+        // Re-validate discount if it's a flat discount
+        if (type === 'flatDiscount' && !isNaN(disc) && disc > 0) {
+            if (!isNaN(minP) && minP > 0 && disc > minP) {
+                showError('minPurchase', 'Minimum purchase must be ≥ fixed discount amount');
+            }
+        }
+    }
+
+    // Max Redeem - Real-time validation
+    maxRedeemInput.addEventListener('input', validateMaxRedeem);
+    maxRedeemInput.addEventListener('blur', validateMaxRedeem);
+
+    function validateMaxRedeem() {
+        const type = discountTypeSelect.value;
+        if (type !== 'percentageDiscount') return;
+
+        const maxR = parseFloat(maxRedeemInput.value);
+        const minP = parseFloat(minPurchaseInput.value);
+        const disc = parseFloat(discountValueInput.value);
+        
+        clearError('maxRedeem');
+
+        if (maxRedeemInput.value && isNaN(maxR)) {
+            showError('maxRedeem', 'Please enter a valid number');
+            return;
+        }
+
+        if (maxRedeemInput.value && maxR <= 0) {
+            showError('maxRedeem', 'Max discount cap must be greater than 0');
+            return;
+        }
+
+        // Check if max cap is reasonable based on min purchase
+        if (!isNaN(maxR) && !isNaN(minP) && !isNaN(disc) && minP > 0 && disc > 0) {
+            const possibleDiscount = (minP * disc) / 100;
+            if (maxR < possibleDiscount) {
+                showError('maxRedeem', `Max cap should be ≥ ₹${possibleDiscount.toFixed(2)} (discount on min purchase)`);
+            }
+        }
+    }
+
+    // Expiry Date - Real-time validation
+    expiryInput.addEventListener('change', function() {
+        clearError('expiry');
+        
+        if (!this.value) {
+            showError('expiry', 'Expiry date is required');
+            return;
+        }
+
+        const expDate = new Date(this.value);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (expDate < today) {
+            showError('expiry', 'Expiry date must be today or in the future');
+        }
+    });
+
+    // Description - Character count validation
+    const descriptionInput = document.getElementById('description');
+    descriptionInput.addEventListener('input', function() {
+        const len = this.value.trim().length;
+        clearError('description');
+        
+        if (len > 500) {
+            showError('description', `Description is too long (${len}/500 characters)`);
+        }
+    });
+
+    /* ---------- FORM VALIDATION ---------- */
     function validateForm() {
         let ok = true;
         clearAllErrors();
 
-        /* ---- Coupon Code ---- */
-        const code = document.getElementById('couponCode').value.trim();
-        if (!code) { showError('couponCode', 'Coupon code is required'); ok = false; }
-        else if (code.length < 3) { showError('couponCode', 'At least 3 characters'); ok = false; }
-        else if (!/^[A-Z0-9]+$/.test(code)) { showError('couponCode', 'Only uppercase letters & numbers'); ok = false; }
+        /* Coupon Code */
+        const code = couponCodeInput.value.trim();
+        if (!code) {
+            showError('couponCode', 'Coupon code is required');
+            ok = false;
+        } else if (code.length < 3) {
+            showError('couponCode', 'Coupon code must be at least 3 characters');
+            ok = false;
+        }
+        // Pattern validation removed - input formatter ensures only A-Z and 0-9
 
-        /* ---- Discount Type ---- */
+        /* Discount Type */
         const type = discountTypeSelect.value;
-        if (!type) { showError('discountType', 'Select a discount type'); ok = false; }
-
-        /* ---- Discount Value ---- */
-        const disc = parseFloat(discountValueInput.value);
-        if (isNaN(disc) || disc <= 0) { showError('discountValue', 'Discount must be > 0'); ok = false; }
-        else if (type === 'percentageDiscount' && disc > 100) { showError('discountValue', 'Percentage ≤ 100'); ok = false; }
-        else if (type === 'percentageDiscount' && disc < 0.01) { showError('discountValue', 'Percentage ≥ 0.01'); ok = false; }
-        else if (type === 'flatDiscount' && disc < 0.01) { showError('discountValue', 'Fixed amount ≥ 0.01'); ok = false; }
-
-        /* ---- Min Purchase ---- */
-        const minP = parseFloat(document.getElementById('minPurchase').value);
-        if (isNaN(minP) || minP < 0) { showError('minPurchase', 'Min purchase ≥ 0'); ok = false; }
-
-
-        if (type === 'flatDiscount' && !isNaN(disc) && !isNaN(minP) && disc > minP) {
-            showError('discountValue', 'Fixed discount cannot exceed min purchase');
+        if (!type) {
+            showError('discountType', 'Please select a discount type');
             ok = false;
         }
 
-        /* ---- Max Redeem (only % coupons) ---- */
+        /* Discount Value */
+        const disc = parseFloat(discountValueInput.value);
+        if (isNaN(disc) || disc <= 0) {
+            showError('discountValue', 'Discount must be greater than 0');
+            ok = false;
+        } else if (type === 'percentageDiscount') {
+            if (disc > 100) {
+                showError('discountValue', 'Percentage cannot exceed 100%');
+                ok = false;
+            } else if (disc < 0.01) {
+                showError('discountValue', 'Percentage must be at least 0.01%');
+                ok = false;
+            }
+        } else if (type === 'flatDiscount' && disc < 0.01) {
+            showError('discountValue', 'Fixed amount must be at least ₹0.01');
+            ok = false;
+        }
+
+        /* Min Purchase */
+        const minP = parseFloat(minPurchaseInput.value);
+        if (isNaN(minP) || minP < 0) {
+            showError('minPurchase', 'Minimum purchase must be 0 or greater');
+            ok = false;
+        }
+
+        /* Fixed discount cannot exceed min purchase */
+        if (type === 'flatDiscount' && !isNaN(disc) && !isNaN(minP) && disc > minP) {
+            showError('discountValue', 'Fixed discount cannot exceed minimum purchase amount');
+            ok = false;
+        }
+
+        /* Max Redeem */
         if (type === 'percentageDiscount') {
             const maxR = parseFloat(maxRedeemInput.value);
-            if (isNaN(maxR) || maxR <= 0) { showError('maxRedeem', 'Max discount cap > 0'); ok = false; }
-            // optional: maxR should be ≥ possible discount on min purchase
-            const possible = (minP * disc) / 100;
-            if (!isNaN(possible) && maxR < possible) {
-                showError('maxRedeem', 'Max cap must be ≥ discount on min purchase');
+            if (isNaN(maxR) || maxR <= 0) {
+                showError('maxRedeem', 'Max discount cap is required and must be greater than 0');
+                ok = false;
+            } else {
+                const possibleDiscount = (minP * disc) / 100;
+                if (!isNaN(possibleDiscount) && maxR < possibleDiscount) {
+                    showError('maxRedeem', `Max cap must be ≥ ₹${possibleDiscount.toFixed(2)} (discount on min purchase)`);
+                    ok = false;
+                }
+            }
+        }
+
+        /* Expiry Date */
+        const exp = expiryInput.value;
+        if (!exp) {
+            showError('expiry', 'Expiry date is required');
+            ok = false;
+        } else {
+            const expDate = new Date(exp);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (expDate < today) {
+                showError('expiry', 'Expiry date must be today or in the future');
                 ok = false;
             }
         }
 
-        /* ---- Expiry ---- */
-        const exp = document.getElementById('expiry').value;
-        if (!exp) { showError('expiry', 'Expiry date required'); ok = false; }
-        else {
-            const expDate = new Date(exp);
-            const today   = new Date(); today.setHours(0,0,0,0);
-            if (expDate < today) { showError('expiry', 'Expiry must be today or later'); ok = false; }
+        /* Description */
+        const desc = descriptionInput.value.trim();
+        if (desc.length > 500) {
+            showError('description', `Description is too long (${desc.length}/500 characters)`);
+            ok = false;
         }
-
-     
-        const desc = document.getElementById('description').value.trim();
-        if (desc.length > 500) { showError('description', 'Description ≤ 500 chars'); ok = false; }
 
         return ok;
     }
 
-
+    /* ---------- FORM SUBMISSION ---------- */
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
 
         if (!validateForm()) {
-            // SweetAlert ONLY on submit when something is wrong
             Swal.fire({
                 icon: 'error',
                 title: 'Validation Error',
-                text: 'Please fix the highlighted fields before submitting.',
+                text: 'Please fix the errors highlighted in red before submitting.',
                 confirmButtonColor: '#e74c3c'
             });
+            // Scroll to first error
+            const firstError = document.querySelector('.error-message:not(:empty)');
+            if (firstError) {
+                firstError.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
             return;
         }
 
         const payload = {
-            couponCode : document.getElementById('couponCode').value.trim().toUpperCase(),
-            type       : discountTypeSelect.value,
-            discount   : parseFloat(discountValueInput.value),
-            status     : true,                     // always active
-            minPurchase: parseFloat(document.getElementById('minPurchase').value),
-            expiry     : document.getElementById('expiry').value,
-            description: document.getElementById('description').value.trim()
+            couponCode: couponCodeInput.value.trim().toUpperCase(),
+            type: discountTypeSelect.value,
+            discount: parseFloat(discountValueInput.value),
+            status: true,
+            minPurchase: parseFloat(minPurchaseInput.value),
+            expiry: expiryInput.value,
+            description: descriptionInput.value.trim()
         };
 
-        // maxRedeem only for percentage coupons
         if (discountTypeSelect.value === 'percentageDiscount') {
             payload.maxRedeem = parseFloat(maxRedeemInput.value);
         }
@@ -335,7 +550,7 @@ document.addEventListener('DOMContentLoaded', function () {
         submitBtn.textContent = 'Saving...';
 
         try {
-            const res  = await fetch('/admin/coupons/addCoupon', {
+            const res = await fetch('/admin/coupons/addCoupon', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -350,6 +565,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     confirmButtonColor: '#27ae60'
                 }).then(() => location.href = '/admin/coupons');
             } else {
+                // Handle server-side validation errors
+                if (data.message.includes('already exists')) {
+                    showError('couponCode', 'This coupon code already exists');
+                }
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
@@ -362,7 +581,7 @@ document.addEventListener('DOMContentLoaded', function () {
             Swal.fire({
                 icon: 'error',
                 title: 'Network Error',
-                text: 'Could not reach the server',
+                text: 'Could not reach the server. Please try again.',
                 confirmButtonColor: '#e74c3c'
             });
         } finally {
@@ -371,21 +590,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-  
+    /* ---------- CANCEL BUTTON ---------- */
     cancelBtn.addEventListener('click', () => {
         Swal.fire({
             title: 'Discard changes?',
+            text: 'All unsaved changes will be lost',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#e74c3c',
             cancelButtonColor: '#95a5a6',
-            confirmButtonText: 'Yes',
-            cancelButtonText: 'No'
-        }).then(r => { if (r.isConfirmed) location.href = '/admin/coupons'; });
+            confirmButtonText: 'Yes, discard',
+            cancelButtonText: 'No, keep editing'
+        }).then(r => {
+            if (r.isConfirmed) location.href = '/admin/coupons';
+        });
     });
 
     /* ---------- COUPON CODE FORMAT ---------- */
-    document.getElementById('couponCode').addEventListener('input', function () {
+    couponCodeInput.addEventListener('input', function () {
         this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     });
 });

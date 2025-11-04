@@ -43,9 +43,9 @@
                                 id="discount" 
                                 name="discount" 
                                 class="form-input with-icon" 
-                                placeholder="Enter percentage (1-100)"
+                                placeholder="Enter percentage "
                                 min="1"
-                                max="100"
+                                max="99"
                                 step="0.01"
                                 value="<%= offer.discount %>"
                                 required
@@ -163,9 +163,8 @@
         </div>
     </div>
 
-    <script> 
-       
-       document.addEventListener('DOMContentLoaded', function() {
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('editOfferForm');
     const offerTypeSelect = document.getElementById('offerType');
     const categoryGroup = document.getElementById('categoryGroup');
@@ -175,6 +174,8 @@
     const cancelBtn = document.getElementById('cancelBtn');
     const startDateInput = document.getElementById('startDate');
     const endDateInput = document.getElementById('endDate');
+    const offerNameInput = document.getElementById('offerName');
+    const discountInput = document.getElementById('discount');
     const offerId = document.getElementById('offerId').value;
 
     // Set minimum date to today
@@ -193,6 +194,14 @@
         categoryGroup.style.display = 'none';
         productGroup.style.display = 'none';
         
+        // Clear selections when switching types
+        if (selectedType !== 'category') {
+            categoriesSelect.selectedIndex = -1;
+        }
+        if (selectedType !== 'product') {
+            productsSelect.selectedIndex = -1;
+        }
+        
         // Clear errors
         clearError('categories');
         clearError('products');
@@ -203,20 +212,10 @@
             categoryGroup.style.display = 'block';
             categoriesSelect.required = true;
             productsSelect.required = false;
-            
-            // Clear product selections if switching from product to category
-            if (initialOfferType !== 'category') {
-                productsSelect.selectedIndex = -1;
-            }
         } else if (selectedType === 'product') {
             productGroup.style.display = 'block';
             productsSelect.required = true;
             categoriesSelect.required = false;
-            
-            // Clear category selections if switching from category to product
-            if (initialOfferType !== 'product') {
-                categoriesSelect.selectedIndex = -1;
-            }
         }
     });
 
@@ -232,96 +231,203 @@
             }
         }
         clearError('startDate');
+        
+        // Revalidate end date if it exists
+        if (endDateInput.value) {
+            validateEndDate();
+        }
     });
 
     endDateInput.addEventListener('change', function() {
-        clearError('endDate');
+        validateEndDate();
     });
 
-    // Form validation
-    function validateForm() {
-        let isValid = true;
+    // Real-time validation for offer name
+    offerNameInput.addEventListener('blur', function() {
+        validateOfferName();
+    });
 
-        // Clear all errors
-        clearAllErrors();
+    offerNameInput.addEventListener('input', function() {
+        if (this.value.trim()) {
+            clearError('offerName');
+        }
+    });
 
-        // Offer Name validation
-        const offerName = document.getElementById('offerName').value.trim();
+    // Real-time validation for discount
+    discountInput.addEventListener('blur', function() {
+        validateDiscount();
+    });
+
+    discountInput.addEventListener('input', function() {
+        if (this.value) {
+            clearError('discount');
+        }
+    });
+
+    // Real-time validation for offer type
+    offerTypeSelect.addEventListener('blur', function() {
+        validateOfferType();
+    });
+
+    // Real-time validation for categories
+    categoriesSelect.addEventListener('change', function() {
+        if (this.selectedOptions.length > 0) {
+            clearError('categories');
+        } else {
+            validateCategories();
+        }
+    });
+
+    // Real-time validation for products
+    productsSelect.addEventListener('change', function() {
+        if (this.selectedOptions.length > 0) {
+            clearError('products');
+        } else {
+            validateProducts();
+        }
+    });
+
+    // Validation functions
+    function validateOfferName() {
+        const offerName = offerNameInput.value.trim();
         if (!offerName) {
             showError('offerName', 'Offer name is required');
-            isValid = false;
+            return false;
         } else if (offerName.length < 3) {
             showError('offerName', 'Offer name must be at least 3 characters');
-            isValid = false;
+            return false;
+        } else if (offerName.length > 50) {
+            showError('offerName', 'Offer name must not exceed 50 characters');
+            return false;
+        } else if (!/^[a-zA-Z0-9\s\-&]+$/.test(offerName)) {
+            showError('offerName', 'Offer name can only contain letters, numbers, spaces, hyphens and &');
+            return false;
         }
+        clearError('offerName');
+        return true;
+    }
 
-        // Discount validation
-        const discount = parseFloat(document.getElementById('discount').value);
-        if (!document.getElementById('discount').value || isNaN(discount)) {
+    function validateDiscount() {
+        const discount = parseFloat(discountInput.value);
+        if (!discountInput.value || isNaN(discount)) {
             showError('discount', 'Discount percentage is required');
-            isValid = false;
-        } else if (discount < 1 || discount > 100) {
-            showError('discount', 'Discount must be between 1% and 100%');
-            isValid = false;
+            return false;
+        } else if (discount < 1 || discount > 99) {
+            showError('discount', 'Discount must be between 1% and 99%');
+            return false;
+        } else if (discount % 1 !== 0) {
+            showError('discount', 'Discount must be a whole number');
+            return false;
         }
+        clearError('discount');
+        return true;
+    }
 
-        // Offer Type validation
+    function validateOfferType() {
         const offerType = offerTypeSelect.value;
         if (!offerType) {
             showError('offerType', 'Please select an offer type');
-            isValid = false;
+            return false;
         }
+        clearError('offerType');
+        return true;
+    }
 
-        // Category/Product validation based on offer type
+    function validateCategories() {
+        const offerType = offerTypeSelect.value;
         if (offerType === 'category') {
             const selectedCategories = Array.from(categoriesSelect.selectedOptions).map(opt => opt.value);
             if (selectedCategories.length === 0) {
                 showError('categories', 'Please select at least one category');
-                isValid = false;
+                return false;
             }
-        } else if (offerType === 'product') {
+        }
+        clearError('categories');
+        return true;
+    }
+
+    function validateProducts() {
+        const offerType = offerTypeSelect.value;
+        if (offerType === 'product') {
             const selectedProducts = Array.from(productsSelect.selectedOptions).map(opt => opt.value);
             if (selectedProducts.length === 0) {
                 showError('products', 'Please select at least one product');
-                isValid = false;
+                return false;
             }
         }
+        clearError('products');
+        return true;
+    }
 
-        // Start Date validation
+    function validateStartDate() {
         const startDate = startDateInput.value;
         if (!startDate) {
             showError('startDate', 'Start date is required');
-            isValid = false;
-        } else {
-            const startDateObj = new Date(startDate);
-            const todayDate = new Date();
-            todayDate.setHours(0, 0, 0, 0);
-            
-            if (startDateObj < todayDate) {
-                showError('startDate', 'Start date must be today or in the future');
-                isValid = false;
-            }
+            return false;
         }
+        
+        const startDateObj = new Date(startDate);
+        const todayDate = new Date();
+        todayDate.setHours(0, 0, 0, 0);
+        
+        if (startDateObj < todayDate) {
+            showError('startDate', 'Start date must be today or in the future');
+            return false;
+        }
+        
+        clearError('startDate');
+        return true;
+    }
 
-        // End Date validation
+    function validateEndDate() {
+        const startDate = startDateInput.value;
         const endDate = endDateInput.value;
+        
         if (!endDate) {
             showError('endDate', 'End date is required');
-            isValid = false;
-        } else if (startDate && endDate) {
+            return false;
+        }
+        
+        if (startDate && endDate) {
             const startDateObj = new Date(startDate);
             const endDateObj = new Date(endDate);
             
             if (endDateObj < startDateObj) {
                 showError('endDate', 'End date must be after start date');
-                isValid = false;
+                return false;
             }
             
             if (endDateObj.getTime() === startDateObj.getTime()) {
                 showError('endDate', 'End date must be different from start date');
-                isValid = false;
+                return false;
             }
         }
+        
+        clearError('endDate');
+        return true;
+    }
+
+    // Form validation (comprehensive check before submission)
+    function validateForm() {
+        let isValid = true;
+
+        // Clear all errors first
+        clearAllErrors();
+
+        // Validate all fields
+        if (!validateOfferName()) isValid = false;
+        if (!validateDiscount()) isValid = false;
+        if (!validateOfferType()) isValid = false;
+        
+        const offerType = offerTypeSelect.value;
+        if (offerType === 'category') {
+            if (!validateCategories()) isValid = false;
+        } else if (offerType === 'product') {
+            if (!validateProducts()) isValid = false;
+        }
+        
+        if (!validateStartDate()) isValid = false;
+        if (!validateEndDate()) isValid = false;
 
         return isValid;
     }
@@ -332,6 +438,10 @@
         
         if (errorElement) {
             errorElement.textContent = message;
+            errorElement.style.color = '#e74c3c';
+            errorElement.style.fontSize = '0.875rem';
+            errorElement.style.marginTop = '0.25rem';
+            errorElement.style.display = 'block';
         }
         
         if (inputElement) {
@@ -345,6 +455,7 @@
         
         if (errorElement) {
             errorElement.textContent = '';
+            errorElement.style.display = 'none';
         }
         
         if (inputElement) {
@@ -356,6 +467,7 @@
         const errorElements = document.querySelectorAll('.error-message');
         errorElements.forEach(element => {
             element.textContent = '';
+            element.style.display = 'none';
         });
 
         const inputs = document.querySelectorAll('.form-input, .form-select, .form-textarea');
@@ -363,29 +475,6 @@
             input.style.borderColor = '#dfe6e9';
         });
     }
-
-    // Real-time validation
-    const inputs = ['offerName', 'discount', 'offerType', 'startDate', 'endDate'];
-    inputs.forEach(inputId => {
-        const element = document.getElementById(inputId);
-        if (element) {
-            element.addEventListener('input', function() {
-                clearError(inputId);
-            });
-            element.addEventListener('change', function() {
-                clearError(inputId);
-            });
-        }
-    });
-
-    // Clear errors on selection change
-    categoriesSelect.addEventListener('change', function() {
-        clearError('categories');
-    });
-
-    productsSelect.addEventListener('change', function() {
-        clearError('products');
-    });
 
     // Form submission
     form.addEventListener('submit', async function(e) {
@@ -404,8 +493,8 @@
         // Prepare form data
         const offerType = offerTypeSelect.value;
         const formData = {
-            offerName: document.getElementById('offerName').value.trim(),
-            discount: parseFloat(document.getElementById('discount').value),
+            offerName: offerNameInput.value.trim(),
+            discount: parseFloat(discountInput.value),
             offerType: offerType,
             startDate: startDateInput.value,
             endDate: endDateInput.value
@@ -483,7 +572,8 @@
         });
     });
 });
+</script>
 
-    </script>
+
 </body>
 </html>

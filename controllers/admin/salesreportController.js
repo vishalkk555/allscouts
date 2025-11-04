@@ -364,7 +364,27 @@ const generateSalesReport = async (req, res) => {
             return sum;
         }, 0);
         const totalDiscount = orders.reduce((sum, order) => sum + (order.couponDiscount || 0), 0);
-        const netRevenue = totalRevenue - totalDiscount;
+        
+        // UPDATED: Calculate net revenue excluding cancelled/returned items
+        const netRevenue = orders.reduce((sum, order) => {
+            if (order.orderStatus === 'Cancelled') return sum;
+            
+            // Calculate the actual delivered amount for this order
+            const deliveredAmount = order.orderedItem.reduce((itemSum, item) => {
+                // Exclude cancelled and returned items
+                if (item.productStatus === 'Cancelled' || item.productStatus === 'Returned') {
+                    return itemSum;
+                }
+                return itemSum + item.totalProductPrice;
+            }, 0);
+            
+            // Deduct coupon discount proportionally if there are cancelled/returned items
+            const orderTotal = order.orderedItem.reduce((t, i) => t + i.totalProductPrice, 0);
+            const discountRatio = orderTotal > 0 ? deliveredAmount / orderTotal : 1;
+            const applicableDiscount = (order.couponDiscount || 0) * discountRatio;
+            
+            return sum + (deliveredAmount - applicableDiscount);
+        }, 0);
 
         if (format === 'pdf') {
             generatePDFReport(res, orders, { totalOrders, totalRevenue, totalDiscount, netRevenue }, dateRange);
@@ -479,6 +499,28 @@ async function generateExcelReport(res, orders, totals, dateRange) {
     headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD3D3D3' } };
 
     orders.forEach(order => {
+        // UPDATED: Calculate net amount excluding cancelled/returned items
+        let netAmount;
+        
+        if (order.orderStatus === 'Cancelled') {
+            netAmount = 0;
+        } else {
+            // Calculate delivered amount (excluding cancelled/returned items)
+            const deliveredAmount = order.orderedItem.reduce((sum, item) => {
+                if (item.productStatus === 'Cancelled' || item.productStatus === 'Returned') {
+                    return sum;
+                }
+                return sum + item.totalProductPrice;
+            }, 0);
+            
+            // Calculate proportional discount
+            const orderTotal = order.orderedItem.reduce((t, i) => t + i.totalProductPrice, 0);
+            const discountRatio = orderTotal > 0 ? deliveredAmount / orderTotal : 1;
+            const applicableDiscount = (order.couponDiscount || 0) * discountRatio;
+            
+            netAmount = deliveredAmount - applicableDiscount;
+        }
+        
         worksheet.addRow({
             orderId: order.orderNumber || order._id.toString().substring(0, 8),
             date: new Date(order.createdAt).toLocaleDateString(),
@@ -486,7 +528,7 @@ async function generateExcelReport(res, orders, totals, dateRange) {
             email: order.userId?.email || 'N/A',
             amount: order.orderAmount,
             discount: order.couponDiscount || 0,
-            netAmount: order.orderAmount - (order.couponDiscount || 0),
+            netAmount: netAmount,
             paymentMethod: order.paymentMethod,
             status: order.orderStatus
         });

@@ -4,10 +4,6 @@ const Cart = require("../../models/cartSchema")
 const Offer = require("../../models/offerSchema")
 
 
-
-
-
-
 /**
  * Validates if requested product quantity is available in stock
  * @param {Object} product - Product document
@@ -16,7 +12,7 @@ const Offer = require("../../models/offerSchema")
  * @returns {Object} - Validation result with success status and message
  */
 const validateStockAvailability = (product, size, requestedQty) => {
-  // Check if product exists and is active
+  
   if (!product || !product.status || product.isBlocked) {
     return {
       success: false,
@@ -24,7 +20,6 @@ const validateStockAvailability = (product, size, requestedQty) => {
     };
   }
 
-  // Check if category is blocked
   if (product.category && product.category.isBlocked) {
     return {
       success: false,
@@ -35,7 +30,6 @@ const validateStockAvailability = (product, size, requestedQty) => {
   // Find stock entry for specific size
   const stockEntry = product.stock.find(stock => stock.size === size);
   
-  // Check if size exists in product stock
   if (!stockEntry) {
     return {
       success: false,
@@ -60,11 +54,9 @@ const validateStockAvailability = (product, size, requestedQty) => {
   };
 };
 
-/**
- * Load cart page with updated stock information
- */
 
-// Helper function to calculate product offer (keep this as is)
+
+// function to calculate product offer 
 async function calculateProductOffer(product) {
   const now = new Date();
   
@@ -109,7 +101,6 @@ async function calculateProductOffer(product) {
     offerType = 'category';
   }
 
-  // Calculate prices
   const regularPrice = product.regularPrice;
   let finalPrice = regularPrice;
   let discountPercentage = 0;
@@ -133,10 +124,9 @@ async function calculateProductOffer(product) {
   };
 }
 
-// Updated loadCart function with offer calculation
+
 const loadCart = async (req, res) => {
   try {
-    console.log("Loading cart page for user:", req.session.user);
 
     const cart = await Cart.findOne({ userId: req.session.user }).populate({
       path: "item.productId",
@@ -148,14 +138,13 @@ const loadCart = async (req, res) => {
       return res.render("cart", { cart: null });
     }
 
-    let cartUpdated = false; // Track if we need to save cart
+    let cartUpdated = false; 
 
     // Per-item computations with offer calculation
     for (let item of cart.item) {
       const product = item.productId;
       if (!product) continue;
 
-      // Calculate current offer for this product
       const offerDetails = await calculateProductOffer(product);
 
       // Find the stock for the SELECTED SIZE only
@@ -165,7 +154,6 @@ const loadCart = async (req, res) => {
 
       const sizeQty = stockEntry?.quantity ?? 0;
 
-      // Flags
       const isBlocked =
         Boolean(product.isBlocked) ||
         Boolean(product.category?.isBlocked) ||
@@ -175,7 +163,6 @@ const loadCart = async (req, res) => {
       // OUT OF STOCK based on selected size quantity vs cart quantity
       const isOutOfStock = sizeQty < (item.quantity || 0);
 
-      // Expose to the view
       item.availableStock = sizeQty;
       item.isBlocked = isBlocked;
       item.isOutOfStock = isOutOfStock;
@@ -201,7 +188,6 @@ const loadCart = async (req, res) => {
         cartUpdated = true;
       }
 
-      // Recalculate total
       item.total = item.price * (item.quantity || 0);
     }
 
@@ -222,9 +208,8 @@ const loadCart = async (req, res) => {
     return res.status(500).send("Server Error");
   }
 };
-/**
- * Add product to cart
- */
+
+
 const addToCart = async (req, res) => {
   try {
     const { productId, size, quantity, price } = req.body;
@@ -239,7 +224,6 @@ const addToCart = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid quantity" });
     }
 
-    // Validate price is provided
     if (!price || isNaN(parseFloat(price))) {
       return res.status(400).json({ success: false, message: "Invalid price" });
     }

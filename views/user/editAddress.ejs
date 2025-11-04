@@ -1,5 +1,18 @@
 <%- include("../partials/user/header") %>
 
+<style>
+.edit-address-error {
+    border-color: #ef4444 !important;
+}
+
+.edit-address-error-message {
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: block;
+}
+</style>
+
 <body class="edit-address-body">
    
     <!-- Main Container -->
@@ -226,6 +239,7 @@
                             <label for="saveAsOther" class="edit-address-radio-label">Other</label>
                         </div>
                     </div>
+                    <span id="saveAs-error" class="edit-address-error-message" style="display: none;"></span>
                 </div>
 
                 <!-- Default Address Option -->
@@ -258,7 +272,7 @@
     </div>
 
   <script>
-    // Form validation functions
+    // --- Validation Functions ---
     function validateName(name) {
         return /^[a-zA-Z\s]{2,50}$/.test(name.trim());
     }
@@ -279,21 +293,32 @@
         return text.trim().length >= minLength && text.trim().length <= maxLength;
     }
 
-    // Format phone number input
+    function validateCity(city) {
+        return /^[a-zA-Z\s]{2,50}$/.test(city.trim());
+    }
+
+    function validateState(state) {
+        return /^[a-zA-Z\s]{2,50}$/.test(state.trim());
+    }
+
+    function validateStreet(street) {
+        return /^[a-zA-Z0-9\s,.-]{2,100}$/.test(street.trim());
+    }
+
+    // --- Input Format Restrictions ---
     document.getElementById('number').addEventListener('input', function(e) {
         let value = e.target.value.replace(/\D/g, '');
         if (value.length > 10) value = value.slice(0, 10);
         e.target.value = value;
     });
 
-    // Format pincode input
     document.getElementById('pincode').addEventListener('input', function(e) {
         let value = e.target.value.replace(/\D/g, '');
         if (value.length > 6) value = value.slice(0, 6);
         e.target.value = value;
     });
 
-    // Cancel edit confirmation
+    // --- Cancel Edit Confirmation ---
     function cancelEdit() {
         Swal.fire({
             title: 'Cancel Changes?',
@@ -319,73 +344,234 @@
         });
     }
 
-    // Show inline field error
+    // --- Error Handling Helpers ---
     function showFieldError(fieldId, message) {
         const field = document.getElementById(fieldId);
         field.classList.add('edit-address-error');
-        const existingError = field.parentNode.querySelector('.edit-address-error-message');
-        if (existingError) existingError.remove();
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'edit-address-error-message';
-        errorDiv.textContent = message;
-        field.parentNode.appendChild(errorDiv);
+        const existing = field.parentNode.querySelector('.edit-address-error-message');
+        if (existing) {
+            existing.textContent = message;
+            existing.style.display = 'block';
+        } else {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'edit-address-error-message';
+            errorDiv.textContent = message;
+            field.parentNode.appendChild(errorDiv);
+        }
     }
 
-    // Clear inline error
     function clearFieldError(fieldId) {
         const field = document.getElementById(fieldId);
         field.classList.remove('edit-address-error');
-        const existingError = field.parentNode.querySelector('.edit-address-error-message');
-        if (existingError) existingError.remove();
+        const existing = field.parentNode.querySelector('.edit-address-error-message');
+        if (existing) {
+            existing.style.display = 'none';
+        }
     }
 
-    // Submit form handler
+    // --- Real-time Validation (on blur) ---
+    document.getElementById('name').addEventListener('blur', function () {
+        if (this.value.trim() === '') {
+            showFieldError('name', 'Full name is required');
+        } else if (!validateName(this.value)) {
+            showFieldError('name', 'Name should contain only letters and spaces (2–50 characters)');
+        } else {
+            clearFieldError('name');
+        }
+    });
+
+    document.getElementById('email').addEventListener('blur', function () {
+        if (this.value.trim() === '') {
+            showFieldError('email', 'Email address is required');
+        } else if (!validateEmail(this.value)) {
+            showFieldError('email', 'Please enter a valid email address');
+        } else {
+            clearFieldError('email');
+        }
+    });
+
+    document.getElementById('number').addEventListener('blur', function () {
+        if (this.value.trim() === '') {
+            showFieldError('number', 'Phone number is required');
+        } else if (!validatePhoneNumber(this.value)) {
+            showFieldError('number', 'Phone number should be 10 digits starting with 6–9');
+        } else {
+            clearFieldError('number');
+        }
+    });
+
+    document.getElementById('houseName').addEventListener('blur', function () {
+        if (this.value.trim() === '') {
+            showFieldError('houseName', 'House/Building name is required');
+        } else if (!validateText(this.value)) {
+            showFieldError('houseName', 'House name should be 2–100 characters');
+        } else {
+            clearFieldError('houseName');
+        }
+    });
+
+    document.getElementById('street').addEventListener('blur', function () {
+        if (this.value.trim() === '') {
+            showFieldError('street', 'Street address is required');
+        } else if (!validateStreet(this.value)) {
+            showFieldError('street', 'Street address can only contain letters, numbers, spaces, commas, dots and hyphens');
+        } else {
+            clearFieldError('street');
+        }
+    });
+
+    document.getElementById('city').addEventListener('blur', function () {
+        if (this.value.trim() === '') {
+            showFieldError('city', 'City is required');
+        } else if (!validateCity(this.value)) {
+            showFieldError('city', 'City name can only contain letters and spaces (2–50 characters)');
+        } else {
+            clearFieldError('city');
+        }
+    });
+
+    document.getElementById('state').addEventListener('blur', function () {
+        if (this.value.trim() === '') {
+            showFieldError('state', 'State is required');
+        } else if (!validateState(this.value)) {
+            showFieldError('state', 'State name can only contain letters and spaces (2–50 characters)');
+        } else {
+            clearFieldError('state');
+        }
+    });
+
+    document.getElementById('country').addEventListener('blur', function () {
+        if (this.value === '') {
+            showFieldError('country', 'Please select a country');
+        } else {
+            clearFieldError('country');
+        }
+    });
+
+    document.getElementById('pincode').addEventListener('blur', function () {
+        if (this.value.trim() === '') {
+            showFieldError('pincode', 'Pincode is required');
+        } else if (!validatePincode(this.value)) {
+            showFieldError('pincode', 'Pincode should be exactly 6 digits');
+        } else {
+            clearFieldError('pincode');
+        }
+    });
+
+    // --- Form Submit ---
     document.getElementById('editAddressForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-
-        // Clear previous errors
-        document.querySelectorAll('.edit-address-form-input, .edit-address-form-select').forEach(input => {
-            clearFieldError(input.id);
-        });
 
         const formData = new FormData(this);
         const data = Object.fromEntries(formData);
         let hasErrors = false;
+        let firstErrorField = null;
 
-        // === VALIDATION SECTION ===
-        if (!validateName(data.name)) {
-            Swal.fire('Invalid Name', 'Name should contain only letters and spaces (2–50 characters).', 'warning');
+        // Clear all previous errors
+        document.querySelectorAll('.edit-address-form-input, .edit-address-form-select').forEach(input => clearFieldError(input.id));
+        document.getElementById('saveAs-error').style.display = 'none';
+
+        // --- Validation ---
+        if (data.name.trim() === '') {
+            showFieldError('name', 'Full name is required');
             hasErrors = true;
+            if (!firstErrorField) firstErrorField = document.getElementById('name');
+        } else if (!validateName(data.name)) {
+            showFieldError('name', 'Name should contain only letters and spaces (2–50 characters)');
+            hasErrors = true;
+            if (!firstErrorField) firstErrorField = document.getElementById('name');
+        }
+
+        if (data.email.trim() === '') {
+            showFieldError('email', 'Email address is required');
+            hasErrors = true;
+            if (!firstErrorField) firstErrorField = document.getElementById('email');
         } else if (!validateEmail(data.email)) {
-            Swal.fire('Invalid Email', 'Please enter a valid email address.', 'warning');
+            showFieldError('email', 'Please enter a valid email address');
             hasErrors = true;
+            if (!firstErrorField) firstErrorField = document.getElementById('email');
+        }
+
+        if (data.number.trim() === '') {
+            showFieldError('number', 'Phone number is required');
+            hasErrors = true;
+            if (!firstErrorField) firstErrorField = document.getElementById('number');
         } else if (!validatePhoneNumber(data.number)) {
-            Swal.fire('Invalid Phone Number', 'Phone number should be 10 digits starting with 6–9.', 'warning');
+            showFieldError('number', 'Phone number should be 10 digits starting with 6–9');
             hasErrors = true;
+            if (!firstErrorField) firstErrorField = document.getElementById('number');
+        }
+
+        if (data.houseName.trim() === '') {
+            showFieldError('houseName', 'House/Building name is required');
+            hasErrors = true;
+            if (!firstErrorField) firstErrorField = document.getElementById('houseName');
         } else if (!validateText(data.houseName)) {
-            Swal.fire('Invalid House Name', 'House name must be between 2–100 characters.', 'warning');
+            showFieldError('houseName', 'House name should be 2–100 characters');
             hasErrors = true;
-        } else if (!validateText(data.street)) {
-            Swal.fire('Invalid Street', 'Street name must be between 2–100 characters.', 'warning');
+            if (!firstErrorField) firstErrorField = document.getElementById('houseName');
+        }
+
+        if (data.street.trim() === '') {
+            showFieldError('street', 'Street address is required');
             hasErrors = true;
-        } else if (!validateText(data.city)) {
-            Swal.fire('Invalid City', 'City name must be between 2–100 characters.', 'warning');
+            if (!firstErrorField) firstErrorField = document.getElementById('street');
+        } else if (!validateStreet(data.street)) {
+            showFieldError('street', 'Street address can only contain letters, numbers, spaces, commas, dots and hyphens');
             hasErrors = true;
-        } else if (!validateText(data.state)) {
-            Swal.fire('Invalid State', 'State name must be between 2–100 characters.', 'warning');
+            if (!firstErrorField) firstErrorField = document.getElementById('street');
+        }
+
+        if (data.city.trim() === '') {
+            showFieldError('city', 'City is required');
             hasErrors = true;
-        } else if (!data.country) {
-            Swal.fire('Select Country', 'Please select a country.', 'warning');
+            if (!firstErrorField) firstErrorField = document.getElementById('city');
+        } else if (!validateCity(data.city)) {
+            showFieldError('city', 'City name can only contain letters and spaces (2–50 characters)');
             hasErrors = true;
+            if (!firstErrorField) firstErrorField = document.getElementById('city');
+        }
+
+        if (data.state.trim() === '') {
+            showFieldError('state', 'State is required');
+            hasErrors = true;
+            if (!firstErrorField) firstErrorField = document.getElementById('state');
+        } else if (!validateState(data.state)) {
+            showFieldError('state', 'State name can only contain letters and spaces (2–50 characters)');
+            hasErrors = true;
+            if (!firstErrorField) firstErrorField = document.getElementById('state');
+        }
+
+        if (!data.country) {
+            showFieldError('country', 'Please select a country');
+            hasErrors = true;
+            if (!firstErrorField) firstErrorField = document.getElementById('country');
+        }
+
+        if (data.pincode.trim() === '') {
+            showFieldError('pincode', 'Pincode is required');
+            hasErrors = true;
+            if (!firstErrorField) firstErrorField = document.getElementById('pincode');
         } else if (!validatePincode(data.pincode)) {
-            Swal.fire('Invalid Pincode', 'Pincode must be exactly 6 digits.', 'warning');
+            showFieldError('pincode', 'Pincode should be exactly 6 digits');
             hasErrors = true;
-        } else if (!data.saveAs) {
-            Swal.fire('Select Address Type', 'Please choose how to save this address (Home / Work / Other).', 'warning');
+            if (!firstErrorField) firstErrorField = document.getElementById('pincode');
+        }
+
+        if (!data.saveAs) {
+            const errorEl = document.getElementById('saveAs-error');
+            errorEl.textContent = 'Please select how to save this address';
+            errorEl.style.display = 'block';
             hasErrors = true;
         }
 
-        if (hasErrors) return;
+        if (hasErrors) {
+            if (firstErrorField) {
+                firstErrorField.focus();
+                firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
 
         // Confirm update
         const confirm = await Swal.fire({
