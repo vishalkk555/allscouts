@@ -12,28 +12,28 @@
       <div class="profile-sidebar">
         <div class="sidebar-menu">
           <a href="/profile" class="sidebar-item">
-            <i class="fas fa-user"></i>
+            
             <span>Profile</span>
           </a>
           <a href="/orders" class="sidebar-item">
-            <i class="fas fa-shopping-bag"></i>
+            
             <span>Orders</span>
           </a>
           <a href="/addresses" class="sidebar-item">
-            <i class="fas fa-map-marker-alt"></i>
+            
             <span>Addresses</span>
           </a>
           <a href="/wallet" class="sidebar-item active">
-            <i class="fas fa-wallet"></i>
+            
             <span>Wallet</span>
           </a>
           <a href="/changePassword" class="sidebar-item">
-            <i class="fas fa-key"></i>
+            
             <span>Change Password</span>
           </a>
         </div>
         <button class="logout-btn" onclick="logout()">
-          <i class="fas fa-sign-out-alt"></i>
+      
           Logout
         </button>
       </div>
@@ -297,21 +297,43 @@ function viewOrder(orderId) {
 }
 
 // Logout function
-function logout() {
-    Swal.fire({
-        title: 'Logout?',
-        text: 'Are you sure you want to logout?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#ff4757',
-        cancelButtonColor: '#95a5a6',
-        confirmButtonText: 'Yes, logout',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
+async function logout() {
+    try {
+        const result = await Swal.fire({
+            title: 'Logout?',
+            text: 'Are you sure you want to logout?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, logout',
+            cancelButtonText: 'Cancel'
+        });
+
         if (result.isConfirmed) {
-            window.location.href = '/logout';
+            const res = await fetch('/logout', { method: 'POST' });
+
+            if (res.ok) {
+                window.location.href = '/';
+            } else {
+                console.error('Logout failed');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Logout Failed',
+                    text: 'Could not logout. Please try again.',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
         }
-    });
+    } catch (error) {
+        console.error('Error during logout:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Something went wrong. Please try again.',
+            confirmButtonColor: '#e74c3c'
+        });
+    }
 }
 
   </script>

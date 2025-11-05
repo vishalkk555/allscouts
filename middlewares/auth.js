@@ -9,7 +9,7 @@ const guestAuth = (req, res, next) => {
     next();
 };
 
-// Restrict sensitive pages (wishlist, cart, etc.)
+// Restrict sensitive pages
 const userAuth = (req, res, next) => {
     console.log("Session user:", req.session.user);
     if (req.session.user) {
@@ -41,7 +41,6 @@ const adminAuth = (req, res, next) => {
         return res.redirect('/admin/login');
     }
 
-    // Admin is authenticated, proceed
     next();
 };
 

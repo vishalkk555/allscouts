@@ -261,22 +261,52 @@ function deleteAddress(addressId) {
 }
 
 // Logout functionality
-document.querySelector('.addresses-logout-btn').addEventListener('click', function() {
-    Swal.fire({
-        title: 'Logout?',
-        text: 'Are you sure you want to logout?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Yes, logout',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.location.href = '/logout';
-        }
-    });
+
+document.addEventListener('DOMContentLoaded', function() {
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logout);
+    }
 });
+
+async function logout() {
+    try {
+        const result = await Swal.fire({
+            title: 'Logout?',
+            text: 'Are you sure you want to logout?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, logout',
+            cancelButtonText: 'Cancel'
+        });
+
+        if (result.isConfirmed) {
+            const res = await fetch('/logout', { method: 'POST' });
+
+            if (res.ok) {
+                window.location.href = '/';
+            } else {
+                console.error('Logout failed');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Logout Failed',
+                    text: 'Could not logout. Please try again.',
+                    confirmButtonColor: '#e74c3c'
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error during logout:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Something went wrong. Please try again.',
+            confirmButtonColor: '#e74c3c'
+        });
+    }
+}
 </script>
 
 </document_content>

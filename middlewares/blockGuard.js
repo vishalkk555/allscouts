@@ -3,7 +3,7 @@ const User = require("../models/userSchema");
 
 module.exports = async function blockGuard(req, res, next) {
   try {
-    if (!req.session?.user) return next(); // no user, skip
+    if (!req.session?.user) return next(); 
 
     const u = await User.findById(req.session.user).select("isBlocked");
 

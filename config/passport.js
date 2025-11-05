@@ -17,12 +17,11 @@ passport.use(new GoogleStrategy({
         user = await User.findOne({ email: profile.emails[0].value });
       }
 
-      // 🚨 Blocked user check
+      // Blocked user check
       if (user && user.isBlocked) {
         return done(null, false, { message: "blocked" });
       }
 
-      // If user doesn’t exist → create
       if (!user) {
         user = new User({
           name: profile.displayName,

@@ -16,12 +16,12 @@ router.get("/",userController.loadHomePage);
 router.get("/signUp", guestAuth ,userController.loadSignUp)
 router.post("/signUp",guestAuth ,userController.register)
 router.get('/otp', guestAuth , userController.loadOtp)
-router.post('/verifyOtp',userController.verifyOtp)
+router.post('/verifyOtp',guestAuth ,userController.verifyOtp)
 router.post('/resendOtp', guestAuth , userController.resendOtp)
 router.get('/login', guestAuth , userController.loadLogin)
 router.post('/login', guestAuth,  userController.login)
-router.get('/product',guestAuth,userController.loadProductPage)
-router.post('/logout',userController.logout)
+router.get('/product',userController.loadProductPage)
+router.post('/logout', userAuth ,userController.logout)
 router.get('/about', userController.getAboutPage)
 router.get('/contact' , userController.getContactPage)
 
@@ -29,11 +29,9 @@ router.get('/contact' , userController.getContactPage)
 // User Profile Routes
 router.get('/profile',userAuth ,profileController.userProfile)
 router.get('/editProfile',userAuth ,profileController.editProfile)
-router.post('/editProfile', upload.single('profileImage'),profileController.updateProfile)
-
-
-router.get('/emailOtp',userAuth , profileController.loadEmailOtp); // New: Load OTP page
-router.post('/verifyEmailOtp',userAuth , profileController.verifyProfileOtp); // New: Verify OTP
+router.post('/editProfile', userAuth ,upload.single('profileImage'),profileController.updateProfile)
+router.get('/emailOtp',userAuth , profileController.loadEmailOtp); 
+router.post('/verifyEmailOtp',userAuth , profileController.verifyProfileOtp); 
 router.post('/resendProfileOtp', userAuth ,profileController.resendProfileOtp);
 
 router.delete('/updateImage',userAuth , profileController.deleteProfileImage);
@@ -46,7 +44,6 @@ router.get('/editAddress/:addressId',userAuth ,profileController.getEditAddress)
 router.put('/updateAddress',userAuth ,profileController.updateAddress)
 router.post('/setDefaultAddress', userAuth ,profileController.setDefaultAddress);
 router.delete('/deleteAddress', userAuth ,profileController.deleteAddress);
-
 
 
 router.get('/forgotPassword',guestAuth, userController.forgotPassword);
@@ -62,65 +59,52 @@ router.get('/shop', productController.getShop);
 router.get('/product/:id', productController.getProductDetails);
 router.post('/product/:id/review', productController.addReview);
 router.get('/getStock/:id',productController.getStock)
-// router.post('/admin/products', productController.upload, productController.addProduct)
 
 
 // Cart Management
-
-// Load cart page
-router.get('/cart',  cartController.loadCart);
-// Add product to cart
-router.post('/add', cartController.addToCart);
-// Update cart item quantity (increment/decrement)
-router.post('/updateQuantity', cartController.updateCartQuantity);
-// Remove item from cart
-router.post('/removeItem',  cartController.removeCartItem);
-// Clear entire cart
-router.post('/clear', cartController.clearCart);
+router.get('/cart',  userAuth ,cartController.loadCart);
+router.post('/add',userAuth , cartController.addToCart);
+router.post('/updateQuantity', userAuth , cartController.updateCartQuantity);
+router.post('/removeItem', userAuth , cartController.removeCartItem);
+router.post('/clear', userAuth ,cartController.clearCart);
 router.get('/api/cart-count', cartController.cartCount)           
  
 
+// Wishlist Management
+router.get('/wishlist' , userAuth ,productController.getWishlist)
+router.delete('/wishlist/remove/:productId' , userAuth , productController.removeFromWishlist)
+router.post("/wishlist/addToCart/:productId" , userAuth , productController.addToCart)
+router.post("/wishlist/add",userAuth ,productController.addToWishlist)
 
-router.get('/wishlist' , productController.getWishlist)
-router.delete('/wishlist/remove/:productId' , productController.removeFromWishlist)
-router.post("/wishlist/addToCart/:productId" , productController.addToCart)
-router.post("/wishlist/add",productController.addToWishlist)
-
-
-router.get("/checkout", productController.getCheckoutPage)
-router.post("/addAddress" , productController.addAddress)
-router.get('/getAddress/:addressId', profileController.getAddressForModal);
+// Checkout Page and Placing Order
+router.get("/checkout", userAuth ,productController.getCheckoutPage)
+router.post("/addAddress" , userAuth ,productController.addAddress)
+router.get('/getAddress/:addressId', userAuth , profileController.getAddressForModal);
 router.post('/editAddress', userAuth, profileController.editAddressFromCheckout);
-router.post('/checkStockAvailability', orderController.checkStockAvailability);
-router.post('/applyCouponDynamic',orderController.applyCoupon)
-router.post('/removeCouponDynamic',orderController.removeCoupon)
-router.post("/placeOrder" , orderController.placeOrder)
-router.get("/orderSuccess/:orderId", orderController.orderSuccessPage)
-router.post('/create-razorpay-order', orderController.createRazorpayOrder);
-router.post('/verify-payment', orderController.verifyPayment);
-router.get('/orderFailure/:orderId',orderController.renderPaymentFailure)
-router.post('/verify-retry-payment',orderController.verifyRetryPayment)
-router.post('/update-payment-failed', orderController.updatePaymentFailed);
+router.post('/checkStockAvailability', userAuth , orderController.checkStockAvailability);
+router.post('/applyCouponDynamic', userAuth ,orderController.applyCoupon)
+router.post('/removeCouponDynamic', userAuth ,orderController.removeCoupon)
+router.post("/placeOrder" , userAuth ,orderController.placeOrder)
+router.get("/orderSuccess/:orderId", userAuth ,orderController.orderSuccessPage)
+router.post('/create-razorpay-order', userAuth , orderController.createRazorpayOrder);
+router.post('/verify-payment', userAuth ,orderController.verifyPayment);
+router.get('/orderFailure/:orderId',userAuth ,orderController.renderPaymentFailure)
+router.post('/verify-retry-payment', userAuth ,orderController.verifyRetryPayment)
+router.post('/update-payment-failed', userAuth , orderController.updatePaymentFailed);
 
-router.get('/wallet', walletController.getWalletPage)
+router.get('/wallet', userAuth , walletController.getWalletPage)
 
 
 
-// User orders page route
-router.get('/orders', orderController.loadOrdersPage);
-// API route to get user's orders with filters and pagination
-router.get('/orders/my-orders',  orderController.getUserOrders);
-// Order details page route
-router.get('/orders/view/:orderId',  orderController.getUserOrderDetails);
-// Cancel entire order route
-router.patch('/orders/:orderId/cancel',  orderController.cancelOrder);
-// Cancel individual item route
-router.post('/orders/cancel-item',  orderController.cancelItem);
-// Add this route in your routes file
-router.post('/orders/check-return-coupon-impact', orderController.checkReturnCouponImpact);
-// Return individual item route
-router.post('/orders/return-item', orderController.returnItem);
-router.get('/orders/:orderId/invoice', orderController.generateInvoice);
+// Orders
+router.get('/orders', userAuth ,orderController.loadOrdersPage);
+router.get('/orders/my-orders', userAuth , orderController.getUserOrders);
+router.get('/orders/view/:orderId', userAuth , orderController.getUserOrderDetails);
+router.patch('/orders/:orderId/cancel', userAuth , orderController.cancelOrder);
+router.post('/orders/cancel-item', userAuth ,  orderController.cancelItem);
+router.post('/orders/check-return-coupon-impact', userAuth , orderController.checkReturnCouponImpact);
+router.post('/orders/return-item', userAuth ,orderController.returnItem);
+router.get('/orders/:orderId/invoice', userAuth ,orderController.generateInvoice);
 
 
 router.get('/auth/google',guestAuth,passport.authenticate('google',{scope:['profile','email']}));
@@ -130,10 +114,8 @@ router.get(
   passport.authenticate("google", { failureRedirect: "/login" }),
   (req, res) => {
     if (!req.user) {
-      // user was blocked, redirect with query param
       return res.redirect("/login?blocked=1");
     }
-    // Normal user
    req.session.user = req.user._id;
     res.redirect("/");
   }

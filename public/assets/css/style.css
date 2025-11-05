@@ -14531,3 +14531,153 @@ body {
     }
 }
 
+/* ===================================
+      Wallet sidebar  
+    ====================== */
+
+    /* Wallet Page Container */
+.wallet-page-wrapper {
+    display: flex;
+    max-width: 1400px;
+    margin: 40px auto;
+    padding: 0 20px;
+    gap: 20px;
+}
+
+/* Sidebar Styling - Matching Profile Page */
+.profile-sidebar {
+    flex: 0 0 280px;
+    position: sticky;
+    top: 20px;
+    height: calc(100vh - 40px);
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.sidebar-menu {
+    flex: 1;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    padding: 15px 30px;
+    color: #6c757d;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s;
+    border-left: 4px solid transparent;
+    gap: 12px;
+}
+
+.sidebar-item i {
+    font-size: 18px;
+    width: 20px;
+    text-align: center;
+}
+
+.sidebar-item:hover,
+.sidebar-item.active {
+    background-color: #fff5f5;
+    color: #e74c3c;
+    border-left-color: #e74c3c;
+}
+
+/* Logout Button */
+.logout-btn {
+    margin: 20px;
+    padding: 12px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.logout-btn:hover {
+    background-color: #c0392b;
+}
+
+.logout-btn i {
+    font-size: 16px;
+}
+
+/* Main Wallet Content */
+.wallet-main-content {
+    flex: 1;
+    background: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+    .wallet-page-wrapper {
+        flex-direction: column;
+    }
+    
+    .profile-sidebar {
+        flex: 0 0 auto;
+        position: relative;
+        height: auto;
+        width: 100%;
+    }
+    
+    .sidebar-menu {
+        display: flex;
+        overflow-x: auto;
+        padding: 10px 0;
+    }
+    
+    .sidebar-item {
+        flex-direction: column;
+        padding: 12px 20px;
+        text-align: center;
+        white-space: nowrap;
+        border-left: none;
+        border-bottom: 4px solid transparent;
+    }
+    
+    .sidebar-item:hover,
+    .sidebar-item.active {
+        border-left-color: transparent;
+        border-bottom-color: #e74c3c;
+    }
+    
+    .logout-btn {
+        margin: 10px 20px 20px;
+    }
+}
+
+@media (max-width: 576px) {
+    .wallet-page-wrapper {
+        padding: 0 10px;
+        margin: 20px auto;
+    }
+    
+    .wallet-main-content {
+        padding: 20px 15px;
+    }
+    
+    .sidebar-item span {
+        font-size: 14px;
+    }
+    
+    .sidebar-item i {
+        font-size: 16px;
+    }
+}

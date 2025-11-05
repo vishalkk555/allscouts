@@ -9,28 +9,33 @@
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
-    /* Sidebar Styles */
-    .change-password-sidebar {
-        width: 280px;
-        background: white;
-        padding: 30px 0;
-        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-        position: fixed;
-        height: 100vh;
-        overflow-y: auto;
+    /* UNIQUE SIDEBAR STYLES - Won't be overwritten */
+    .order-detail-sidebar {
+        flex: 0 0 280px;
+        position: sticky;
+        top: 20px;
+        height: calc(100vh - 40px);
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        align-self: flex-start;
     }
 
-    .change-password-sidebar-menu {
+    .order-detail-sidebar-menu {
         list-style: none;
         padding: 0;
         margin: 0;
+        flex: 1;
     }
 
-    .change-password-sidebar-menu li {
+    .order-detail-sidebar-menu li {
         margin-bottom: 2px;
     }
 
-    .change-password-sidebar-menu a {
+    .order-detail-sidebar-menu a {
         display: block;
         padding: 15px 30px;
         color: #6c757d;
@@ -40,21 +45,19 @@
         border-left: 4px solid transparent;
     }
 
-    .change-password-sidebar-menu a:hover,
-    .change-password-sidebar-menu a.change-password-active {
+    .order-detail-sidebar-menu a:hover,
+    .order-detail-sidebar-menu a.order-detail-active {
         background-color: #fff5f5;
         color: #e74c3c;
         border-left-color: #e74c3c;
     }
 
-    .change-password-logout-section {
-        position: absolute;
-        bottom: 30px;
-        left: 30px;
-        right: 30px;
+    .order-detail-logout {
+        padding: 20px;
+        border-top: 1px solid #e5e7eb;
     }
 
-    .change-password-logout-btn {
+    .order-detail-logout-btn {
         width: 100%;
         padding: 12px;
         background-color: #e74c3c;
@@ -66,15 +69,16 @@
         transition: background-color 0.3s;
     }
 
-    .change-password-logout-btn:hover {
+    .order-detail-logout-btn:hover {
         background-color: #c0392b;
     }
+    /* END UNIQUE SIDEBAR STYLES */
 
     /* Main Content */
     .order-details-content {
-        margin-left: 280px;
+        flex: 1;
+        margin-left: 20px;
         padding: 30px;
-        width: calc(100% - 280px);
         background-color: #f8f9fa;
         min-height: 100vh;
     }
@@ -525,8 +529,40 @@
 
     /* Mobile Responsiveness */
     @media (max-width: 768px) {
-        .change-password-sidebar {
-            transform: translateX(-100%);
+        .order-detail-sidebar {
+            flex: 0 0 auto;
+            position: relative;
+            height: auto;
+            width: 100%;
+        }
+        
+        .order-detail-sidebar-menu {
+            display: flex;
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+        
+        .order-detail-sidebar-menu li {
+            margin-bottom: 0;
+            margin-right: 2px;
+        }
+        
+        .order-detail-sidebar-menu a {
+            padding: 12px 20px;
+            white-space: nowrap;
+            border-left: none;
+            border-bottom: 4px solid transparent;
+        }
+        
+        .order-detail-sidebar-menu a:hover,
+        .order-detail-sidebar-menu a.order-detail-active {
+            border-left-color: transparent;
+            border-bottom-color: #e74c3c;
+        }
+        
+        .order-detail-logout {
+            padding: 10px 20px 20px;
+            border-top: none;
         }
 
         .order-details-content {
@@ -630,17 +666,17 @@
 </style>
 
 <div class="profile-container">
-    <!-- Sidebar -->
-    <aside class="change-password-sidebar">
-        <ul class="change-password-sidebar-menu">
+    <!-- Sidebar with unique classes -->
+    <aside class="order-detail-sidebar">
+        <ul class="order-detail-sidebar-menu">
             <li><a href="/profile">Profile</a></li>
-            <li><a href="/orders" class="change-password-active">Orders</a></li>
+            <li><a href="/orders" class="order-detail-active">Orders</a></li>
             <li><a href="/addresses">Addresses</a></li>
             <li><a href="/wallet">Wallet</a></li>
-            <li><a href="/change-password">Change Password</a></li>
+            <li><a href="/changePassword">Change Password</a></li>
         </ul>
-        <div class="change-password-logout-section">
-            <button class="change-password-logout-btn" onclick="logout()">Logout</button>
+        <div class="order-detail-logout">
+            <button class="order-detail-logout-btn" id="logoutBtn">Logout</button>
         </div>
     </aside>
 
@@ -864,7 +900,6 @@
                 <div></div>
                 <div class="summary-details">
                     <% 
-                    // Use calculated values from controller
                     let subtotal = order.calculatedSubtotal || 0;
                     let discount = order.calculatedDiscount || 0;
                     let grandTotal = order.calculatedGrandTotal || 0;
@@ -946,6 +981,34 @@
     let currentReturnProductId = null;
     let currentReturnItemIndex = null;
 
+    // Logout function - Same as profile page
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+        try {
+            const result = await Swal.fire({
+                title: 'Logout?',
+                text: 'Are you sure you want to logout?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#e74c3c',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, logout',
+                cancelButtonText: 'Cancel'
+            });
+
+            if (result.isConfirmed) {
+                const res = await fetch('/logout', { method: 'POST' });
+
+                if (res.ok) {
+                    window.location.href = '/';
+                } else {
+                    console.error('Logout failed');
+                }
+            }
+        } catch (error) {
+            console.error('Error during logout:', error);
+        }
+    });
+
     function openReturnModal(productId, itemIndex) {
         currentReturnProductId = productId;
         currentReturnItemIndex = itemIndex;
@@ -974,7 +1037,6 @@
         }
 
         try {
-            // Check if return will affect coupon
             const checkResponse = await fetch('/orders/check-return-coupon-impact', {
                 method: 'POST',
                 headers: {
@@ -988,7 +1050,6 @@
 
             const checkData = await checkResponse.json();
 
-            // If coupon will be lost, show warning
             if (checkData.success && checkData.willLoseCoupon) {
                 const warningResult = await Swal.fire({
                     icon: 'warning',
@@ -1014,11 +1075,10 @@
                 });
 
                 if (!warningResult.isConfirmed) {
-                    return; // User cancelled
+                    return;
                 }
             }
 
-            // Proceed with return request
             const response = await fetch(`/orders/return-item`, {
                 method: 'POST',
                 headers: {
@@ -1063,147 +1123,145 @@
         }
     }
 
-   // Updated cancelItem function with payment status handling
-async function cancelItem(productId, itemIndex) {
-    const result = await Swal.fire({
-        title: 'Cancel Item?',
-        text: 'Are you sure you want to cancel this item?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, cancel it!',
-        cancelButtonText: 'No, keep it'
-    });
+    async function cancelItem(productId, itemIndex) {
+        const result = await Swal.fire({
+            title: 'Cancel Item?',
+            text: 'Are you sure you want to cancel this item?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, cancel it!',
+            cancelButtonText: 'No, keep it'
+        });
 
-    if (result.isConfirmed) {
-        try {
-            const response = await fetch(`/orders/cancel-item`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    orderId: '<%= order._id %>',
-                    productId: productId,
-                    itemIndex: itemIndex.toString()
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                let title = 'Item Cancelled';
-                let message = 'The item has been cancelled successfully';
-                
-                if (data.refundedToWallet && data.refundAmount > 0) {
-                    title = 'Item Cancelled & Refunded!';
-                    message = `The item has been cancelled successfully.\n\n💰 Refund Amount: ₹${data.refundAmount.toFixed(2)} has been added to your wallet.\n\n📋 Payment Status: ${data.paymentStatus}`;
-                }
-                
-                Swal.fire({
-                    icon: 'success',
-                    title: title,
-                    html: message.replace(/\n/g, '<br>'),
-                    confirmButtonColor: '#e74c3c',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false
-                }).then(() => {
-                    location.reload();
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`/orders/cancel-item`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        orderId: '<%= order._id %>',
+                        productId: productId,
+                        itemIndex: itemIndex.toString()
+                    })
                 });
-            } else {
+
+                const data = await response.json();
+
+                if (data.success) {
+                    let title = 'Item Cancelled';
+                    let message = 'The item has been cancelled successfully';
+                    
+                    if (data.refundedToWallet && data.refundAmount > 0) {
+                        title = 'Item Cancelled & Refunded!';
+                        message = `The item has been cancelled successfully.\n\n💰 Refund Amount: ₹${data.refundAmount.toFixed(2)} has been added to your wallet.\n\n📋 Payment Status: ${data.paymentStatus}`;
+                    }
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: title,
+                        html: message.replace(/\n/g, '<br>'),
+                        confirmButtonColor: '#e74c3c',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Failed to cancel item',
+                        confirmButtonColor: '#e74c3c'
+                    });
+                }
+            } catch (error) {
+                console.error('Error:', error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: data.message || 'Failed to cancel item',
+                    text: 'Something went wrong. Please try again.',
                     confirmButtonColor: '#e74c3c'
                 });
             }
-        } catch (error) {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Something went wrong. Please try again.',
-                confirmButtonColor: '#e74c3c'
-            });
         }
     }
-}
 
-// Updated cancelEntireOrder function with payment status handling
-async function cancelEntireOrder(orderId) {
-    const result = await Swal.fire({
-        title: 'Cancel Entire Order?',
-        text: 'Are you sure you want to cancel this entire order? This action cannot be undone.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, cancel order!',
-        cancelButtonText: 'No, keep order',
-        reverseButtons: true
-    });
+    async function cancelEntireOrder(orderId) {
+        const result = await Swal.fire({
+            title: 'Cancel Entire Order?',
+            text: 'Are you sure you want to cancel this entire order? This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, cancel order!',
+            cancelButtonText: 'No, keep order',
+            reverseButtons: true
+        });
 
-    if (result.isConfirmed) {
-        try {
-            Swal.fire({
-                title: 'Cancelling Order...',
-                text: 'Please wait while we process your request',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            const response = await fetch(`/orders/${orderId}/cancel`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                let title = 'Order Cancelled!';
-                let message = 'Your order has been cancelled successfully';
-                
-                if (data.refundedToWallet && data.refundAmount > 0) {
-                    title = 'Order Cancelled & Refunded!';
-                    message = `Your order has been cancelled successfully.\n\n💰 Refund Amount: ₹${data.refundAmount.toFixed(2)} has been added to your wallet.\n\n📋 Payment Status: ${data.paymentStatus}`;
-                }
-                
+        if (result.isConfirmed) {
+            try {
                 Swal.fire({
-                    icon: 'success',
-                    title: title,
-                    html: message.replace(/\n/g, '<br>'),
-                    confirmButtonText: 'OK',
-                    confirmButtonColor: '#28a745',
+                    title: 'Cancelling Order...',
+                    text: 'Please wait while we process your request',
                     allowOutsideClick: false,
-                    allowEscapeKey: false
-                }).then(() => {
-                    location.reload();
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
                 });
-            } else {
+
+                const response = await fetch(`/orders/${orderId}/cancel`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    let title = 'Order Cancelled!';
+                    let message = 'Your order has been cancelled successfully';
+                    
+                    if (data.refundedToWallet && data.refundAmount > 0) {
+                        title = 'Order Cancelled & Refunded!';
+                        message = `Your order has been cancelled successfully.\n\n💰 Refund Amount: ₹${data.refundAmount.toFixed(2)} has been added to your wallet.\n\n📋 Payment Status: ${data.paymentStatus}`;
+                    }
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: title,
+                        html: message.replace(/\n/g, '<br>'),
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#28a745',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Cancellation Failed',
+                        text: data.message || 'Failed to cancel order. Please try again.',
+                        confirmButtonColor: '#e74c3c'
+                    });
+                }
+            } catch (error) {
+                console.error('Error:', error);
                 Swal.fire({
                     icon: 'error',
-                    title: 'Cancellation Failed',
-                    text: data.message || 'Failed to cancel order. Please try again.',
+                    title: 'Network Error',
+                    text: 'Something went wrong. Please check your connection and try again.',
                     confirmButtonColor: '#e74c3c'
                 });
             }
-        } catch (error) {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Network Error',
-                text: 'Something went wrong. Please check your connection and try again.',
-                confirmButtonColor: '#e74c3c'
-            });
         }
     }
-}
 
     async function generateInvoice() {
         Swal.fire({
@@ -1250,23 +1308,6 @@ async function cancelEntireOrder(orderId) {
                 confirmButtonColor: '#e74c3c'
             });
         }
-    }
-
-    function logout() {
-        Swal.fire({
-            title: 'Logout?',
-            text: 'Are you sure you want to logout?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#e74c3c',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, logout',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = '/logout';
-            }
-        });
     }
 
     document.getElementById('returnModal').addEventListener('click', function(e) {
