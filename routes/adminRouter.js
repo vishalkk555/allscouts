@@ -16,17 +16,17 @@ const {userAuth,adminAuth} = require("../middlewares/auth")
 router.get('/pageerror',adminController.pageerror)
 router.get("/login",adminController.loadLogin)
 router.post("/login",adminController.login)
-router.post("/logout", adminController.logout)
+router.post("/logout", adminAuth , adminController.logout)
 router.get("/",adminAuth,adminController.loadDashboard);
 
 // Category Management
 router.get("/addCategory", adminAuth,categoryController.loadAddCategory);
 router.post("/addCategory", adminAuth, categoryController.addCategory);
-router.get('/editCategories/:id', categoryController.editCategory);
-router.put('/updateCategories/:id', categoryController.updateCategory);
-router.post('/categories/block/:id', categoryController.blockCategory);
-router.post('/categories/unblock/:id', categoryController.unblockCategory);
-router.get('/api/categories', categoryController.getCategoriesAPI);
+router.get('/editCategories/:id', adminAuth ,categoryController.editCategory);
+router.put('/updateCategories/:id', adminAuth , categoryController.updateCategory);
+router.post('/categories/block/:id', adminAuth ,categoryController.blockCategory);
+router.post('/categories/unblock/:id', adminAuth ,categoryController.unblockCategory);
+router.get('/api/categories', adminAuth, categoryController.getCategoriesAPI);
 router.get("/categories", adminAuth, categoryController.categoryInfo);
 
 
@@ -38,9 +38,9 @@ router.get('/api/categories/active', adminAuth, categoryController.getActiveCate
 router.get('/editProduct/:id',adminAuth, productController.editProduct);
 router.put('/api/products/:id', adminAuth, upload.array('images', 10), productController.updateProduct);
 router.get('/products',adminAuth ,productController.listProducts)
-router.get('/api/products',productController.getProductsAPI)
-router.post('/products/block/:id',productController.blockProduct)
-router.post('/products/unblock/:id',productController.unblockProduct)
+router.get('/api/products', adminAuth ,productController.getProductsAPI)
+router.post('/products/block/:id', adminAuth ,productController.blockProduct)
+router.post('/products/unblock/:id', adminAuth ,productController.unblockProduct)
 
 
 //Customer Management
@@ -55,7 +55,7 @@ router.get('/orders' ,adminAuth, orderController.ordersListPage)
 // GET /admin/orders/:id - Order details page
 router.get('/orders/:id', adminAuth, orderController.orderDetailsPage);
 // POST /admin/orders/:id/update - Update order details
-router.post('/orders/:id/update',  orderController.updateOrderDetails);
+router.post('/orders/:id/update', adminAuth , orderController.updateOrderDetails);
 // POST /admin/orders/:id/return-request/:itemId - Handle return request
 router.post('/orders/:id/return-request/:itemId', orderController.handleReturnRequest);
 
@@ -63,26 +63,25 @@ router.post('/orders/:id/return-request/:itemId', orderController.handleReturnRe
 //Coupon Management
 router.get('/coupons',adminAuth,couponController.getCouponPage)
 router.get('/coupons/addCoupon',adminAuth,couponController.getAddCoupon)
-router.post('/coupons/addCoupon',couponController.createCoupon)
-router.patch('/coupons/toggle-status/:id',  couponController.toggleCouponStatus);
+router.post('/coupons/addCoupon', adminAuth ,couponController.createCoupon)
+router.patch('/coupons/toggle-status/:id', adminAuth , couponController.toggleCouponStatus);
 router.get('/coupons/edit/:id',adminAuth,couponController.getEditCoupon)
-router.put('/coupons/edit/:id',couponController.updateCoupon)
+router.put('/coupons/edit/:id', adminAuth ,couponController.updateCoupon)
 
 
 //Offer Management
 router.get("/offers",adminAuth,offerController.getOffersPage)
-router.patch('/offers/toggle-status/:id',  offerController.toggleOfferStatus);
+router.patch('/offers/toggle-status/:id', adminAuth , offerController.toggleOfferStatus);
 router.get("/offers/addOffer",adminAuth,offerController.getAddOfferPage)
-router.post("/offers/addOffer", offerController.createOffer)
+router.post("/offers/addOffer", adminAuth , offerController.createOffer)
 router.get('/offers/editOffer/:id',adminAuth,offerController.getEditOfferPage)
-router.put('/offers/editOffer/:id',offerController.updateOffer)
+router.put('/offers/editOffer/:id', adminAuth ,offerController.updateOffer)
 
 
 // Admin Dashboard
 router.get('/dashboard', adminAuth, salesreportController.getDashboard);
-// API routes
-router.get('/api/dashboard-data',  salesreportController.getDashboardData);
-router.get('/api/generate-report',  salesreportController.generateSalesReport);
+router.get('/api/dashboard-data',  adminAuth ,salesreportController.getDashboardData);
+router.get('/api/generate-report', adminAuth , salesreportController.generateSalesReport);
 
 
 
